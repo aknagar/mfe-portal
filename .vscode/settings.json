@@ -1,24 +1,24 @@
 {
   "chat.tools.terminal.autoApprove": { 
-    "^git push.*": false,
-    "^git reset.*": false,
-    "^git clean.*": false,
-    "^git force-push.*": false,
-    "^git revert.*": false,
+    "git push": false,
+    "git reset": false,
+    "git clean": false,
+    "git force-push": false,
+    "git revert": false,
 
-    "^rm -rf.*": false,
-    "^rm -r.*": false,
-    "^rmdir /s.*": false,
-    "^del /s.*": false,
-    "^Remove-Item.*-Recurse.*": false,
+    "rm -rf": false,
+    "rm -r": false,
+    "rmdir /s": false,
+    "del /s": false,
+    "Remove-Item.*-Recurse": false,
 
-    "^npm uninstall.*--save.*": false,
-    "^pnpm remove.*": false,
-    "^yarn remove.*": false,
+    "npm uninstall.*--save": false,
+    "pnpm remove": false,
+    "yarn remove": false,
 
-    "^npm run migrate.*": false,
-    "^npm run drop.*": false,
-    "^npm run truncate.*": false,
+    "npm run migrate": false,
+    "npm run drop": false,
+    "npm run truncate": false,
 
     "/.*/": true
   }
