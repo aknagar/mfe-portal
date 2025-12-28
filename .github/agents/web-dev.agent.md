@@ -1,3 +1,8 @@
+---
+model: gemini-3-pro-preview
+preferredModel: gemini-3-pro-preview
+---
+
 # Micro-Frontend Admin Portal - AI Coding Guidelines
 
 ## Project Overview
