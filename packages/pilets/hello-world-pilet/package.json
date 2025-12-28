@@ -20,18 +20,17 @@
     "version": "1.9.2"
   },
   "devDependencies": {
-    "portal-shell": "file:../../shell/dist",
-    "piral-cli": "^1.5.0",
-    "piral-cli-vite6": "^1.1.3",
     "@types/react": "^18.2.42",
     "@types/react-dom": "^18.2.17",
+    "piral-cli": "^1.5.0",
+    "portal-shell": "file:../../shell/dist",
     "typescript": "^5.3.2"
   },
   "peerDependencies": {
+    "portal-shell": "file:../../shell/dist",
     "react": "*",
     "react-dom": "*",
     "react-router": "*",
-    "react-router-dom": "*",
-    "portal-shell": "*"
+    "react-router-dom": "*"
   }
 }

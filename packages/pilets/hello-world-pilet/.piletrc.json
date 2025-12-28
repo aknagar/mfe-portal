@@ -1,7 +1,10 @@
 {
   "schema": "v1",
+  "base": "../../shell",
   "piralInstances": {
-    "portal-shell": {}
+    "portal-shell": {
+      "path": "../../shell/dist"
+    }
   },
   "externals": [
     "portal-shell/**"

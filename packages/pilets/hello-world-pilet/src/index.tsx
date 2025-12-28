@@ -1,7 +1,11 @@
 import * as React from 'react';
 import type { PiletApi } from 'portal-shell';
-import { setup as helloWorldSetup } from './HelloWorld';
+import { HelloWorld } from './HelloWorld';
 
 export function setup(api: PiletApi) {
-  helloWorldSetup(api);
+  api.registerPage('/hello-world', HelloWorld, {
+    meta: {
+      title: 'Hello World Page',
+    },
+  });
 }

@@ -1,14 +1,13 @@
-import * as React from 'react';
-import { PiletApi } from "portal-shell";
+import React from 'react';
 
-const HelloWorldPage: React.FC = () => {
-  return <div>Hello, Piral!</div>;
+export const HelloWorld = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Hello World</h1>
+      <p className="text-lg">Welcome to the Hello World pilet!</p>
+      <p className="mt-2 text-muted-foreground">
+        This is a micro-frontend module loaded into the Piral shell.
+      </p>
+    </div>
+  );
 };
-
-export function setup(app: PiletApi) {
-  app.registerPage('/hello-world', HelloWorldPage, {
-    meta: {
-      title: 'Hello World Page',
-    },
-  });
-}
