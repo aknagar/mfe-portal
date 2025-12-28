@@ -1,0 +1,59 @@
+{
+  "name": "portal-shell",
+  "version": "1.0.0",
+  "description": "Piral Admin Portal with shadcn UI",
+  "scripts": {
+    "start": "piral debug --port 1234",
+    "build": "piral build",
+    "validate": "piral validate"
+  },
+  "app": "src/index.html",
+  "pilets": {
+    "externals": [],
+    "files": [
+      "./src/components/**/*.{ts,tsx}",
+      "./src/lib/**/*.{ts,tsx}",
+      "../pilets/**/*.{ts,tsx}"
+    ],
+    "scripts": {
+      "components/ui/button": "./src/components/ui/button.tsx",
+      "components/ui/card": "./src/components/ui/card.tsx",
+      "components/ui/input": "./src/components/ui/input.tsx",
+      "components/ui/label": "./src/components/ui/label.tsx",
+      "components/ui/select": "./src/components/ui/select.tsx",
+      "components/ui/tabs": "./src/components/ui/tabs.tsx",
+      "components/ui/textarea": "./src/components/ui/textarea.tsx"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.42",
+    "@types/react-dom": "^18.2.17",
+    "@types/react-router-dom": "^5.3.3",
+    "autoprefixer": "^10.4.16",
+    "piral-cli": "^1.5.0",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "@azure/msal-browser": "^4.27.0",
+    "@azure/msal-react": "^3.0.23",
+    "@radix-ui/react-dropdown-menu": "^2.0.6",
+    "@radix-ui/react-label": "^2.0.2",
+    "@radix-ui/react-select": "^2.0.0",
+    "@radix-ui/react-slot": "^1.0.2",
+    "@radix-ui/react-tabs": "^1.0.4",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.294.0",
+    "piral": "^1.9.2",
+    "piral-core": "^1.9.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router": "^5.3.4",
+    "react-router-dom": "^5.3.4",
+    "tailwind-merge": "^2.1.0",
+    "tailwindcss-animate": "^1.0.7"
+  }
+}
