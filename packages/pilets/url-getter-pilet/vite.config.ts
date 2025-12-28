@@ -4,7 +4,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       external: [
-        /^portal-shell\/.*/,
+        /^mfe-portal-shell\/.*/,
         'react',
         'react-dom',
         'react-router',

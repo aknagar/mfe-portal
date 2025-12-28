@@ -1,5 +1,5 @@
 {
-  "name": "portal-shell",
+  "name": "mfe-portal-shell",
   "version": "1.0.0",
   "description": "Microfrontend Portal shell built with Piral and shadcn UI",
   "scripts": {

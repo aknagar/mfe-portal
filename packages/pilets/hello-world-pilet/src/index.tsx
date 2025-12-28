@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { PiletApi } from 'portal-shell';
+import type { PiletApi } from 'mfe-portal-shell';
 import { HelloWorld } from './HelloWorld';
 
 export function setup(api: PiletApi) {

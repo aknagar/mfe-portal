@@ -15,12 +15,12 @@
     "dist"
   ],
   "piral": {
-    "name": "portal-shell",
+    "name": "mfe-portal-shell",
     "tooling": "1.9.2",
     "version": "1.9.2"
   },
   "devDependencies": {
-    "portal-shell": "file:../../shell/dist/emulator/portal-shell-1.0.0.tgz",
+    "mfe-portal-shell": "file:../../shell/dist/emulator/mfe-portal-shell-1.0.0.tgz",
     "piral-cli": "^1.9.2",
     "piral-cli-vite": "latest",
     "vite": "^6.0.0",

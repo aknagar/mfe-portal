@@ -15,7 +15,7 @@
     "dist"
   ],
   "piral": {
-    "name": "portal-shell",
+    "name": "mfe-portal-shell",
     "tooling": "1.9.2",
     "version": "1.9.2"
   },
@@ -25,11 +25,11 @@
     "piral-cli": "^1.9.2",
     "piral-cli-vite": "latest",
     "vite": "^6.0.0",
-    "portal-shell": "file:../../shell/dist/emulator/portal-shell-1.0.0.tgz",
+    "mfe-portal-shell": "file:../../shell/dist/emulator/mfe-portal-shell-1.0.0.tgz",
     "typescript": "^5.3.2"
   },
   "peerDependencies": {
-    "portal-shell": "file:../../shell/dist/emulator/portal-shell-1.0.0.tgz",
+    "mfe-portal-shell": "file:../../shell/dist/emulator/mfe-portal-shell-1.0.0.tgz",
     "react": "*",
     "react-dom": "*",
     "react-router": "*",

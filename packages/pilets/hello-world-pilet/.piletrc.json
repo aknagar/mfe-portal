@@ -2,11 +2,11 @@
   "schema": "v1",
   "base": "../../shell",
   "piralInstances": {
-    "portal-shell": {
+    "mfe-portal-shell": {
       "path": "../../shell/dist"
     }
   },
   "externals": [
-    "portal-shell/**"
+    "mfe-portal-shell/**"
   ]
 }
