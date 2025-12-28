@@ -1,0 +1,22 @@
+{
+  "name": "url-getter-pilet",
+  "sourceRoot": "packages/pilets/url-getter-pilet/src",
+  "projectType": "application",
+  "targets": {
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm start",
+        "cwd": "packages/pilets/url-getter-pilet"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pilet build",
+        "cwd": "packages/pilets/url-getter-pilet"
+      },
+      "outputs": ["{projectRoot}/dist"]
+    }
+  }
+}
