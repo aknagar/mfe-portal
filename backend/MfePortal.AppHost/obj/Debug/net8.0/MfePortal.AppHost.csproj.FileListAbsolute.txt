@@ -1,0 +1,8 @@
+E:\Repos\my\github\mfe-portal\backend\MfePortal.AppHost\obj\Debug\net8.0\MfePortal.AppHost.csproj.AssemblyReference.cache
+E:\Repos\my\github\mfe-portal\backend\MfePortal.AppHost\obj\Debug\net8.0\MfePortal.AppHost.GeneratedMSBuildEditorConfig.editorconfig
+E:\Repos\my\github\mfe-portal\backend\MfePortal.AppHost\obj\Debug\net8.0\MfePortal.AppHost.AssemblyInfoInputs.cache
+E:\Repos\my\github\mfe-portal\backend\MfePortal.AppHost\obj\Debug\net8.0\MfePortal.AppHost.AssemblyInfo.cs
+E:\Repos\my\github\mfe-portal\backend\MfePortal.AppHost\obj\Debug\net8.0\MfePortal.AppHost.csproj.CoreCompileInputs.cache
+E:\Repos\my\github\mfe-portal\backend\MfePortal.AppHost\obj\Debug\net8.0\Aspire\references\.ProjectMetadata.g.cs
+E:\Repos\my\github\mfe-portal\backend\MfePortal.AppHost\obj\Debug\net8.0\Aspire\references\_AppHost.ProjectMetadata.g.cs
+E:\Repos\my\github\mfe-portal\backend\MfePortal.AppHost\obj\Debug\net8.0\MfePortal.AppHost.sourcelink.json

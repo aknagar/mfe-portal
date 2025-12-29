@@ -1,0 +1,13 @@
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\bin\Debug\net8.0\MfePortal.ServiceDefaults.deps.json
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\bin\Debug\net8.0\MfePortal.ServiceDefaults.dll
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\bin\Debug\net8.0\MfePortal.ServiceDefaults.pdb
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\obj\Debug\net8.0\MfePortal.ServiceDefaults.csproj.AssemblyReference.cache
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\obj\Debug\net8.0\MfePortal.ServiceDefaults.GeneratedMSBuildEditorConfig.editorconfig
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\obj\Debug\net8.0\MfePortal.ServiceDefaults.AssemblyInfoInputs.cache
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\obj\Debug\net8.0\MfePortal.ServiceDefaults.AssemblyInfo.cs
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\obj\Debug\net8.0\MfePortal.ServiceDefaults.csproj.CoreCompileInputs.cache
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\obj\Debug\net8.0\MfePortal.ServiceDefaults.sourcelink.json
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\obj\Debug\net8.0\MfePortal.ServiceDefaults.dll
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\obj\Debug\net8.0\refint\MfePortal.ServiceDefaults.dll
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\obj\Debug\net8.0\MfePortal.ServiceDefaults.pdb
+E:\Repos\my\github\mfe-portal\backend\MfePortal.ServiceDefaults\obj\Debug\net8.0\ref\MfePortal.ServiceDefaults.dll
