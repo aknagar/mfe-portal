@@ -1,5 +1,5 @@
 ---
-name: dotnet-openapi
+name: dotnet-api-documenter
 description: Adds OpenAPI standards (Swagger) documentation to .NET ASP.NET Core APIs with Scalar UI or Swagger UI. Configures Swashbuckle, generates OpenAPI specs, and sets up interactive API documentation endpoints.
 ---
 
