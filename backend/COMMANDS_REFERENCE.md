@@ -134,21 +134,68 @@ azd auth login
 azd config set core.allow_telemetry true
 
 # Deploy to Test Environment
-azd env select test
-azd provision              # Provision Azure resources (one-time)
-azd deploy                 # Deploy application code
+cd backend
+azd env select test              # Select test environment
+azd provision                    # Provision Azure resources (one-time)
+azd deploy                       # Deploy application code
 
 # Deploy to Production Environment
-azd env select prod
-azd provision              # Provision Azure resources (one-time)
-azd deploy                 # Deploy application code
+azd env select prod              # Select prod environment
+azd provision                    # Provision Azure resources (one-time)
+azd deploy                       # Deploy application code
 
-# Monitor deployment progress
-azd up                     # Run provision + deploy together
+# Complete deployment (provision + deploy)
+azd up                           # Run provision + deploy together
 
 # Tear down environment (cleanup)
-azd down                   # Remove all Azure resources
-azd env remove             # Remove environment configuration
+azd down                         # Remove all Azure resources
+azd env remove                   # Remove environment configuration
+```
+
+### Complete Test Deployment Example (What We Just Did)
+
+```bash
+# 1. Navigate to backend directory
+cd "e:\Repos\my\github\mfe-portal\backend"
+
+# 2. Select test environment
+azd env select test
+
+# 3. Configure environment variables (in .azure/test/.env)
+# ASPNETCORE_ENVIRONMENT="Production"
+# AZURE_ENV_NAME="test"
+# AZURE_LOCATION="centralindia"
+# AZURE_CONTAINER_REGISTRY_ENDPOINT="acrescmmynaae3lk.azurecr.io"
+
+# 4. Provision Azure resources
+azd provision
+# Creates:
+# - Resource Group: rg-mfe-test
+# - Container Apps Environment: cae-escmmynaae3lk
+# - Container Registry: acrescmmynaae3lk
+# - Key Vault: kv-escmmynaae3lk
+# - Azure Cache for Redis: redis-escmmynaae3lk
+# - Log Analytics Workspace: log-escmmynaae3lk
+# - Managed Identity: id-escmmynaae3lk
+# - Deployment time: ~1 minute 14 seconds
+
+# 5. Deploy application to Container Apps
+azd deploy
+# - Builds Docker image
+# - Pushes to Container Registry (acrescmmynaae3lk.azurecr.io)
+# - Updates Container App revision
+# - Live endpoint: https://augmentservice-escmmynaae3lk.thankfulglacier-32ba58b3.centralindia.azurecontainerapps.io/
+# - Deployment time: ~41 seconds
+
+# 6. View all deployed resources
+azd show
+
+# 7. Monitor application logs
+azd logs
+azd logs --follow  # Real-time logs
+
+# 8. Test the deployed endpoint
+Invoke-WebRequest -Uri "https://augmentservice-escmmynaae3lk.thankfulglacier-32ba58b3.centralindia.azurecontainerapps.io/" -SkipCertificateCheck
 ```
 
 ### Environment Monitoring
@@ -184,6 +231,42 @@ cat backend/infra/parameters.prod.json
 azd env set PARAMETER_NAME value
 ```
 
+### Selecting Azure Region
+
+For users in **India**, the recommended regions are:
+
+```bash
+# Central India (Pune) - RECOMMENDED for lowest latency
+azd env set AZURE_LOCATION "centralindia"
+
+# South India (Chennai)
+azd env set AZURE_LOCATION "southindia"
+
+# West India (Mumbai)
+azd env set AZURE_LOCATION "westindia"
+
+# For other regions, use standard Azure location codes
+azd env set AZURE_LOCATION "eastus"      # East US
+azd env set AZURE_LOCATION "westeurope"  # West Europe
+azd env set AZURE_LOCATION "southeastasia" # Southeast Asia
+```
+
+### Container Registry Configuration
+
+```bash
+# Set container registry endpoint (required for azd deploy)
+azd env set AZURE_CONTAINER_REGISTRY_ENDPOINT "yourregistry.azurecr.io"
+
+# Example with actual registry
+azd env set AZURE_CONTAINER_REGISTRY_ENDPOINT "acrescmmynaae3lk.azurecr.io"
+
+# Create new container registry (if needed)
+az acr create --resource-group rg-mfe-test --name mferegistryindia --sku Basic --location centralindia
+
+# Get registry URL
+az acr show --name mferegistryindia --query loginServer
+```
+
 ### Environment-Specific Variables
 
 ```bash
@@ -191,13 +274,20 @@ azd env set PARAMETER_NAME value
 azd env set AZURE_SUBSCRIPTION_ID "your-subscription-id"
 
 # Set Azure location
-azd env set AZURE_LOCATION "eastus"
+azd env set AZURE_LOCATION "centralindia"
 
 # Set Azure tenant ID
 azd env set AZURE_TENANT_ID "your-tenant-id"
 
+# Set container registry endpoint
+azd env set AZURE_CONTAINER_REGISTRY_ENDPOINT "yourregistry.azurecr.io"
+
 # View all environment variables
 azd env show
+
+# View environment file contents
+cat .azure/test/.env
+cat .azure/prod/.env
 ```
 
 ---
@@ -252,6 +342,21 @@ az containerapp logs show --name augmentservice-test --resource-group rg-mfe-tes
 
 # Test deployed API endpoint
 Invoke-WebRequest -Uri "https://<container-app-url>/scalar/v1" -SkipCertificateCheck
+
+# Check which subscription will be deployed to
+az account show --query "{SubscriptionId:id, SubscriptionName:name, Tenant:tenantId}"
+
+# List all subscriptions
+az account list --output table
+
+# Get deployment details
+azd show
+
+# View resource group
+az group show --name rg-mfe-test --output table
+
+# List all resources in resource group
+az resource list --resource-group rg-mfe-test --output table
 ```
 
 ---
@@ -437,7 +542,42 @@ This reference guide covers:
 - ✅ .NET build and run commands
 - ✅ Azure Developer CLI (azd) deployment workflow
 - ✅ Environment configuration and switching
+- ✅ Azure region selection (optimized for India)
+- ✅ Container registry setup
 - ✅ API endpoint verification
+- ✅ Deployment subscription verification
 - ✅ Common troubleshooting commands
+
+### Quick Deployment Steps
+
+```bash
+# 1. Navigate to backend
+cd backend
+
+# 2. Select environment
+azd env select test
+
+# 3. Provision Azure resources
+azd provision
+
+# 4. Deploy application
+azd deploy
+
+# 5. View endpoint
+azd show
+```
+
+### Key Resources Created
+
+| Resource | Test Name | Purpose |
+|----------|-----------|---------|
+| Resource Group | `rg-mfe-test` | Container for all resources |
+| Container Apps Environment | `cae-escmmynaae3lk` | Managed Kubernetes-like service |
+| Container Registry | `acrescmmynaae3lk` | Docker image storage |
+| Redis Cache | `redis-escmmynaae3lk` | State store & pub/sub |
+| Key Vault | `kv-escmmynaae3lk` | Secrets management |
+| Log Analytics | `log-escmmynaae3lk` | Application monitoring |
+| Managed Identity | `id-escmmynaae3lk` | RBAC for resource access |
+| Container App | `augmentservice-escmmynaae3lk` | Running application |
 
 For detailed deployment procedures, refer to [DEPLOYMENT_QUICK_START.md](DEPLOYMENT_QUICK_START.md) or [infra/ENVIRONMENTS.md](infra/ENVIRONMENTS.md).
