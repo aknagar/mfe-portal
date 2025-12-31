@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AugmentService\AugmentService\AugmentService.csproj" />
+    <ProjectReference Include="..\AugmentService\AugmentService.Api\AugmentService.Api.csproj" />
     <ProjectReference Include="..\AugmentService\AugmentService.Core\AugmentService.Core.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\AugmentService\AugmentService.Application\AugmentService.Application.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\AugmentService\AugmentService.Infrastructure\AugmentService.Infrastructure.csproj" IsAspireProjectResource="false" />
