@@ -1,0 +1,42 @@
+name: mfe-portal
+metadata:
+  template: mfe-portal-azure
+  version: 1.0.0
+  description: Micro Frontend Portal with Dapr on Azure Container Apps
+  author: MFE Team
+
+services:
+  backend:
+    project: ./AugmentService
+    docker:
+      path: ./AugmentService/Dockerfile
+      context: .
+      target: publish
+    host: containerAppService
+
+hooks:
+  preprovision:
+    - azd env set ASPNETCORE_ENVIRONMENT Production
+    - azd env set CONTAINER_REGISTRY_ENDPOINT ${AZURE_CONTAINER_REGISTRY_ENDPOINT}
+  postprovision:
+    - azd env set AUGMENTSERVICE_ENDPOINT ${SERVICE_AUGMENTSERVICE_ENDPOINT}
+  prepackage:
+    - echo "Building Docker image..."
+  postpackage:
+    - echo "Deployment package prepared"
+
+infra:
+  path: ./infra
+  module: main
+
+variables:
+  AZURE_CONTAINER_REGISTRY_ENDPOINT: ${CONTAINER_REGISTRY_ENDPOINT}
+  SERVICE_AUGMENTSERVICE_ENDPOINT: ${AUGMENTSERVICE_ENDPOINT}
+
+environments:
+  default:
+    resourceGroup: rg-mfe-${AZURE_ENV_NAME}
+    containerApps:
+      - name: augmentservice
+        source: ./AugmentService
+        dockerfile: ./Dockerfile

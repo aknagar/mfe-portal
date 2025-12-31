@@ -1,0 +1,35 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: "{REDIS_HOST}:{REDIS_PORT}"
+  - name: redisPassword
+    secretRef: redis-password
+  - name: actorStateStore
+    value: "true"
+  - name: tlsEnabled
+    value: "true"
+  - name: tlsMinVersion
+    value: "1.2"
+---
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: "{REDIS_HOST}:{REDIS_PORT}"
+  - name: redisPassword
+    secretRef: redis-password
+  - name: tlsEnabled
+    value: "true"
+  - name: tlsMinVersion
+    value: "1.2"
