@@ -40,6 +40,13 @@ param daprGrpcPort int = 50001
 var resourceToken = uniqueString(resourceGroup().id)
 var tags = { 'azd-env-name': environmentName }
 
+// User-Managed Identity for all services
+resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: 'id-${resourceToken}'
+  location: location
+  tags: tags
+}
+
 // Log Analytics workspace
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: 'log-${resourceToken}'
@@ -116,6 +123,31 @@ resource redis 'Microsoft.Cache/redis@2023-04-01' = {
   }
 }
 
+// Azure Key Vault for secrets management
+resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
+  name: 'kv-${resourceToken}'
+  location: location
+  tags: tags
+  properties: {
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+    tenantId: subscription().tenantId
+    enableRbacAuthorization: true
+    publicNetworkAccess: 'Enabled'
+  }
+}
+
+// Store Redis connection string in Key Vault
+resource redisConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: keyVault
+  name: 'RedisConnectionString'
+  properties: {
+    value: '${redis.properties.hostName}:${redis.properties.port}?ssl=True&password=${redis.listKeys().primaryKey}'
+  }
+}
+
 // Outputs
 output containerAppsEnvironmentId string = containerAppsEnvironment.id
 output containerAppsEnvironmentName string = containerAppsEnvironment.name
@@ -124,4 +156,11 @@ output containerRegistryName string = containerRegistry.name
 output redisPrimaryConnectionString string = '${redis.properties.hostName}:${redis.properties.port}?ssl=True'
 output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
 output logAnalyticsWorkspaceName string = logAnalyticsWorkspace.name
+output keyVaultId string = keyVault.id
+output keyVaultName string = keyVault.name
+output keyVaultUri string = keyVault.properties.vaultUri
+output redisConnectionStringSecretId string = redisConnectionStringSecret.id
+output managedIdentityId string = managedIdentity.id
+output managedIdentityPrincipalId string = managedIdentity.properties.principalId
+output managedIdentityName string = managedIdentity.name
 output resourceToken string = resourceToken

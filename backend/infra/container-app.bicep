@@ -37,11 +37,32 @@ param resourceToken string
 @description('Environment name')
 param environmentName string
 
+@description('Key Vault name for secret retrieval')
+param keyVaultName string
+
+@description('Key Vault resource ID')
+param keyVaultResourceId string
+
+@description('Key Vault URI')
+param keyVaultUri string
+
+@description('User-Assigned Managed Identity Resource ID')
+param managedIdentityId string
+
+@description('User-Assigned Managed Identity Principal ID')
+param managedIdentityPrincipalId string
+
 var tags = { 'azd-env-name': environmentName }
 
 // Get reference to Container Apps Environment
 resource containerAppsEnv 'Microsoft.App/managedEnvironments@2023-04-01-preview' existing = {
   name: containerAppsEnvironmentName
+  scope: resourceGroup(resourceGroupName)
+}
+
+// Get reference to Key Vault
+resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
+  name: keyVaultName
   scope: resourceGroup(resourceGroupName)
 }
 
@@ -51,7 +72,10 @@ resource augmentServiceApp 'Microsoft.App/containerApps@2023-04-01-preview' = {
   location: location
   tags: tags
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentityId}': {}
+    }
   }
   properties: {
     environmentId: containerAppsEnv.id
@@ -77,7 +101,8 @@ resource augmentServiceApp 'Microsoft.App/containerApps@2023-04-01-preview' = {
       secrets: [
         {
           name: 'redis-connection-string'
-          value: redisConnectionString
+          keyVaultUrl: '${keyVaultUri}secrets/RedisConnectionString'
+          identity: 'System'
         }
       ]
     }
@@ -132,8 +157,21 @@ resource augmentServiceApp 'Microsoft.App/containerApps@2023-04-01-preview' = {
   }
 }
 
+// Grant Managed Identity permission to read secrets from Key Vault
+// Role ID: 4633458b-17de-408a-b874-0445c86b69e6 = Key Vault Secrets User
+resource keyVaultSecretsAccessRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: keyVault
+  name: guid(keyVault.id, managedIdentityPrincipalId, '4633458b-17de-408a-b874-0445c86b69e6')
+  properties: {
+    principalId: managedIdentityPrincipalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+  }
+}
+
 // Outputs
 output fqdn string = augmentServiceApp.properties.configuration.ingress.fqdn
 output containerAppId string = augmentServiceApp.id
 output containerAppName string = augmentServiceApp.name
-output systemAssignedIdentityPrincipalId string = augmentServiceApp.identity.principalId
+output managedIdentityId string = managedIdentityId
+output managedIdentityPrincipalId string = managedIdentityPrincipalId
