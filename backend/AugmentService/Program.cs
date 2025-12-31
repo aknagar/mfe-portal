@@ -1,11 +1,15 @@
+using AugmentService.Application.Interfaces;
+using AugmentService.Infrastructure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Minimal local service defaults (don't rely on external extension methods)
+// Register infrastructure services (dependency injection for clean architecture)
+builder.Services.AddInfrastructureServices();
+
+// Minimal local service defaults
 builder.Services.AddHttpClient();
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy(), new[] { "live" });
@@ -19,10 +23,9 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "Augment Service API",
         Version = "v1",
-        Description = "Service for augmenting and proxying external requests"
+        Description = "Service for augmenting and proxying external requests with Clean Architecture"
     });
 
-    // Include XML comments for documentation
     var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     if (File.Exists(xmlPath))
@@ -30,8 +33,6 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
-
-// Map basic health endpoints (only enabled in Development below)
 
 // Serve static files (for docs UI)
 app.UseDefaultFiles();
@@ -44,29 +45,26 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 
-    // Health endpoints used in development
     app.MapHealthChecks("/health");
     app.MapHealthChecks("/alive", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
     {
         Predicate = r => r.Tags.Contains("live")
     });
 
-    // Server-side Scalar UI integration (requires Scalar.AspNetCore package)
     app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
 
-app.MapGet("/proxy", async (string url, HttpClient httpClient, ILogger<Program> logger) =>
+// Map proxy endpoint using the IProxyService from application layer
+app.MapGet("/proxy", async (string url, IProxyService proxyService, ILogger<Program> logger) =>
 {
-    logger.LogInformation("Proxying request to {Url}", url);
-    try 
+    logger.LogInformation("Proxying GET request to {Url}", url);
+    try
     {
-        var response = await httpClient.GetAsync(url);
-        logger.LogInformation("Received response from {Url} with status code {StatusCode}", url, response.StatusCode);
+        var response = await proxyService.ProxyRequestAsync(url, HttpMethod.Get, null);
+        logger.LogInformation("Proxy response received with status {StatusCode}", response.StatusCode);
         
-        // For documentation purposes we declare a scalar string result.
-        // In practice we stream the content and return the original content type when available.
         var contentType = response.Content.Headers.ContentType?.ToString() ?? "text/plain";
         if (contentType.StartsWith("text/") || contentType == "application/json")
         {
@@ -84,10 +82,27 @@ app.MapGet("/proxy", async (string url, HttpClient httpClient, ILogger<Program> 
     }
 })
 .WithName("ProxyRequest")
-.WithSummary("Proxy HTTP request to external URL")
-.WithDescription("Forwards an HTTP GET request to an external URL and returns the response content with the original content type. Supports both text-based and binary responses.")
+.WithSummary("Proxy HTTP GET request to external URL")
+.WithDescription("Forwards an HTTP GET request to an external URL and returns the response content with the original content type.")
 .WithOpenApi()
 .Produces(StatusCodes.Status200OK)
 .Produces(StatusCodes.Status500InternalServerError);
+
+// Health check endpoint
+app.MapGet("/health-details", async (IProxyService proxyService) =>
+{
+    var urlValidation = await proxyService.ValidateUrlAsync("https://httpbin.org/get");
+    return Results.Json(new
+    {
+        status = "healthy",
+        service = "AugmentService",
+        architecture = "Clean Architecture",
+        layers = new[] { "Core", "Application", "Infrastructure", "API" },
+        uptime = DateTime.UtcNow
+    });
+})
+.WithName("HealthDetails")
+.WithSummary("Get detailed health information")
+.WithOpenApi();
 
 app.Run();
