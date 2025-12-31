@@ -62,6 +62,21 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10
   }
 }
 
+// Application Insights
+resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: 'appi-${resourceToken}'
+  location: location
+  tags: tags
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    RetentionInDays: 30
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+    WorkspaceResourceId: logAnalyticsWorkspace.id
+  }
+}
+
 // Container Registry
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
   name: 'acr${resourceToken}'
@@ -160,7 +175,6 @@ resource keyVaultSecretsAccessRole 'Microsoft.Authorization/roleAssignments@2022
   }
 }
 
-// Outputs
 output containerAppsEnvironmentId string = containerAppsEnvironment.id
 output containerAppsEnvironmentName string = containerAppsEnvironment.name
 output containerRegistryUrl string = containerRegistry.properties.loginServer
@@ -168,6 +182,8 @@ output containerRegistryName string = containerRegistry.name
 output redisPrimaryConnectionString string = '${redis.properties.hostName}:${redis.properties.port}?ssl=True'
 output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
 output logAnalyticsWorkspaceName string = logAnalyticsWorkspace.name
+output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
+output applicationInsightsInstrumentationKey string = applicationInsights.properties.InstrumentationKey
 output keyVaultId string = keyVault.id
 output keyVaultName string = keyVault.name
 output keyVaultUri string = keyVault.properties.vaultUri

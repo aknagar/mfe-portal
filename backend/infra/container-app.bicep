@@ -52,6 +52,12 @@ param managedIdentityId string
 @description('User-Assigned Managed Identity Principal ID')
 param managedIdentityPrincipalId string
 
+@description('Application Insights Connection String')
+param applicationInsightsConnectionString string
+
+@description('Application Insights Instrumentation Key')
+param applicationInsightsInstrumentationKey string
+
 var tags = { 'azd-env-name': environmentName, 'azd-service-name': 'backend' }
 
 // Get reference to Container Apps Environment
@@ -131,6 +137,10 @@ resource augmentServiceApp 'Microsoft.App/containerApps@2023-04-01-preview' = {
             {
               name: 'DAPR_GRPC_ENDPOINT'
               value: daprGrpcEndpoint
+            }
+            {
+              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+              value: applicationInsightsConnectionString
             }
             {
               name: 'REDIS_CONNECTION_STRING'

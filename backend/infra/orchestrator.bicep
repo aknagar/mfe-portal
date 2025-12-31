@@ -75,6 +75,8 @@ module augmentService 'container-app.bicep' = {
     keyVaultUri: infrastructure.outputs.keyVaultUri
     managedIdentityId: infrastructure.outputs.managedIdentityId
     managedIdentityPrincipalId: infrastructure.outputs.managedIdentityPrincipalId
+    applicationInsightsConnectionString: infrastructure.outputs.applicationInsightsConnectionString
+    applicationInsightsInstrumentationKey: infrastructure.outputs.applicationInsightsInstrumentationKey
   }
 }
 
@@ -86,3 +88,5 @@ output augmentServiceFqdn string = augmentService.outputs.fqdn
 output augmentServiceUrl string = 'https://${augmentService.outputs.fqdn}'
 output redisPrimaryConnectionString string = infrastructure.outputs.redisPrimaryConnectionString
 output logAnalyticsWorkspaceId string = infrastructure.outputs.logAnalyticsWorkspaceId
+output applicationInsightsConnectionString string = infrastructure.outputs.applicationInsightsConnectionString
+output applicationInsightsInstrumentationKey string = infrastructure.outputs.applicationInsightsInstrumentationKey
