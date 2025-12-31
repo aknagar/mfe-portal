@@ -70,6 +70,11 @@ module augmentService 'container-app.bicep' = {
     daprGrpcEndpoint: 'http://localhost:${daprGrpcPort}'
     resourceToken: infrastructure.outputs.resourceToken
     environmentName: environmentName
+    keyVaultName: infrastructure.outputs.keyVaultName
+    keyVaultResourceId: infrastructure.outputs.keyVaultId
+    keyVaultUri: infrastructure.outputs.keyVaultUri
+    managedIdentityId: infrastructure.outputs.managedIdentityId
+    managedIdentityPrincipalId: infrastructure.outputs.managedIdentityPrincipalId
   }
 }
 

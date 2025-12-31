@@ -7,27 +7,23 @@ metadata:
 
 services:
   backend:
-    project: ./AugmentService
+    project: ./AugmentService/AugmentService.Api
+    language: dotnet
     docker:
       path: ./AugmentService/Dockerfile
       context: .
       target: publish
-    host: containerAppService
+    host: containerapp
 
 hooks:
   preprovision:
-    - azd env set ASPNETCORE_ENVIRONMENT Production
-    - azd env set CONTAINER_REGISTRY_ENDPOINT ${AZURE_CONTAINER_REGISTRY_ENDPOINT}
+    - run: azd env set ASPNETCORE_ENVIRONMENT Production
   postprovision:
-    - azd env set AUGMENTSERVICE_ENDPOINT ${SERVICE_AUGMENTSERVICE_ENDPOINT}
-  prepackage:
-    - echo "Building Docker image..."
-  postpackage:
-    - echo "Deployment package prepared"
+    - run: echo "Resources provisioned successfully"
 
 infra:
   path: ./infra
-  module: main
+  module: orchestrator
 
 variables:
   AZURE_CONTAINER_REGISTRY_ENDPOINT: ${CONTAINER_REGISTRY_ENDPOINT}

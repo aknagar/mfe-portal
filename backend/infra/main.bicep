@@ -148,6 +148,18 @@ resource redisConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-
   }
 }
 
+// Grant Managed Identity permission to read secrets from Key Vault
+// Role ID: 4633458b-17de-408a-b874-0445c86b69e6 = Key Vault Secrets User
+resource keyVaultSecretsAccessRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: keyVault
+  name: guid(keyVault.id, managedIdentity.id, '4633458b-17de-408a-b874-0445c86b69e6')
+  properties: {
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+  }
+}
+
 // Outputs
 output containerAppsEnvironmentId string = containerAppsEnvironment.id
 output containerAppsEnvironmentName string = containerAppsEnvironment.name

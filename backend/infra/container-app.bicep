@@ -52,7 +52,7 @@ param managedIdentityId string
 @description('User-Assigned Managed Identity Principal ID')
 param managedIdentityPrincipalId string
 
-var tags = { 'azd-env-name': environmentName }
+var tags = { 'azd-env-name': environmentName, 'azd-service-name': 'backend' }
 
 // Get reference to Container Apps Environment
 resource containerAppsEnv 'Microsoft.App/managedEnvironments@2023-04-01-preview' existing = {
@@ -102,7 +102,7 @@ resource augmentServiceApp 'Microsoft.App/containerApps@2023-04-01-preview' = {
         {
           name: 'redis-connection-string'
           keyVaultUrl: '${keyVaultUri}secrets/RedisConnectionString'
-          identity: 'System'
+          identity: managedIdentityId
         }
       ]
     }
@@ -154,18 +154,6 @@ resource augmentServiceApp 'Microsoft.App/containerApps@2023-04-01-preview' = {
         ]
       }
     }
-  }
-}
-
-// Grant Managed Identity permission to read secrets from Key Vault
-// Role ID: 4633458b-17de-408a-b874-0445c86b69e6 = Key Vault Secrets User
-resource keyVaultSecretsAccessRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: keyVault
-  name: guid(keyVault.id, managedIdentityPrincipalId, '4633458b-17de-408a-b874-0445c86b69e6')
-  properties: {
-    principalId: managedIdentityPrincipalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
   }
 }
 
