@@ -6,6 +6,17 @@ package-lock.json
 dist/
 *.tgz
 
+# .NET Build outputs
+bin/
+obj/
+*.user
+*.suo
+*.csproj.user
+
+# NuGet
+packages/
+.nuget/
+
 # Nx
 .nx/cache
 .nx/workspace-data
