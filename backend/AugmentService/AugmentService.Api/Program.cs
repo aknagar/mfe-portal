@@ -13,6 +13,7 @@ using AugmentService.Api.Activities;
 using AugmentService.Infrastructure;
 using AugmentService.Infrastructure.ProductData;
 using AugmentService.Infrastructure.WeatherData;
+using AugmentService.Core.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,6 +78,8 @@ app.MapWeatherUserGroup()
 app.MapNotify();
 
 app.MapControllers();
+
+app.MapProxyEndpoints();
 
 app.UseStaticFiles();
 

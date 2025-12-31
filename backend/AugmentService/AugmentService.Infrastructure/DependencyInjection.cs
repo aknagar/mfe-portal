@@ -1,4 +1,5 @@
 using Application;
+using Application.Proxy;
 using Application.Weather;
 using AugmentService.Core.Interfaces;
 using AugmentService.Infrastructure.Repositories;
@@ -20,6 +21,11 @@ public static class DependencyInjection
         builder.Services.AddScoped<IWeatherRepository, WeatherRepository>();
         
         builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<WeatherDatabaseContext>());
+
+        // Proxy services
+        builder.Services.AddSingleton<IProxyTargetRepository, InMemoryProxyTargetRepository>();
+        builder.Services.AddScoped<IProxyService, ProxyApplicationService>();
+        builder.Services.AddHttpClient<ProxyApplicationService>();
 
         return builder;
     }
