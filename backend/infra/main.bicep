@@ -77,6 +77,99 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
+// Application Insights Dashboard
+resource applicationInsightsDashboard 'Microsoft.Portal/dashboards@2020-09-01-preview' = {
+  name: 'dashboard-${resourceToken}'
+  location: location
+  tags: union(tags, { 'hidden-title': 'Application Insights Dashboard' })
+  properties: {
+    lenses: {
+      '0': {
+        order: 0
+        parts: {
+          '0': {
+            position: {
+              x: 0
+              y: 0
+              rowSpan: 4
+              colSpan: 6
+            }
+            metadata: {
+              inputs: [
+                {
+                  name: 'ComponentId'
+                  value: '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/microsoft.insights/components/${applicationInsights.name}'
+                }
+                {
+                  name: 'Scope'
+                  value: '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/microsoft.insights/components/${applicationInsights.name}'
+                }
+                {
+                  name: 'PartId'
+                  value: '3aa7efc5-f0b5-4ac6-918a-166b10495829'
+                }
+                {
+                  name: 'Version'
+                  value: '1.0'
+                }
+                {
+                  name: 'TimeRange'
+                  value: 'PT1H'
+                }
+                {
+                  name: 'DashboardId'
+                  value: ''
+                }
+              ]
+              type: 'Extension/AppInsightsExtension/PartType/AppMapPartsGaleryPart'
+              settings: {}
+              asset: {
+                idTemplate: '/subscriptions/{sid}/resourceGroups/{rg}/providers/microsoft.insights/components/{cname}'
+              }
+            }
+          }
+        }
+      }
+    }
+    metadata: {
+      model: {
+        timeRange: {
+          value: 'PT1H'
+          type: 'MsPortalFx.Composition.Configuration.ValueTypes.TimeRange'
+        }
+        filterLocale: {
+          value: 'en-us'
+        }
+        filters: {
+          value: {
+            MsPortalFx_TimeRange: {
+              model: {
+                format: 'utc'
+                globalize: true
+                timezone: 'Etc/UTC'
+                isUTC: true
+                endTime: null
+                timeSpanMs: 3600000
+                startTime: null
+                options: {
+                  skipFetchingTodaysForecast: false
+                }
+              }
+              displayCache: {
+                name: 'UTC Time'
+                value: 'Past hour'
+              }
+              filteredPartIds: [
+                '3aa7efc5-f0b5-4ac6-918a-166b10495829/timeRangeFilter'
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 // Container Registry
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
   name: 'acr${resourceToken}'
@@ -184,6 +277,7 @@ output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
 output logAnalyticsWorkspaceName string = logAnalyticsWorkspace.name
 output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
 output applicationInsightsInstrumentationKey string = applicationInsights.properties.InstrumentationKey
+output applicationInsightsDashboardId string = applicationInsightsDashboard.id
 output keyVaultId string = keyVault.id
 output keyVaultName string = keyVault.name
 output keyVaultUri string = keyVault.properties.vaultUri

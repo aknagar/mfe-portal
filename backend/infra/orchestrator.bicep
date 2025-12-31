@@ -90,3 +90,4 @@ output redisPrimaryConnectionString string = infrastructure.outputs.redisPrimary
 output logAnalyticsWorkspaceId string = infrastructure.outputs.logAnalyticsWorkspaceId
 output applicationInsightsConnectionString string = infrastructure.outputs.applicationInsightsConnectionString
 output applicationInsightsInstrumentationKey string = infrastructure.outputs.applicationInsightsInstrumentationKey
+output applicationInsightsDashboardId string = infrastructure.outputs.applicationInsightsDashboardId
