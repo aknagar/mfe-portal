@@ -1,5 +1,5 @@
-using MfePortal.Application.Interfaces;
-using MfePortal.Infrastructure;
+using AugmentService.Application.Interfaces;
+using AugmentService.Infrastructure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;

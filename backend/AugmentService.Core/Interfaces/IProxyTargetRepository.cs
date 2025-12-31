@@ -1,6 +1,6 @@
-using MfePortal.Core.Entities;
+using AugmentService.Core.Entities;
 
-namespace MfePortal.Core.Interfaces;
+namespace AugmentService.Core.Interfaces;
 
 /// <summary>
 /// Repository interface for ProxyTarget entities.

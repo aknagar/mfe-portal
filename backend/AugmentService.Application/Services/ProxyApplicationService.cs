@@ -1,7 +1,7 @@
-using MfePortal.Application.Interfaces;
+using AugmentService.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 
-namespace MfePortal.Application.Services;
+namespace AugmentService.Application.Services;
 
 /// <summary>
 /// Application service for proxy operations - orchestrates business logic.

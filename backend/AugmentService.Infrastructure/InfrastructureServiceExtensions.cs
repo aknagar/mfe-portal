@@ -1,10 +1,10 @@
-using MfePortal.Application.Interfaces;
-using MfePortal.Application.Services;
-using MfePortal.Core.Interfaces;
-using MfePortal.Infrastructure.Repositories;
+using AugmentService.Application.Interfaces;
+using AugmentService.Application.Services;
+using AugmentService.Core.Interfaces;
+using AugmentService.Infrastructure.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MfePortal.Infrastructure;
+namespace AugmentService.Infrastructure;
 
 /// <summary>
 /// Extension methods for registering infrastructure services.

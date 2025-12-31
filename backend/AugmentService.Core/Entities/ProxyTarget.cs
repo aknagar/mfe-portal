@@ -1,4 +1,4 @@
-namespace MfePortal.Core.Entities;
+namespace AugmentService.Core.Entities;
 
 /// <summary>
 /// Represents a remote HTTP endpoint to be proxied.

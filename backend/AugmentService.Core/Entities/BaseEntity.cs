@@ -1,4 +1,4 @@
-namespace MfePortal.Core.Entities;
+namespace AugmentService.Core.Entities;
 
 /// <summary>
 /// Base entity class with common properties for all domain entities.

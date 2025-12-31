@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MfePortal.Core\MfePortal.Core.csproj" />
+    <ProjectReference Include="..\AugmentService.Core\AugmentService.Core.csproj" />
   </ItemGroup>
 
 </Project>

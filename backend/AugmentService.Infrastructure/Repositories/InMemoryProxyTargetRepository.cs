@@ -1,8 +1,8 @@
-using MfePortal.Core.Entities;
-using MfePortal.Core.Interfaces;
+using AugmentService.Core.Entities;
+using AugmentService.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 
-namespace MfePortal.Infrastructure.Repositories;
+namespace AugmentService.Infrastructure.Repositories;
 
 /// <summary>
 /// In-memory repository implementation for ProxyTarget entities.

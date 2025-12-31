@@ -1,4 +1,4 @@
-namespace MfePortal.Application.Interfaces;
+namespace AugmentService.Application.Interfaces;
 
 /// <summary>
 /// Service for handling HTTP proxy requests.

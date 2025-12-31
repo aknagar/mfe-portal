@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MfePortal.Infrastructure\MfePortal.Infrastructure.csproj" />
+    <ProjectReference Include="..\AugmentService.Infrastructure\AugmentService.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

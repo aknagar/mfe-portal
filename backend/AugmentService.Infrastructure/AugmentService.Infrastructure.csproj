@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MfePortal.Application\MfePortal.Application.csproj" />
+    <ProjectReference Include="..\AugmentService.Application\AugmentService.Application.csproj" />
   </ItemGroup>
 
 </Project>
