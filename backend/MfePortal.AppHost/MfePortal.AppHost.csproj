@@ -18,6 +18,7 @@
     <ProjectReference Include="..\AugmentService\AugmentService.Core\AugmentService.Core.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\AugmentService\AugmentService.Application\AugmentService.Application.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\AugmentService\AugmentService.Infrastructure\AugmentService.Infrastructure.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\AugmentService\AugmentService.ServiceDefaults\AugmentService.ServiceDefaults.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
 </Project>

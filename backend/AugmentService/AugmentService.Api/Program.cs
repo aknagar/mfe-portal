@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using AugmentService.Api.Endpoints;
 using Azure.Security.KeyVault.Secrets;
 using Dapr.Workflow;
-using AugmentService.Api.Workflow;
+using AugmentService.Api.Workflows;
 using AugmentService.Api.Activities;
 using AugmentService.Infrastructure;
 using AugmentService.Infrastructure.ProductData;
