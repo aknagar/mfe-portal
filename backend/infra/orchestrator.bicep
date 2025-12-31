@@ -77,6 +77,8 @@ module augmentService 'container-app.bicep' = {
     managedIdentityPrincipalId: infrastructure.outputs.managedIdentityPrincipalId
     applicationInsightsConnectionString: infrastructure.outputs.applicationInsightsConnectionString
     applicationInsightsInstrumentationKey: infrastructure.outputs.applicationInsightsInstrumentationKey
+    containerRegistryUrl: infrastructure.outputs.containerRegistryUrl
+    containerRegistryName: infrastructure.outputs.containerRegistryName
   }
 }
 

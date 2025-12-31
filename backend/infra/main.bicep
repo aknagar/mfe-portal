@@ -83,11 +83,11 @@ resource applicationInsightsDashboard 'Microsoft.Portal/dashboards@2020-09-01-pr
   location: location
   tags: union(tags, { 'hidden-title': 'Application Insights Dashboard' })
   properties: {
-    lenses: {
-      '0': {
+    lenses: [
+      {
         order: 0
-        parts: {
-          '0': {
+        parts: [
+          {
             position: {
               x: 0
               y: 0
@@ -128,9 +128,9 @@ resource applicationInsightsDashboard 'Microsoft.Portal/dashboards@2020-09-01-pr
               }
             }
           }
-        }
+        ]
       }
-    }
+    ]
     metadata: {
       model: {
         timeRange: {
@@ -265,6 +265,18 @@ resource keyVaultSecretsAccessRole 'Microsoft.Authorization/roleAssignments@2022
     principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+  }
+}
+
+// Grant Managed Identity permission to pull images from ACR
+// Role ID: 7f951dda-4ed3-4680-a7ca-43fe172d538d = AcrPull
+resource acrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: containerRegistry
+  name: guid(containerRegistry.id, managedIdentity.id, '7f951dda-4ed3-4680-a7ca-43fe172d538d')
+  properties: {
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
   }
 }
 

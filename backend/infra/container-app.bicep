@@ -58,6 +58,12 @@ param applicationInsightsConnectionString string
 @description('Application Insights Instrumentation Key')
 param applicationInsightsInstrumentationKey string
 
+@description('Container Registry URL')
+param containerRegistryUrl string
+
+@description('Container Registry Name')
+param containerRegistryName string
+
 var tags = { 'azd-env-name': environmentName, 'azd-service-name': 'backend' }
 
 // Get reference to Container Apps Environment
@@ -98,6 +104,12 @@ resource augmentServiceApp 'Microsoft.App/containerApps@2023-04-01-preview' = {
           }
         ]
       }
+      registries: [
+        {
+          server: containerRegistryUrl
+          identity: managedIdentityId
+        }
+      ]
       dapr: {
         enabled: true
         appId: 'augmentservice'
