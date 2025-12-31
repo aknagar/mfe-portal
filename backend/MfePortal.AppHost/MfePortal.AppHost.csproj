@@ -14,10 +14,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AugmentService\API\AugmentService\AugmentService.csproj" />
-    <ProjectReference Include="..\AugmentService\Core\AugmentService.Core\AugmentService.Core.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\AugmentService\Application\AugmentService.Application\AugmentService.Application.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\AugmentService\Infrastructure\AugmentService.Infrastructure\AugmentService.Infrastructure.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\AugmentService\AugmentService\AugmentService.csproj" />
+    <ProjectReference Include="..\AugmentService\AugmentService.Core\AugmentService.Core.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\AugmentService\AugmentService.Application\AugmentService.Application.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\AugmentService\AugmentService.Infrastructure\AugmentService.Infrastructure.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
 </Project>
