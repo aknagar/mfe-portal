@@ -1,6 +1,0 @@
-@AugmentService_HostAddress = http://localhost:5104
-
-GET {{AugmentService_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
