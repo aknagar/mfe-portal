@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\eShopLite.ServiceDefaults\eShopLite.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\MfePortal.ServiceDefaults\MfePortal.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

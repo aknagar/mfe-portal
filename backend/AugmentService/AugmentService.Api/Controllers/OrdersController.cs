@@ -1,7 +1,7 @@
 using Azure.Messaging.ServiceBus;
 using Dapr.Client;
 using Dapr.Workflow;
-using AugmentService.Api.Workflow;
+using AugmentService.Api.Workflows;
 using AugmentService.Core.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

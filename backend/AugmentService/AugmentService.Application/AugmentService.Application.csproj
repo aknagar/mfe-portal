@@ -14,7 +14,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AugmentService.Core\AugmentService.Core.csproj" />
-    <ProjectReference Include="..\AugmentService.ServiceDefaults\AugmentService.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

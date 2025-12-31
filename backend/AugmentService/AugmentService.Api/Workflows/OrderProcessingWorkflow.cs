@@ -3,7 +3,7 @@ using DurableTask.Core.Exceptions;
 using AugmentService.Api.Activities;
 using AugmentService.Api.Models;
 
-namespace AugmentService.Api.Workflow
+namespace AugmentService.Api.Workflows
 {
     class OrderProcessingWorkflow : Workflow<OrderPayload, OrderResult>
     {
