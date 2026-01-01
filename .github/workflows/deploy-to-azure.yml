@@ -9,10 +9,10 @@ on:
       environment:
         description: 'Environment to deploy to'
         required: true
-        default: 'dev'
+        default: 'test'
         type: choice
         options:
-          - dev
+          - test
           - prod
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.event.inputs.environment || 'dev' }}
+      name: ${{ github.event.inputs.environment || 'test' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -59,7 +59,7 @@ jobs:
           cd backend
           azd deploy --no-prompt
         env:
-          AZURE_ENV_NAME: ${{ github.event.inputs.environment || 'dev' }}
+          AZURE_ENV_NAME: ${{ github.event.inputs.environment || 'test' }}
 
       - name: Get deployment outputs
         run: |
