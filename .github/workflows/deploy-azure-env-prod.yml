@@ -43,7 +43,7 @@ jobs:
       - name: Deploy application
         run: |
           cd backend
-          azd deploy --no-prompt
+          azd up --no-prompt
         env:
           AZURE_ENV_NAME: prod
 
