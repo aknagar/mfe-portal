@@ -50,6 +50,7 @@ jobs:
           dotnet build --configuration Release --no-restore
 
       - name: Deploy application
+        if: ${{ env.AZURE_ENV_NAME != '' }}
         run: |
           cd backend
           azd up --no-prompt --environment ${{ env.AZURE_ENV_NAME }}
