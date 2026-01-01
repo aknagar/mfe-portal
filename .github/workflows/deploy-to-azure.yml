@@ -34,9 +34,9 @@ jobs:
           curl -fsSL https://aka.ms/install-azd.sh | bash
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Authenticate Azure Developer CLI
+      - name: Configure Azure Developer CLI
         run: |
-          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+          azd config set auth.useAzureCli true
 
       - name: Build backend project
         run: |
