@@ -35,7 +35,7 @@ param daprHttpPort int = 3500
 param daprGrpcPort int = 50001
 
 // Deploy infrastructure resources
-module infrastructure 'main.bicep' = {
+module infrastructure 'infra.bicep' = {
   name: 'infrastructure'
   params: {
     environmentName: environmentName
