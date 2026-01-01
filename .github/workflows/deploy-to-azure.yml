@@ -35,7 +35,12 @@ jobs:
           curl -fsSL https://aka.ms/install-azd.sh | bash
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Build and deploy with Azure Developer CLI
+      - name: Build backend project
+        run: |
+          cd backend
+          dotnet build -c Release
+
+      - name: Deploy to Azure Container Apps
         run: |
           cd backend
           azd up --no-prompt
