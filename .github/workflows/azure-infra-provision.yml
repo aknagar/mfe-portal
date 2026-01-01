@@ -19,8 +19,6 @@ permissions:
 jobs:
   provision:
     runs-on: ubuntu-latest
-    environment:
-      name: ${{ github.event.inputs.environment || 'dev' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
