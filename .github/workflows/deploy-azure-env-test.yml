@@ -39,9 +39,12 @@ jobs:
             --tenant-id "${{ env.AZURE_TENANT_ID }}"
         shell: pwsh
 
-      - name: Select azd environment
+      - name: Create and select azd environment
         working-directory: ./backend
         run: |
+          # Create new environment
+          azd env new "${{ env.AZURE_ENV_NAME }}" --no-prompt
+          # Select the environment
           azd env select "${{ env.AZURE_ENV_NAME }}"
         shell: pwsh
 
