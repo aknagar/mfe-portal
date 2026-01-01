@@ -39,6 +39,12 @@ jobs:
             --tenant-id "${{ env.AZURE_TENANT_ID }}"
         shell: pwsh
 
+      - name: Select azd environment
+        working-directory: ./backend
+        run: |
+          azd env select "${{ env.AZURE_ENV_NAME }}"
+        shell: pwsh
+
       - name: Restore dependencies
         run: |
           cd backend
