@@ -1,0 +1,60 @@
+name: Deploy to Azure Production Environment
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Azure Developer CLI
+        uses: Azure/setup-azd@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Log in with Azure (Federated Credentials)
+        run: |
+          azd auth login `
+            --client-id "${{ secrets.AZURE_CLIENT_ID }}" `
+            --federated-credential-provider github `
+            --tenant-id "${{ secrets.AZURE_TENANT_ID }}"
+        shell: pwsh
+
+      - name: Restore dependencies
+        run: |
+          cd backend
+          dotnet restore
+
+      - name: Build backend
+        run: |
+          cd backend
+          dotnet build --configuration Release --no-restore
+
+      - name: Deploy application
+        run: |
+          cd backend
+          azd deploy --no-prompt
+        env:
+          AZURE_ENV_NAME: prod
+
+      - name: Get deployment outputs
+        run: |
+          cd backend
+          azd env get-values | tee deployment-outputs.log
+        shell: bash
+
+      - name: Verify deployment
+        run: |
+          echo "Deployment completed successfully"
+          echo "Check Azure Portal for deployment details"
+        shell: bash
