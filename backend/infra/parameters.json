@@ -9,7 +9,7 @@
       "value": "eastus"
     },
     "containerRegistryUrl": {
-      "value": ""
+      "value": "${AZURE_CONTAINER_REGISTRY_ENDPOINT}"
     },
     "containerImageName": {
       "value": "augmentservice:latest"
