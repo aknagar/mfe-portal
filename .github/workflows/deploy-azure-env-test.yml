@@ -53,7 +53,7 @@ jobs:
         if: ${{ env.AZURE_ENV_NAME != '' }}
         run: |
           cd backend
-          azd up --no-prompt
+          azd up --no-prompt --debug
 
       - name: Get deployment outputs
         run: |
