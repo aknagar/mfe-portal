@@ -34,12 +34,16 @@ jobs:
           curl -fsSL https://aka.ms/install-azd.sh | bash
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - name: Authenticate Azure Developer CLI
+        run: |
+          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+
       - name: Build backend project
         run: |
           cd backend
           dotnet build -c Release
 
-      - name: Deploy to Azure Container Apps
+      - name: Deploy to Azure
         run: |
           cd backend
           azd up --no-prompt
