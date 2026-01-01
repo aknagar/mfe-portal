@@ -415,7 +415,7 @@ az account show
 azd auth login
 
 # Validate Bicep templates
-az bicep build-params --file infra/orchestrator.bicep
+az bicep build-params --file infra/main.bicep
 ```
 
 ## Next Steps

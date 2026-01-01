@@ -68,10 +68,10 @@ Deploys the AugmentService with:
 - Auto-scaling rules (1-10 replicas)
 - System-assigned managed identity
 
-### `orchestrator.bicep`
+### `main.bicep`
 Orchestrates deployment by:
-- Calling infrastructure module first
-- Deploying container app with outputs from infrastructure
+- Calling infrastructure module (infra.bicep) first
+- Deploying container app (container-app.bicep) with outputs from infrastructure
 - Providing unified outputs for all resources
 
 ## Deployment Steps

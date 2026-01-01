@@ -39,9 +39,9 @@ Status: Running ✅
 
 ### Azure Infrastructure
 - ✅ Bicep templates created
-  - main.bicep: Core resources (ACR, CAE, Redis, Log Analytics)
+  - main.bicep: Entry point orchestrator template
+  - infra.bicep: Core resources (ACR, CAE, Redis, Log Analytics)
   - container-app.bicep: AugmentService with Dapr sidecar
-  - orchestrator.bicep: Module orchestration
 - ✅ Azure Developer CLI (azd) configuration ready
 - ✅ Deployment guide complete
 

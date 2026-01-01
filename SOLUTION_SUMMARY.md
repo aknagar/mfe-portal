@@ -55,9 +55,9 @@ mfe-portal/
 │   │   └── Program.cs               # Service orchestration
 │   ├── MfePortal.ServiceDefaults/   # Shared service configuration
 │   ├── infra/                        # Azure Infrastructure as Code
-│   │   ├── main.bicep               # Core resources (ACR, CAE, Redis, LAW)
-│   │   ├── container-app.bicep      # AugmentService with Dapr
-│   │   ├── orchestrator.bicep       # Module orchestration
+	│   │   ├── main.bicep               # Entry point orchestrator template
+	│   │   ├── infra.bicep              # Core resources (ACR, CAE, Redis, LAW)
+	│   │   ├── container-app.bicep      # AugmentService with Dapr
 │   │   ├── parameters.json          # Deployment parameters
 │   │   ├── dapr-components.yaml     # Dapr component config
 │   │   └── DEPLOYMENT.md            # Azure deployment guide
