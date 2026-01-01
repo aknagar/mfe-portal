@@ -49,6 +49,10 @@ jobs:
           azd env new "${{ env.AZURE_ENV_NAME }}" --no-prompt
           # Select the environment
           azd env select "${{ env.AZURE_ENV_NAME }}"
+          # Initialize required variables
+          azd env set AZURE_RESOURCE_GROUP_NAME "${{ env.AZURE_RESOURCE_GROUP }}"
+          azd env set AZURE_LOCATION "${{ env.AZURE_LOCATION }}"
+          azd env set AZURE_SUBSCRIPTION_ID "${{ env.AZURE_SUBSCRIPTION_ID }}"
         shell: pwsh
 
       - name: Restore dependencies
@@ -71,10 +75,9 @@ jobs:
         shell: pwsh
 
       - name: Deploy application
-        if: ${{ env.AZURE_RESOURCE_GROUP != '' }}
         run: |
           cd backend
-          azd provision --no-prompt
+          azd up --no-prompt --debug
 
       - name: Get deployment outputs
         run: |
