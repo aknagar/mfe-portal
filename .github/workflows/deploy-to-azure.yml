@@ -30,7 +30,9 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Install Azure Developer CLI
-        uses: azure/setup-azd@v1
+        run: |
+          curl -fsSL https://aka.ms/install-azd.sh | bash
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Build and deploy with Azure Developer CLI
         run: |
