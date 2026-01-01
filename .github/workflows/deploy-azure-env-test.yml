@@ -20,6 +20,7 @@ jobs:
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AZURE_CONTAINER_REGISTRY_ENDPOINT: ${{ vars.AZURE_CONTAINER_REGISTRY_ENDPOINT }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,7 +61,7 @@ jobs:
           Write-Host "Environment variables for '${{ env.AZURE_ENV_NAME }}':"
           azd env get-values
         shell: pwsh
-        
+
       - name: Restore dependencies
         run: |
           cd backend
