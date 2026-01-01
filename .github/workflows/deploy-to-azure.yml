@@ -14,6 +14,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/azure-deploy'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
