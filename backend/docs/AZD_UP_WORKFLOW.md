@@ -38,14 +38,14 @@ Outputs → .azure/test/.env
 **.azure/test/.env** provides:
 ```
 AZURE_ENV_NAME=test
-AZURE_RESOURCE_GROUP_NAME=rg-mfe-test
+AZURE_RESOURCE_GROUP=rg-mfe-test
 AZURE_LOCATION=eastus
 AZURE_SUBSCRIPTION_ID=xxx
 ```
 
 **main.parameters.json** substitutes:
 ```json
-"resourceGroupName": "${AZURE_RESOURCE_GROUP_NAME}"  → rg-mfe-test
+"resourceGroupName": "${AZURE_RESOURCE_GROUP}"  → rg-mfe-test
 "environmentName": "${AZURE_ENV_NAME}"               → test
 "location": "${AZURE_LOCATION}"                      → eastus
 ```
@@ -100,7 +100,7 @@ azd down                               # Destroy resources
 
 | Issue | Fix |
 |-------|-----|
-| Wrong resource group created | Verify `AZURE_RESOURCE_GROUP_NAME` in `.azure/<env>/.env` |
+| Wrong resource group created | Verify `AZURE_RESOURCE_GROUP` in `.azure/<env>/.env` |
 | Old image still running | `azd deploy --no-cache` |
 | Parameter type error | Check JSON types match Bicep params |
 | Missing env vars in app | Set in Container App or Key Vault |
