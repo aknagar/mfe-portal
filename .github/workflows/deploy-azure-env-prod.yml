@@ -16,6 +16,8 @@ jobs:
       AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP_PROD }}
+      AZURE_CONTAINER_REGISTRY_ENDPOINT: ${{ vars.AZURE_CONTAINER_REGISTRY_ENDPOINT }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,6 +36,28 @@ jobs:
             --client-id "${{ env.AZURE_CLIENT_ID }}" `
             --federated-credential-provider github `
             --tenant-id "${{ env.AZURE_TENANT_ID }}"
+        shell: pwsh
+
+      # Required: Create and initialize the azd environment with .env file
+      # This step must run before 'azd provision' to properly bind environment variables
+      - name: Create and select azd environment
+        working-directory: ./backend
+        run: |
+          # Create new environment
+          azd env new "${{ env.AZURE_ENV_NAME }}" --no-prompt
+          # Select the environment
+          azd env select "${{ env.AZURE_ENV_NAME }}"
+          # Initialize required variables
+          azd env set AZURE_RESOURCE_GROUP "${{ env.AZURE_RESOURCE_GROUP }}"
+          azd env set AZURE_LOCATION "${{ env.AZURE_LOCATION }}"
+          azd env set AZURE_SUBSCRIPTION_ID "${{ env.AZURE_SUBSCRIPTION_ID }}"
+        shell: pwsh
+
+      - name: Verify environment initialization
+        working-directory: ./backend
+        run: |
+          Write-Host "Environment variables for '${{ env.AZURE_ENV_NAME }}':"
+          azd env get-values
         shell: pwsh
 
       - name: Restore dependencies
