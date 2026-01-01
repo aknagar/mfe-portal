@@ -50,11 +50,17 @@ jobs:
           # Select the environment
           azd env select "${{ env.AZURE_ENV_NAME }}"
           # Initialize required variables
-          azd env set AZURE_RESOURCE_GROUP_NAME "${{ env.AZURE_RESOURCE_GROUP }}"
+          azd env set AZURE_RESOURCE_GROUP "${{ env.AZURE_RESOURCE_GROUP }}"
           azd env set AZURE_LOCATION "${{ env.AZURE_LOCATION }}"
           azd env set AZURE_SUBSCRIPTION_ID "${{ env.AZURE_SUBSCRIPTION_ID }}"
         shell: pwsh
-
+      - name: Verify environment initialization
+        working-directory: ./backend
+        run: |
+          Write-Host "Environment variables for '${{ env.AZURE_ENV_NAME }}':"
+          azd env get-values
+        shell: pwsh
+        
       - name: Restore dependencies
         run: |
           cd backend
