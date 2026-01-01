@@ -10,6 +10,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      ENVIRONMENT_NAME: prod
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,9 +45,9 @@ jobs:
       - name: Deploy application
         run: |
           cd backend
-          azd up --no-prompt
+          azd up --no-prompt --environment ${{ env.ENVIRONMENT_NAME }}
         env:
-          AZURE_ENV_NAME: prod
+          AZURE_ENV_NAME: ${{ env.ENVIRONMENT_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'eastus' }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
