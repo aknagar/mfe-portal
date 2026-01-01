@@ -3,13 +3,13 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "environmentName": {
-      "value": "${AZURE_ENV_NAME}"
+      "value": "prod"
     },
     "location": {
       "value": "eastus"
     },
     "containerRegistryUrl": {
-      "value": "${AZURE_CONTAINER_REGISTRY_ENDPOINT}"
+      "value": ""
     },
     "containerImageName": {
       "value": "augmentservice:latest"
