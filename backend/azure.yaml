@@ -36,21 +36,3 @@ environments:
       - name: augmentservice
         source: ./AugmentService
         dockerfile: ./Dockerfile
-  
-  test:
-    resourceGroup: rg-mfe-test
-    containerApps:
-      - name: augmentservice
-        source: ./AugmentService
-        dockerfile: ./Dockerfile
-        replicas: 1
-  
-  prod:
-    resourceGroup: rg-mfe-prod
-    containerApps:
-      - name: augmentservice
-        source: ./AugmentService
-        dockerfile: ./Dockerfile
-        replicas: 3
-        cpu: 2
-        memory: 4Gi

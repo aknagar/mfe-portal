@@ -19,6 +19,7 @@ jobs:
       AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -62,15 +63,16 @@ jobs:
         run: |
           Write-Host "Environment: ${{ env.AZURE_ENV_NAME }}"
           Write-Host "Location: ${{ env.AZURE_LOCATION }}"
+          Write-Host "Resource Group: ${{ env.AZURE_RESOURCE_GROUP }}"
           Write-Host "Command to execute:"
-          Write-Host "azd up --no-prompt --debug --environment ${{ env.AZURE_ENV_NAME }}"
+          Write-Host "azd up --no-prompt"
         shell: pwsh
 
       - name: Deploy application
-        if: ${{ env.AZURE_ENV_NAME != '' }}
+        if: ${{ env.AZURE_RESOURCE_GROUP != '' }}
         run: |
           cd backend
-          azd provision --no-prompt --debug --environment ${{ env.AZURE_ENV_NAME }}
+          azd provision --no-prompt
 
       - name: Get deployment outputs
         run: |
