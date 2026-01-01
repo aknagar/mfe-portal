@@ -1,4 +1,4 @@
-name: Azure Infrastructure Provision
+name: Infra Provision to Azure
 
 on:
   workflow_dispatch:
