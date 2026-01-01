@@ -23,7 +23,7 @@ hooks:
 
 infra:
   path: ./infra
-  module: orchestrator
+  module: main
 
 variables:
   AZURE_CONTAINER_REGISTRY_ENDPOINT: ${CONTAINER_REGISTRY_ENDPOINT}
