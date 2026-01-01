@@ -49,11 +49,19 @@ jobs:
           cd backend
           dotnet build --configuration Release --no-restore
 
+      - name: Display deployment command
+        run: |
+          Write-Host "Environment: ${{ env.AZURE_ENV_NAME }}"
+          Write-Host "Location: ${{ env.AZURE_LOCATION }}"
+          Write-Host "Command to execute:"
+          Write-Host "azd up --no-prompt --debug --environment ${{ env.AZURE_ENV_NAME }}"
+        shell: pwsh
+
       - name: Deploy application
         if: ${{ env.AZURE_ENV_NAME != '' }}
         run: |
           cd backend
-          azd up --no-prompt --debug
+          azd up --no-prompt --debug --environment ${{ env.AZURE_ENV_NAME }}
 
       - name: Get deployment outputs
         run: |
