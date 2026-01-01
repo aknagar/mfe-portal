@@ -4,16 +4,6 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'test'
-        type: choice
-        options:
-          - test
-          - prod
 
 permissions:
   id-token: write
@@ -23,7 +13,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.event.inputs.environment || 'test' }}
+      name: test
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -59,7 +49,7 @@ jobs:
           cd backend
           azd deploy --no-prompt
         env:
-          AZURE_ENV_NAME: ${{ github.event.inputs.environment || 'test' }}
+          AZURE_ENV_NAME: test
 
       - name: Get deployment outputs
         run: |
