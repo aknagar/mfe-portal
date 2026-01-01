@@ -5,7 +5,7 @@ param location string = resourceGroup().location
 param environmentName string
 
 @description('Container Registry URL')
-param containerRegistryUrl string
+param containerRegistryUrl string = ''
 
 @description('Container image name and tag')
 param containerImageName string = 'augmentservice:latest'
