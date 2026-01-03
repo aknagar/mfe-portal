@@ -17,7 +17,7 @@ namespace AugmentService.Api.Activities
         {
             this.logger.LogInformation(notification.Message);
 
-            return Task.FromResult<object>(null);
+            return Task.FromResult<object>(null!);
         }
     }
 }

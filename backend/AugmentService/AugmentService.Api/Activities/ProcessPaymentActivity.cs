@@ -31,7 +31,7 @@ namespace AugmentService.Api.Activities
                 "Payment for request ID '{requestId}' processed successfully",
                 req.RequestId);
 
-            return null;
+            return null!;
         }
     }
 }

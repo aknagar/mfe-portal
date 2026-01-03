@@ -69,7 +69,10 @@ app.CreateWeatherDbIfNotExists();
 var secretClient = app.Services.GetService<SecretClient>();
 
 // This is a plug and play mechanism where we are plugging /product endpoints
-app.MapProductEndpoints(secretClient);
+if (secretClient != null)
+{
+    app.MapProductEndpoints(secretClient);
+}
 
 // https://github.com/varianter/dotnet-template
 app.MapWeatherUserGroup()

@@ -29,9 +29,9 @@ namespace AugmentService.Api.Activities
 
             // Determine if there are enough Items for purchase
             var (original, originalETag) = await client.GetStateAndETagAsync<OrderPayload>(storeName, req.ItemBeingPruchased);
-            int newQuantity = original.Quantity - req.Amount;
+            int newQuantity = original?.Quantity - req.Amount ?? -req.Amount;
 
-            if (newQuantity < 0)
+            if (newQuantity < 0 || original == null)
             {
                 this.logger.LogInformation(
                     "Payment for request ID '{requestId}' could not be processed. Insufficient inventory.",
@@ -43,7 +43,7 @@ namespace AugmentService.Api.Activities
             await client.SaveStateAsync<OrderPayload>(storeName, req.ItemBeingPruchased, new OrderPayload(Name: req.ItemBeingPruchased, TotalCost: req.Currency, Quantity: newQuantity));
             this.logger.LogInformation($"There are now: {newQuantity} {original.Name} left in stock");
 
-            return null;
+            return null!;
         }
     }
 }

@@ -23,7 +23,7 @@ namespace AugmentService.Api.Activities
                 req.Quantity,
                 req.ItemName);
 
-            OrderPayload orderResponse;
+            OrderPayload? orderResponse;
             string key;
 
             // Ensure that the store has items
@@ -33,7 +33,7 @@ namespace AugmentService.Api.Activities
             if (orderResponse == null)
             {
                 // Not enough items.
-                return new InventoryResult(false, orderResponse);
+                return new InventoryResult(false, null);
             }
 
             this.logger.LogInformation(

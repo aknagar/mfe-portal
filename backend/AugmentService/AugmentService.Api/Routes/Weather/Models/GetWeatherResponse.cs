@@ -4,7 +4,7 @@ namespace AugmentService.Api.Routes.Weather.Models;
 // This allows for the internal models to change without affecting the API contract and keeps the API stable
 public record GetWeatherResponse()
 {
-    public ForecastPayload Forecast { get; set; }
+    public required ForecastPayload Forecast { get; set; }
 
     public record ForecastPayload(DateOnly Date, int TemperatureC, string? Summary)
     {
