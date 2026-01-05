@@ -1,6 +1,4 @@
 using AugmentService.Api.Routes.Weather;
-using AugmentService.Api.Routes;
-using Microsoft.Extensions.Azure;
 using AugmentService.Api.Routes.Orders;
 using Scalar.AspNetCore;
 using Application;
@@ -12,10 +10,13 @@ using AugmentService.Api.Workflows;
 using AugmentService.Api.Activities;
 using AugmentService.Infrastructure;
 using AugmentService.Infrastructure.ProductData;
-using AugmentService.Infrastructure.WeatherData;
-using AugmentService.Core.Interfaces;
+using Azure.Identity;
+using Aspire.Npgsql.EntityFrameworkCore.PostgreSQL;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Create shared Azure credential for Key Vault and Database authentication
+var credential = new DefaultAzureCredential();
 
 builder.AddServiceDefaults();
 
@@ -39,17 +40,14 @@ builder.Services.AddDaprWorkflow(options =>
 builder.AddApplication();
 builder.AddInfrastructure();
 
-//Add Keyvault client
-//builder.AddAzureKeyVaultClient("secrets", settings => settings.DisableHealthChecks = true);
+// Add Keyvault client
+builder.AddAzureKeyVaultClient("secrets", settings => settings.DisableHealthChecks = true);
 
 // Add Service Bus client
 builder.AddAzureServiceBusClient("serviceBus");
 
-
-
-builder.Services.AddDbContext<ProductDataContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("ProductsContext") ?? throw new InvalidOperationException("Connection string 'ProductsContext' not found.")));
-
+// The connection name "postgresdb" matches what we defined in AppHost
+builder.AddNpgsqlDbContext<ProductDataContext>(connectionName: "postgresdb");
 
 var app = builder.Build();
 
@@ -64,15 +62,17 @@ app.MapDefaultEndpoints();
 
 app.CreateProductDbIfNotExists();
 
-app.CreateWeatherDbIfNotExists();
+// TODO: Configure WeatherDatabaseContext to use Aspire-injected connection string
+// app.CreateWeatherDbIfNotExists();
 
+/*
 var secretClient = app.Services.GetService<SecretClient>();
-
 // This is a plug and play mechanism where we are plugging /product endpoints
 if (secretClient != null)
 {
     app.MapProductEndpoints(secretClient);
 }
+*/
 
 // https://github.com/varianter/dotnet-template
 app.MapWeatherUserGroup()

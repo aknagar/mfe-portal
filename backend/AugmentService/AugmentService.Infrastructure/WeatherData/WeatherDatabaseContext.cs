@@ -15,8 +15,7 @@ public class WeatherDatabaseContext(IOptions<InfrastructureConfig> config) : DbC
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder
-            .UseSqlite(config.Value.ConnectionString)
-            //.UseNpgsql(config.Value.ConnectionString)            
+            .UseNpgsql(config.Value.ConnectionString)            
             .EnableSensitiveDataLogging(config.Value.EnableSensitiveDataLogging);
     }
 }
