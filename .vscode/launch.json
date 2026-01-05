@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "AppHost (https)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/backend/MfePortal.AppHost/bin/Debug/net10.0/MfePortal.AppHost.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/backend/MfePortal.AppHost",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bhttps://localhost:(\\d+)\\b",
+        "uriFormat": "https://localhost:{0}/login"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "console": "internalConsole",
+      "internalConsoleOptions": "openOnSessionStart"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack",
+      "configurations": ["AppHost (https)"],
+      "preLaunchTask": "build"
+    }
+  ]
+} 
