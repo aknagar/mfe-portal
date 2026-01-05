@@ -2,17 +2,31 @@ using AugmentService.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace AugmentService.Infrastructure.ProductData
 {
     public class ProductDataContext : DbContext
     {
-        public ProductDataContext(DbContextOptions<ProductDataContext> options)
+        private readonly IOptions<InfrastructureConfig> _config;
+
+        public ProductDataContext(DbContextOptions<ProductDataContext> options, IOptions<InfrastructureConfig> config)
             : base(options)
         {
+            _config = config;
         }
 
         public DbSet<Product> Product { get; set; } = default!;
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder
+                    .UseNpgsql(_config.Value.ConnectionString)
+                    .EnableSensitiveDataLogging(_config.Value.EnableSensitiveDataLogging);
+            }
+        }
     }
 
     public static class Extensions

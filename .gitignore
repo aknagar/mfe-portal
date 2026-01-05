@@ -24,12 +24,18 @@ packages/
 # Environment
 .env
 .env.local
+docker-compose.override.yml
+
+# Local data volumes
+postgres_data/
 
 # IDE
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
 !.vscode/mcp.json
+!.vscode/launch.json
+!.vscode/tasks.json
 .idea/
 .vs/
 *.swp

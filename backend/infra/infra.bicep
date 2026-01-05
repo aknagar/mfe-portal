@@ -231,6 +231,72 @@ resource redis 'Microsoft.Cache/redis@2023-04-01' = {
   }
 }
 
+// Azure Database for PostgreSQL - Flexible Server with Azure AD authentication
+resource postgresqlServer 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview' = {
+  name: 'pg-${resourceToken}'
+  location: location
+  tags: tags
+  sku: {
+    name: 'Standard_B1ms'
+    tier: 'Burstable'
+  }
+  properties: {
+    version: '15'
+    administratorLogin: 'pgadmin'
+    authConfig: {
+      activeDirectoryAuth: 'Enabled'
+      passwordAuth: 'Disabled'  // Disable password authentication
+      tenantId: subscription().tenantId
+    }
+    storage: {
+      storageSizeGB: 32
+    }
+    backup: {
+      backupRetentionDays: 7
+      geoRedundantBackup: 'Disabled'
+    }
+    network: {
+      delegatedSubnetResourceId: ''
+      privateDnsZoneArmResourceId: ''
+    }
+    highAvailability: {
+      mode: 'Disabled'
+    }
+  }
+}
+
+// Set managed identity as PostgreSQL Azure AD administrator
+resource postgresqlAADAdmin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2023-12-01-preview' = {
+  parent: postgresqlServer
+  name: managedIdentity.properties.principalId
+  properties: {
+    principalName: managedIdentity.name
+    principalType: 'ServicePrincipal'
+    tenantId: subscription().tenantId
+  }
+}
+
+// PostgreSQL Server firewall rule for Container App
+resource postgresqlFirewall 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-12-01-preview' = {
+  parent: postgresqlServer
+  name: 'AllowContainerApp'
+  properties: {
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '255.255.255.255'
+  }
+}
+
+// Create databases
+resource weatherDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-12-01-preview' = {
+  parent: postgresqlServer
+  name: 'weather'
+}
+
+resource productsDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-12-01-preview' = {
+  parent: postgresqlServer
+  name: 'products'
+}
+
 // Azure Key Vault for secrets management
 resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
   name: 'kv-${resourceToken}'
@@ -253,6 +319,24 @@ resource redisConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-
   name: 'RedisConnectionString'
   properties: {
     value: '${redis.properties.hostName}:${redis.properties.port}?ssl=True&password=${redis.listKeys().primaryKey}'
+  }
+}
+
+// Store PostgreSQL Weather Database connection string in Key Vault (managed identity auth)
+resource postgresqlWeatherConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: keyVault
+  name: 'PostgresqlWeatherConnectionString'
+  properties: {
+    value: 'Server=${postgresqlServer.properties.fullyQualifiedDomainName};Port=5432;Database=weather;User Id=${managedIdentity.properties.principalId};SslMode=Require;Trust Server Certificate=true;'
+  }
+}
+
+// Store PostgreSQL Products Database connection string in Key Vault (managed identity auth)
+resource postgresqlProductsConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: keyVault
+  name: 'PostgresqlProductsConnectionString'
+  properties: {
+    value: 'Server=${postgresqlServer.properties.fullyQualifiedDomainName};Port=5432;Database=products;User Id=${managedIdentity.properties.principalId};SslMode=Require;Trust Server Certificate=true;'
   }
 }
 
@@ -285,6 +369,10 @@ output containerAppsEnvironmentName string = containerAppsEnvironment.name
 output containerRegistryUrl string = containerRegistry.properties.loginServer
 output containerRegistryName string = containerRegistry.name
 output redisPrimaryConnectionString string = '${redis.properties.hostName}:${redis.properties.port}?ssl=True'
+output postgresqlServerName string = postgresqlServer.name
+output postgresqlServerFullyQualifiedDomainName string = postgresqlServer.properties.fullyQualifiedDomainName
+output postgresqlWeatherDatabaseName string = weatherDatabase.name
+output postgresqlProductsDatabaseName string = productsDatabase.name
 output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
 output logAnalyticsWorkspaceName string = logAnalyticsWorkspace.name
 output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
@@ -294,6 +382,8 @@ output keyVaultId string = keyVault.id
 output keyVaultName string = keyVault.name
 output keyVaultUri string = keyVault.properties.vaultUri
 output redisConnectionStringSecretId string = redisConnectionStringSecret.id
+output postgresqlWeatherConnectionStringSecretId string = postgresqlWeatherConnectionStringSecret.id
+output postgresqlProductsConnectionStringSecretId string = postgresqlProductsConnectionStringSecret.id
 output managedIdentityId string = managedIdentity.id
 output managedIdentityPrincipalId string = managedIdentity.properties.principalId
 output managedIdentityName string = managedIdentity.name
