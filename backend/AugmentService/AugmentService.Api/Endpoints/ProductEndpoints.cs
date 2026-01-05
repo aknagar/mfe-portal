@@ -8,7 +8,7 @@ namespace AugmentService.Api.Endpoints
 
     public static class ProductEndpoints
     {
-        public static void MapProductEndpoints(this IEndpointRouteBuilder routes, SecretClient secretClient)
+        public static void MapProductEndpoints(this IEndpointRouteBuilder routes)
         {
             var group = routes.MapGroup("/api/Product");
 

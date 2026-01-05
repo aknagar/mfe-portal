@@ -74,6 +74,8 @@ if (secretClient != null)
 }
 */
 
+app.MapProductEndpoints();
+
 // https://github.com/varianter/dotnet-template
 app.MapWeatherUserGroup()
    .MapWeatherAdminGroup();
