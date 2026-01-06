@@ -6,6 +6,7 @@
     <!-- Aspire -->
     <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="13.1.0" />
     <PackageVersion Include="Aspire.Azure.Security.KeyVault" Version="13.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.KeyVault" Version="13.1.0" />
     <!-- Azure -->
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.1.0" />
     <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.1.0" />

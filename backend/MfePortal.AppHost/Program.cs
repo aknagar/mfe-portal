@@ -1,3 +1,5 @@
+using Aspire.Hosting.Azure;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
@@ -5,10 +7,15 @@ var postgres = builder.AddPostgres("postgres")
 
 var postgresdb = postgres.AddDatabase("postgresdb", "productdb");
 
-// Add AugmentService.Api with reference to local PostgreSQL database
-// Azure Key Vault will be accessed via DefaultAzureCredential in the service
+// Add Azure Key Vault integration with environment-based configuration
+// Development: Uses emulator (localhost:8200 or via Azure CLI)
+// Production: Uses actual Azure Key Vault from ASPIRE_KEYVAULT_URI environment variable
+var keyVault = builder.AddAzureKeyVault("keyvault");
+
+// Add AugmentService.Api with references to PostgreSQL and Key Vault
 builder.AddProject<Projects.AugmentService_Api>("augmentservice")
     .WithReference(postgresdb)
+    .WithReference(keyVault)
     .WaitFor(postgresdb);
 
 builder.Build().Run();

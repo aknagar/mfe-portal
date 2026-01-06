@@ -40,8 +40,13 @@ builder.Services.AddDaprWorkflow(options =>
 builder.AddApplication();
 builder.AddInfrastructure();
 
-// Add Keyvault client
-builder.AddAzureKeyVaultClient("secrets", settings => settings.DisableHealthChecks = true);
+// Add Aspire Key Vault client integration
+// Connects to the Key Vault resource defined in AppHost ("keyvault")
+// Configuration comes from appsettings with key "Keyvault:Uri"
+builder.AddAzureKeyVaultClient("keyvault", settings => 
+{
+    settings.DisableHealthChecks = true; // Optional: disable health checks if not needed
+});
 
 // Add Service Bus client
 builder.AddAzureServiceBusClient("serviceBus");
