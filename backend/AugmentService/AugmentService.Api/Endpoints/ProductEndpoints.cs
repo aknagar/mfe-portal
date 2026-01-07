@@ -1,4 +1,3 @@
-using Azure.Security.KeyVault.Secrets;
 using AugmentService.Core.Entities;
 using AugmentService.Infrastructure.ProductData;
 using Microsoft.EntityFrameworkCore;
