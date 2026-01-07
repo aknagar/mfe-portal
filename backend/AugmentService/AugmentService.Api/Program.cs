@@ -2,16 +2,14 @@ using AugmentService.Api.Routes.Weather;
 using AugmentService.Api.Routes.Orders;
 using Scalar.AspNetCore;
 using Application;
-using Microsoft.EntityFrameworkCore;
 using AugmentService.Api.Endpoints;
-using Azure.Security.KeyVault.Secrets;
 using Dapr.Workflow;
 using AugmentService.Api.Workflows;
 using AugmentService.Api.Activities;
 using AugmentService.Infrastructure;
 using AugmentService.Infrastructure.ProductData;
 using Azure.Identity;
-using Aspire.Npgsql.EntityFrameworkCore.PostgreSQL;
+using AugmentService.Infrastructure.WeatherData;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,17 +22,20 @@ builder.Services.AddOpenApi();  // OpenAPI is the next version swagger
 
 builder.Services.AddControllers();
 
-// Add Dapr Workflow
-builder.Services.AddDaprWorkflow(options =>
-{  
-    options.RegisterWorkflow<OrderProcessingWorkflow>();
+// Add Dapr Workflow - only in non-Development environments
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.AddDaprWorkflow(options =>
+    {  
+        options.RegisterWorkflow<OrderProcessingWorkflow>();
         
-    // These are the activities that get invoked by the workflow(s).
-    options.RegisterActivity<NotifyActivity>();
-    options.RegisterActivity<ReserveInventoryActivity>();
-    options.RegisterActivity<ProcessPaymentActivity>();
-    options.RegisterActivity<UpdateInventoryActivity>();
-});
+        // These are the activities that get invoked by the workflow(s).
+        options.RegisterActivity<NotifyActivity>();
+        options.RegisterActivity<ReserveInventoryActivity>();
+        options.RegisterActivity<ProcessPaymentActivity>();
+        options.RegisterActivity<UpdateInventoryActivity>();
+    });
+}
 
 // Add other layers
 builder.AddApplication();
@@ -51,8 +52,9 @@ builder.AddAzureKeyVaultClient("keyvault", settings =>
 // Add Service Bus client
 builder.AddAzureServiceBusClient("serviceBus");
 
-// The connection name "postgresdb" matches what we defined in AppHost
-builder.AddNpgsqlDbContext<ProductDataContext>(connectionName: "postgresdb");
+// The connection name "productdb" matches what we defined in AppHost
+builder.AddNpgsqlDbContext<ProductDataContext>(connectionName: "productdb");
+builder.AddNpgsqlDbContext<WeatherDatabaseContext>(connectionName: "weatherdb");
 
 var app = builder.Build();
 
@@ -68,7 +70,7 @@ app.MapDefaultEndpoints();
 app.CreateProductDbIfNotExists();
 
 // TODO: Configure WeatherDatabaseContext to use Aspire-injected connection string
-// app.CreateWeatherDbIfNotExists();
+ app.CreateWeatherDbIfNotExists();
 
 /*
 var secretClient = app.Services.GetService<SecretClient>();

@@ -6,12 +6,15 @@ var builder = DistributedApplication.CreateBuilder(args);
 var postgres = builder.AddPostgres("postgres")
     .WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8");
 
-var postgresdb = postgres.AddDatabase("postgresdb", "productdb");
+var productdb = postgres.AddDatabase("productdb", "productdb");
+var weatherdb = postgres.AddDatabase("weatherdb", "weatherdb");
 
 // Add AugmentService.Api with references
 var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice")
-    .WithReference(postgresdb)
-    .WaitFor(postgresdb);
+    .WithReference(productdb)
+    .WithReference(weatherdb)
+    .WaitFor(productdb)
+    .WaitFor(weatherdb);
 
 // Only add Key Vault reference in non-development
 if (!builder.Environment.IsDevelopment())
