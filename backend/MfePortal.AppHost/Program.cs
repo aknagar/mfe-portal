@@ -13,13 +13,13 @@ var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentser
     .WithReference(postgresdb)
     .WaitFor(postgresdb);
 
-// Only add Key Vault reference in non-development environments
-if (builder.Environment.IsProduction())
+// Only add Key Vault reference in non-development
+if (!builder.Environment.IsDevelopment())
 {
     // Add Key Vault - no provisioning, uses existing vault via configuration
     var keyVault = builder.AddAzureKeyVault("keyvault")
                     .PublishAsConnectionString();
-                    
+
     augmentService.WithReference(keyVault);
 }
 
