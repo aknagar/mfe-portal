@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AugmentService.Api.Endpoints
 {
-
     public static class ProductEndpoints
     {
         public static void MapProductEndpoints(this IEndpointRouteBuilder routes)
