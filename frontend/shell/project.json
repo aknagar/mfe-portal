@@ -1,20 +1,20 @@
 {
   "name": "shell",
-  "sourceRoot": "packages/shell/src",
+  "sourceRoot": "shell/src",
   "projectType": "application",
   "targets": {
     "start": {
       "executor": "nx:run-commands",
       "options": {
         "command": "piral debug",
-        "cwd": "packages/shell"
+        "cwd": "shell"
       }
     },
     "build": {
       "executor": "nx:run-commands",
       "options": {
         "command": "piral build",
-        "cwd": "packages/shell"
+        "cwd": "shell"
       },
       "outputs": ["{projectRoot}/dist"]
     },
@@ -22,7 +22,7 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "piral validate",
-        "cwd": "packages/shell"
+        "cwd": "shell"
       }
     }
   }
