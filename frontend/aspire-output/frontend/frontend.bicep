@@ -19,7 +19,7 @@ resource frontend 'Microsoft.App/containerApps@2025-01-01' = {
       activeRevisionsMode: 'Single'
       ingress: {
         external: true
-        targetPort: 8000
+        targetPort: 1234
         transport: 'http'
       }
       registries: [
@@ -40,9 +40,25 @@ resource frontend 'Microsoft.App/containerApps@2025-01-01' = {
               name: 'NODE_ENV'
               value: 'production'
             }
+          ]
+          probes: [
             {
-              name: 'PORT'
-              value: '8000'
+              type: 'Startup'
+              httpGet: {
+                port: 1234
+                path: '/'
+              }
+              initialDelaySeconds: 5
+              periodSeconds: 2
+              failureThreshold: 30
+            }
+            {
+              type: 'Liveness'
+              httpGet: {
+                port: 1234
+                path: '/'
+              }
+              periodSeconds: 10
             }
           ]
         }

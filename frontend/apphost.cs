@@ -9,6 +9,7 @@ builder.AddAzureContainerAppEnvironment("env");
 
 builder.AddViteApp("frontend", "../frontend", runScriptName: "start")
     .WithExternalHttpEndpoints() // to mark it as publicly accessible.
+    .WithHttpHealthCheck("/") // Add health check endpoint
     .PublishAsDockerFile();  // This generates a Dockerfile during publish. It needs Dockerfile.
 
 builder.Build().Run();
