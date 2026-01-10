@@ -7,10 +7,6 @@ resource env_acr 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
   sku: {
     name: 'Basic'
   }
-  properties: {
-    anonymousPullEnabled: true  // Enable public anonymous pulls
-    publicNetworkAccess: 'Enabled'
-  }
   tags: {
     'aspire-resource-name': 'env-acr'
   }
