@@ -5,8 +5,8 @@ export const config = {
   auth: {
     clientId: 'e4fe47ef-4e88-418f-a598-d1d19d2dfb67',
     authority: 'https://login.microsoftonline.com/consumers',
-    redirectUri: 'http://localhost:1234/auth',
-    postLogoutRedirectUri: 'http://localhost:1234/logout',
+    redirectUri: '/auth',
+    postLogoutRedirectUri: '/logout',
   },
   app: {
     name: 'My Tools',

@@ -11,8 +11,8 @@ export const msalConfig: Configuration = {
   auth: {
     clientId: config.auth.clientId,
     authority: config.auth.authority,
-    redirectUri: config.auth.redirectUri,
-    postLogoutRedirectUri: config.auth.postLogoutRedirectUri,
+    redirectUri: `${window.location.origin}${config.auth.redirectUri}`,
+    postLogoutRedirectUri: `${window.location.origin}${config.auth.postLogoutRedirectUri}`,
     navigateToLoginRequestUrl: true,
   },
   cache: {
