@@ -29,7 +29,7 @@ if (!builder.Environment.IsDevelopment())
 }
 
 // Add Frontend container from Azure Container Registry
-var frontendImage = "envacrescmmynaae3lk.azurecr.io/frontend:latest";
+var frontendImage = "infraacrescmmynaae3lk.azurecr.io/frontend:latest";
 
 var frontend = builder.AddContainer("frontend", frontendImage)
     .WithHttpEndpoint(port: builder.Environment.IsDevelopment() ? 1234 : 80, targetPort: 1234, name: "http")
