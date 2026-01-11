@@ -6,10 +6,10 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files first - Docker caches layers, so if these don't change, dependencies won't reinstall
-COPY shell/package*.json ./
+COPY shell/package.json ./
 
 # Install dependencies in container - needed to build the application
-RUN npm install --ignore-scripts
+RUN npm install --ignore-scripts --legacy-peer-deps
 
 # Copy all shell files - contains source code and configuration
 COPY shell ./
@@ -39,7 +39,7 @@ LABEL org.opencontainers.image.version="${VERSION}" \
 RUN npm install -g serve@14
 
 # Copy only the built files from builder - keeps final image small (no source code or build tools)
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist/release ./dist
 
 # Expose port 1234 - documents which port the container listens on (used by orchestrators)
 EXPOSE 1234

@@ -42,3 +42,5 @@ aspire-output/
 # Misc
 .env.local
 .env.*.local
+.npmrc
+**/.npmrc

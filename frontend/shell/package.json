@@ -40,8 +40,8 @@
     "typescript": "^5.3.2"
   },
   "dependencies": {
-    "@azure/msal-browser": "latest",
-    "@azure/msal-react": "latest",
+    "@azure/msal-browser": "^4.0.0",
+    "@azure/msal-react": "^3.0.0",
     "@radix-ui/react-dropdown-menu": "^2.0.6",
     "@radix-ui/react-label": "^2.0.2",
     "@radix-ui/react-select": "^2.0.0",
