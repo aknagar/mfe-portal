@@ -15,6 +15,7 @@ var weatherdb = postgres.AddDatabase("weatherdb", "weatherdb");
 var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice")
     .WithReference(productdb)
     .WithReference(weatherdb)
+    .WithExternalHttpEndpoints()
     .WaitFor(productdb)
     .WaitFor(weatherdb);
 
