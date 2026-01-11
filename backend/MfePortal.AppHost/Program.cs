@@ -3,6 +3,8 @@ using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddAzureContainerAppEnvironment("infra");
+
 var postgres = builder.AddPostgres("postgres")
     .WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8");
 
@@ -25,5 +27,15 @@ if (!builder.Environment.IsDevelopment())
 
     augmentService.WithReference(keyVault);
 }
+
+// Add Frontend container from Azure Container Registry
+var acrEndpoint = builder.Configuration["AZURE_CONTAINER_REGISTRY_ENDPOINT"] ?? "mfe-portal-frontend";
+var frontendImage = acrEndpoint.Contains(".azurecr.io") 
+    ? $"{acrEndpoint}/frontend:latest"
+    : acrEndpoint;
+
+var frontend = builder.AddContainer("frontend", frontendImage)
+    .WithHttpEndpoint(port: 1234, targetPort: 1234, name: "http")
+    .WaitFor(augmentService);
 
 builder.Build().Run();

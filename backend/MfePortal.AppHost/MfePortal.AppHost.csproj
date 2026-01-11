@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Azure.Security.KeyVault" />
+    <PackageReference Include="Aspire.Hosting.Azure.AppContainers" />
     <PackageReference Include="Aspire.Hosting.Azure.KeyVault" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
   </ItemGroup>
