@@ -1,4 +1,5 @@
 import { Configuration, LogLevel } from '@azure/msal-browser';
+import { config } from './config';
 
 /**
  * Configuration object to be passed to MSAL instance on creation.
@@ -8,10 +9,10 @@ import { Configuration, LogLevel } from '@azure/msal-browser';
  */
 export const msalConfig: Configuration = {
   auth: {
-    clientId: import.meta.env.VITE_MSFT_CLIENT_ID || 'YOUR_CLIENT_ID', // Replace with your Azure AD app client ID
-    authority: import.meta.env.VITE_MSFT_AUTHORITY || 'https://login.microsoftonline.com/consumers', // Personal Microsoft accounts only
-    redirectUri: import.meta.env.VITE_MSFT_REDIRECT_URI || 'http://localhost:1234/auth',
-    postLogoutRedirectUri: import.meta.env.VITE_MSFT_POST_LOGOUT_REDIRECT_URI || 'http://localhost:1234/logout',
+    clientId: config.auth.clientId,
+    authority: config.auth.authority,
+    redirectUri: config.auth.redirectUri,
+    postLogoutRedirectUri: config.auth.postLogoutRedirectUri,
     navigateToLoginRequestUrl: true,
   },
   cache: {

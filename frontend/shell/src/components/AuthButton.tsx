@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest } from '../authConfig';
+import { config } from '../config';
 import { Button } from './ui/button';
 import { LogIn, LogOut, User } from 'lucide-react';
 
@@ -16,7 +17,7 @@ export const AuthButton: React.FC = () => {
 
   const handleLogout = () => {
     instance.logoutRedirect({
-      postLogoutRedirectUri: import.meta.env.VITE_MSFT_POST_LOGOUT_REDIRECT_URI || 'http://localhost:1234/logout'
+      postLogoutRedirectUri: config.auth.postLogoutRedirectUri
     }).catch((e) => {
       console.error(e);
     });
