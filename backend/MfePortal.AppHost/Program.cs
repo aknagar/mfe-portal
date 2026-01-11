@@ -29,10 +29,9 @@ if (!builder.Environment.IsDevelopment())
 }
 
 // Add Frontend container from Azure Container Registry
-var acrEndpoint = builder.Configuration["AZURE_CONTAINER_REGISTRY_ENDPOINT"] ?? "mfe-portal-frontend";
-var frontendImage = acrEndpoint.Contains(".azurecr.io") 
-    ? $"{acrEndpoint}/frontend:latest"
-    : acrEndpoint;
+var frontendImage = builder.Environment.IsDevelopment() 
+    ? "mfe-portal-frontend:latest"
+    : "acrescmmynaae3lk.azurecr.io/frontend:latest";
 
 var frontend = builder.AddContainer("frontend", frontendImage)
     .WithHttpEndpoint(port: builder.Environment.IsDevelopment() ? 1234 : 80, targetPort: 1234, name: "http")
