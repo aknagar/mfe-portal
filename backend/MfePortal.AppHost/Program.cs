@@ -35,7 +35,7 @@ var frontendImage = acrEndpoint.Contains(".azurecr.io")
     : acrEndpoint;
 
 var frontend = builder.AddContainer("frontend", frontendImage)
-    .WithHttpEndpoint(port: 1234, targetPort: 1234, name: "http")
+    .WithHttpEndpoint(port: builder.Environment.IsDevelopment() ? 1234 : 80, targetPort: 1234, name: "http")
     .WaitFor(augmentService);
 
 builder.Build().Run();
