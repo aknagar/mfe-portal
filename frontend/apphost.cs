@@ -7,8 +7,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 // Add the following line to configure the Azure App Container environment
 builder.AddAzureContainerAppEnvironment("env");
 
-builder.AddViteApp("frontend", "./shell", runScriptName: "start")
-    .WithExternalHttpEndpoints() // to mark it as publicly accessible.
-    .PublishAsDockerFile(); // This generates a Dockerfile during publish. It needs Dockerfile.
+var frontend = builder.AddDockerfile("frontend", "./", "./Dockerfile")
+    .WithHttpEndpoint(port: 80, targetPort: 1234)
+    .WithExternalHttpEndpoints();
 
 builder.Build().Run();

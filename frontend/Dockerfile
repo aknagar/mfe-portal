@@ -44,8 +44,5 @@ COPY --from=builder /app/dist/release ./dist
 # Expose port 1234 - documents which port the container listens on (used by orchestrators)
 EXPOSE 1234
 
-# Health check - allows Docker/Kubernetes to verify the container is running correctly
-HEALTHCHECK CMD wget -q --spider http://localhost:1234 || exit 1
-
 # Start the web server - command that runs when container starts
 CMD ["serve", "-s", "dist", "-l", "1234", "--cors"]
