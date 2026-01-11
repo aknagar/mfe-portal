@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Microfrontend Portal shell built with Piral and shadcn UI",
   "scripts": {
-    "start": "piral debug --port 1234",
+    "start": "piral debug",
+    "start:1234": "piral debug --port 1234",
     "build": "piral build",
     "validate": "piral validate"
   },

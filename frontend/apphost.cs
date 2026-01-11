@@ -8,8 +8,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureContainerAppEnvironment("env");
 
 builder.AddViteApp("frontend", "./shell", runScriptName: "start")
+    .WithHttpEndpoint(port: 1234, name: "frontend-http")
     .WithExternalHttpEndpoints() // to mark it as publicly accessible.
-    .WithHttpHealthCheck("/") // Add health check endpoint
     .PublishAsDockerFile();  // This generates a Dockerfile during publish. It needs Dockerfile.
 
 builder.Build().Run();
