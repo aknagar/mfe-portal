@@ -10,7 +10,8 @@ import {
   ChevronLeft,
   Smile,
   Code,
-  User
+  User,
+  ShoppingCart
 } from 'lucide-react';
 import {
   Sidebar,
@@ -36,6 +37,7 @@ interface AdminLayoutProps {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Users', href: '/users', icon: Users },
+  { name: 'Products', href: '/products', icon: ShoppingCart },
   { name: 'Settings', href: '/settings', icon: Settings },
   { name: 'Hello World', href: '/hello-world', icon: Smile },
   { name: 'API Playground', href: '/api-playground', icon: Code },

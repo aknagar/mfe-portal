@@ -12,7 +12,9 @@ import { Logout } from './pages/Logout';
 import { Auth } from './pages/Auth';
 import { HelloWorld } from './pages/HelloWorld';
 import { UrlGetter } from './pages/UrlGetter';
+import { ProductTable } from './pages/ProductTable';
 import { msalConfig } from './authConfig';
+import { config } from './config';
 import './index.css';
 
 console.log('Starting application...');
@@ -23,7 +25,7 @@ const msalInstance = new PublicClientApplication(msalConfig);
 const instance = createInstance({
   state: {
     components: layout,
-    errorComponents: errors,
+    errorComponents: errors
   },
   plugins: [],
   requestPilets() {
@@ -66,6 +68,7 @@ const App: React.FC = () => {
     <Piral instance={instance}>
       <SetRoute path="/" component={Dashboard} />
       <SetRoute path="/users" component={Users} />
+      <SetRoute path="/products" component={ProductTable} />
       <SetRoute path="/settings" component={Settings} />
       <SetRoute path="/hello-world" component={HelloWorld} />
       <SetRoute path="/api-playground" component={UrlGetter} />
