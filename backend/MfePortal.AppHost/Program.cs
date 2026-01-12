@@ -29,8 +29,10 @@ if (!builder.Environment.IsDevelopment())
     augmentService.WithReference(keyVault);
 }
 
-// Add Frontend container from Azure Container Registry
-var frontendImage = "infraacrescmmynaae3lk.azurecr.io/frontend:latest";
+// Add Frontend container - use local image in development, ACR in production
+var frontendImage = builder.Environment.IsDevelopment() 
+    ? "frontend:latest" 
+    : "infraacrescmmynaae3lk.azurecr.io/frontend:latest";
 
 var frontend = builder.AddContainer("frontend", frontendImage)
     .WithHttpEndpoint(port: builder.Environment.IsDevelopment() ? 1234 : 80, targetPort: 1234, name: "http")

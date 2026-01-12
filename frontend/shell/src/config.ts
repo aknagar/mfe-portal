@@ -13,6 +13,6 @@ export const config = {
     version: '1.0.0',
   },
   api: {
-    baseUrl: import.meta.env.VITE_API_BASE_URL || 'https://augmentservice.gentlesmoke-c643e3fb.centralindia.azurecontainerapps.io',
+    baseUrl: 'https://augmentservice.gentlesmoke-c643e3fb.centralindia.azurecontainerapps.io',
   },
 };

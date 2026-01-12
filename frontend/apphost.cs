@@ -12,6 +12,7 @@ builder.AddAzureContainerAppEnvironment("infra");
 var frontend = builder.AddDockerfile("frontend", "./", "./Dockerfile")
     .WithHttpEndpoint(port: builder.Environment.IsDevelopment() ? 1234 : 80, targetPort: 1234, name: "http")
     .WithExternalHttpEndpoints()
+    .WithImageTag("latest")
     .PublishAsContainer();
 
 builder.Build().Run();

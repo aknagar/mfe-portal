@@ -21,7 +21,7 @@ RUN npm run build
 FROM node:20-alpine
 
 # Build arguments for semantic versioning - pass during build with --build-arg
-ARG VERSION=dev
+ARG VERSION=latest
 ARG BUILD_DATE
 ARG VCS_REF
 
