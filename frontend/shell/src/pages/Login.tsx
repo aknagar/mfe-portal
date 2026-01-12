@@ -9,9 +9,16 @@ export const Login: React.FC = () => {
   const { instance } = useMsal();
 
   const handleLogin = () => {
-    instance.loginPopup(loginRequest).catch((e) => {
-      console.error('Login failed:', e);
-    });
+    instance.loginPopup(loginRequest)
+      .then(() => {
+        // Redirect to the originally requested path
+        const redirectPath = sessionStorage.getItem('postLoginRedirect') || '/';
+        sessionStorage.removeItem('postLoginRedirect');
+        window.location.href = redirectPath;
+      })
+      .catch((e) => {
+        console.error('Login failed:', e);
+      });
   };
 
   return (

@@ -22,6 +22,17 @@ builder.Services.AddOpenApi();  // OpenAPI is the next version swagger
 
 builder.Services.AddControllers();
 
+// Add CORS policy
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // Add Dapr Workflow - only in non-Development environments
 if (!builder.Environment.IsDevelopment())
 {
@@ -64,6 +75,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi(); //publish endpoint at /openapi/v1.json
     app.MapScalarApiReference(); // similar to swagger UI at /scalar/v1
 };
+
+app.UseCors(); // Enable CORS
 
 app.MapDefaultEndpoints();
 

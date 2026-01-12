@@ -61,6 +61,8 @@ const App: React.FC = () => {
 
   // Show login page without Piral layout if not authenticated
   if (!isAuthenticated) {
+    // Store the intended destination for post-login redirect
+    sessionStorage.setItem('postLoginRedirect', currentPath);
     return <Login />;
   }
 
