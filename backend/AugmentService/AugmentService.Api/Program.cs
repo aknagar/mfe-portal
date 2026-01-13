@@ -33,20 +33,17 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Add Dapr Workflow - only in non-Development environments
-if (!builder.Environment.IsDevelopment())
-{
-    builder.Services.AddDaprWorkflow(options =>
-    {  
-        options.RegisterWorkflow<OrderProcessingWorkflow>();
-        
-        // These are the activities that get invoked by the workflow(s).
-        options.RegisterActivity<NotifyActivity>();
-        options.RegisterActivity<ReserveInventoryActivity>();
-        options.RegisterActivity<ProcessPaymentActivity>();
-        options.RegisterActivity<UpdateInventoryActivity>();
-    });
-}
+// Add Dapr Workflow
+builder.Services.AddDaprWorkflow(options =>
+{  
+    options.RegisterWorkflow<OrderProcessingWorkflow>();
+    
+    // These are the activities that get invoked by the workflow(s).
+    options.RegisterActivity<NotifyActivity>();
+    options.RegisterActivity<ReserveInventoryActivity>();
+    options.RegisterActivity<ProcessPaymentActivity>();
+    options.RegisterActivity<UpdateInventoryActivity>();
+});
 
 // Add other layers
 builder.AddApplication();
@@ -61,7 +58,7 @@ builder.AddAzureKeyVaultClient("keyvault", settings =>
 });
 
 // Add Service Bus client
-builder.AddAzureServiceBusClient("serviceBus");
+builder.AddAzureServiceBusClient("messaging");
 
 // The connection name "productdb" matches what we defined in AppHost
 builder.AddNpgsqlDbContext<ProductDataContext>(connectionName: "productdb");

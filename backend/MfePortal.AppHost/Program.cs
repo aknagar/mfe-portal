@@ -11,10 +11,19 @@ var postgres = builder.AddPostgres("postgres")
 var productdb = postgres.AddDatabase("productdb", "productdb");
 var weatherdb = postgres.AddDatabase("weatherdb", "weatherdb");
 
+// Add Azure Service Bus - use emulator in development
+var serviceBus = builder.AddAzureServiceBus("messaging");
+
+if (builder.Environment.IsDevelopment())
+{
+    serviceBus.RunAsEmulator();
+}
+
 // Add AugmentService.Api with references
 var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice")
     .WithReference(productdb)
     .WithReference(weatherdb)
+    .WithReference(serviceBus)
     .WithExternalHttpEndpoints()
     .WaitFor(productdb)
     .WaitFor(weatherdb);
