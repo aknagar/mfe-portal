@@ -1,4 +1,5 @@
 using Aspire.Hosting.Azure;
+using CommunityToolkit.Aspire.Hosting.Dapr;
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -19,8 +20,18 @@ if (builder.Environment.IsDevelopment())
     serviceBus.RunAsEmulator();
 }
 
+// Add queues for Dapr pubsub
+serviceBus.AddServiceBusQueue("orders");
+
 // Add AugmentService.Api with references
 var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice")
+    .WithDaprSidecar(new DaprSidecarOptions
+    {
+        ResourcesPaths = ["../dapr/components"],
+        AppPort = 8080,
+        DaprHttpPort = 3500,
+        DaprGrpcPort = 50001
+    })
     .WithReference(productdb)
     .WithReference(weatherdb)
     .WithReference(serviceBus)

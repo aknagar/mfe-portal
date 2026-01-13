@@ -33,18 +33,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Add Dapr Workflow
-builder.Services.AddDaprWorkflow(options =>
-{  
-    options.RegisterWorkflow<OrderProcessingWorkflow>();
-    
-    // These are the activities that get invoked by the workflow(s).
-    options.RegisterActivity<NotifyActivity>();
-    options.RegisterActivity<ReserveInventoryActivity>();
-    options.RegisterActivity<ProcessPaymentActivity>();
-    options.RegisterActivity<UpdateInventoryActivity>();
-});
-
 // Add other layers
 builder.AddApplication();
 builder.AddInfrastructure();
@@ -60,11 +48,36 @@ builder.AddAzureKeyVaultClient("keyvault", settings =>
 // Add Service Bus client
 builder.AddAzureServiceBusClient("messaging");
 
+// Log the connection string for debugging
+var messagingConnectionString = builder.Configuration.GetConnectionString("messaging");
+var envVar = Environment.GetEnvironmentVariable("ConnectionStrings__messaging");
+Console.WriteLine($"=== Service Bus Configuration ===");
+Console.WriteLine($"ConnectionString from Configuration: {messagingConnectionString}");
+Console.WriteLine($"ConnectionString from Environment: {envVar}");
+Console.WriteLine($"=================================");
+
 // The connection name "productdb" matches what we defined in AppHost
 builder.AddNpgsqlDbContext<ProductDataContext>(connectionName: "productdb");
 builder.AddNpgsqlDbContext<WeatherDatabaseContext>(connectionName: "weatherdb");
 
+builder.Services.AddDaprClient();
+
+// Add Dapr Workflow
+builder.Services.AddDaprWorkflow(options =>
+{  
+    options.RegisterWorkflow<OrderProcessingWorkflow>();
+    
+    // These are the activities that get invoked by the workflow(s).
+    options.RegisterActivity<NotifyActivity>();
+    options.RegisterActivity<ReserveInventoryActivity>();
+    options.RegisterActivity<ProcessPaymentActivity>();
+    options.RegisterActivity<UpdateInventoryActivity>();
+});
+
+
 var app = builder.Build();
+
+#region HTTP Pipeline Configuration
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -107,3 +120,4 @@ app.UseStaticFiles();
 
 app.Run();
 
+#endregion
