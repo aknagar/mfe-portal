@@ -25,6 +25,7 @@ serviceBus.AddServiceBusQueue("orders");
 
 // Add AugmentService.Api with references
 var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice")
+    //.WithHttpEndpoint(port: 8080, name: "http")  // Explicit HTTP endpoint for Dapr AppPort
     .WithReference(productdb)
     .WithReference(weatherdb)
     .WithReference(serviceBus)
@@ -34,7 +35,7 @@ var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentser
     .WithDaprSidecar(new DaprSidecarOptions
     {
         ResourcesPaths = ["../dapr/components"],
-        AppPort = 8080,  // Port used by dapr to call the application. Internal endpoint, not a public endpoint
+        //AppPort = 8080,  // Port used by dapr to call the application - REQUIRED for actors/workflows
         DaprHttpPort = 3500, // Port used by the application to call dapr
         DaprGrpcPort = 50001
     });

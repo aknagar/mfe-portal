@@ -18,12 +18,14 @@ namespace AugmentService.Api.Controllers
     {
         private readonly ServiceBusSender _serviceBusSender;
         private readonly DaprWorkflowClient _daprWorkflowClient;
+        private readonly DaprClient _daprClient;
 
-        public OrdersController(ServiceBusClient serviceBusClient, DaprWorkflowClient daprWorkflowClient)
+        public OrdersController(ServiceBusClient serviceBusClient, DaprWorkflowClient daprWorkflowClient, DaprClient daprClient)
         {
             // Guard.NotNull(queueClient, nameof(queueClient));
             _serviceBusSender = serviceBusClient.CreateSender("orders");
             _daprWorkflowClient = daprWorkflowClient;
+            _daprClient = daprClient;
         }
         
         [HttpPost(Name = "Order_Create")]
@@ -34,7 +36,7 @@ namespace AugmentService.Api.Controllers
             
             // Start the workflow
             Console.WriteLine("Starting workflow: Name={0}, Quantity={1}, TotalCost={2}", order.Name, order.Quantity, order.TotalCost);
-
+            
             var instanceId = await _daprWorkflowClient.ScheduleNewWorkflowAsync(
                 name: nameof(OrderProcessingWorkflow),
                 input: order);

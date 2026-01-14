@@ -20,9 +20,9 @@
     <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.8.0" />
     <PackageVersion Include="Microsoft.Azure.ServiceBus" Version="5.2.0" />
     <!-- Dapr -->
-    <PackageVersion Include="Dapr.Actors.AspNetCore" Version="1.14.0" />
-    <PackageVersion Include="Dapr.AspNetCore" Version="1.14.0" />
-    <PackageVersion Include="Dapr.Workflow" Version="1.14.0" />
+    <PackageVersion Include="Dapr.Actors.AspNetCore" Version="1.16.1" />
+    <PackageVersion Include="Dapr.AspNetCore" Version="1.16.1" />
+    <PackageVersion Include="Dapr.Workflow" Version="1.16.1" />
     <!-- Validation & Business Logic -->
     <PackageVersion Include="FluentValidation" Version="11.11.0" />
     <PackageVersion Include="FluentResults" Version="3.16.0" />

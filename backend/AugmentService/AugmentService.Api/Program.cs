@@ -89,17 +89,12 @@ builder.Services.AddDaprWorkflow(options =>
     options.RegisterActivity<UpdateInventoryActivity>();
 });
 
-// Enable Dapr Actors (required for workflows)
-builder.Services.AddActors(options =>
-{
-    // Workflows use actors internally - no need to register custom actors
-    // unless you're implementing your own actor types
-});
-
-
 var app = builder.Build();
 
 #region HTTP Pipeline Configuration
+
+// Verify Dapr Placement Service is running (required for workflows/actors)
+//await VerifyDaprPlacementServiceAsync(app.Logger);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -138,11 +133,67 @@ app.MapControllers();
 
 app.MapProxyEndpoints();
 
-// Map Dapr actor endpoints (required for workflows)
-app.MapActorsHandlers();
-
 app.UseStaticFiles();
 
 app.Run();
 
 #endregion
+
+static async Task VerifyDaprPlacementServiceAsync(ILogger logger)
+{
+    const string daprMetadataUrl = "http://localhost:3500/v1.0/metadata";
+    const int maxRetries = 5;
+    const int retryDelayMs = 1000;
+
+    using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++)
+    {
+        try
+        {
+            logger.LogInformation("Checking Dapr placement service connection (attempt {Attempt}/{MaxRetries})...", attempt, maxRetries);
+            
+            var response = await httpClient.GetStringAsync(daprMetadataUrl);
+            var metadata = System.Text.Json.JsonDocument.Parse(response);
+            
+            // Check actor runtime status
+            if (metadata.RootElement.TryGetProperty("actorRuntime", out var actorRuntime))
+            {
+                var placement = actorRuntime.GetProperty("placement").GetString();
+                var hostReady = actorRuntime.GetProperty("hostReady").GetBoolean();
+                
+                if (placement?.Contains("connected") == true && hostReady)
+                {
+                    logger.LogInformation("✅ Dapr placement service is connected and ready");
+                    return;
+                }
+                
+                logger.LogWarning("Dapr placement: {Placement}, hostReady: {HostReady}", placement, hostReady);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning("Dapr metadata endpoint not accessible: {Message}", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning("Error checking Dapr placement: {Message}", ex.Message);
+        }
+
+        if (attempt < maxRetries)
+        {
+            await Task.Delay(retryDelayMs);
+        }
+    }
+
+    logger.LogError("❌ CRITICAL: Dapr placement service is not connected after {MaxRetries} attempts", maxRetries);
+    logger.LogError("Workflows and actors will NOT work without placement service.");
+    logger.LogError("Solutions:");
+    logger.LogError("  1. Restart AppHost with AppPort configured in DaprSidecarOptions");
+    logger.LogError("  2. Ensure Dapr init has been run: dapr init");
+    logger.LogError("  3. Check Docker containers: docker ps | Select-String placement");
+    
+    throw new InvalidOperationException(
+        "Dapr placement service is not connected. Actors and workflows require a running placement service. " +
+        "Please run 'dapr init' and restart the application.");
+}
