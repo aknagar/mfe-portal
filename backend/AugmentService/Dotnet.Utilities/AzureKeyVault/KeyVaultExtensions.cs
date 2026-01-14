@@ -76,7 +76,7 @@ public static class KeyVaultExtensions
         else
         {
             // var readSecretsFromKeyVault = vaultConfigSection.GetValue<bool>("ReadSecretsFromKeyVault");
-            var readSecretsFromKeyVault = (bool)options.ReadSecretsFromKeyVault;
+            var readSecretsFromKeyVault = options.ReadSecretsFromKeyVault ?? false;
 
             if (readSecretsFromKeyVault)
             {

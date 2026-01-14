@@ -11,7 +11,7 @@ public static class ServiceBusClientFactory
     {
         var hostname = configuration.GetValue<string>("KEDA_SERVICEBUS_HOST_NAME");
 
-        var clientIdentityId = configuration.GetValue<string>("KEDA_SERVICEBUS_IDENTITY_USERASSIGNEDID", defaultValue: null);
+        var clientIdentityId = configuration.GetValue<string?>("KEDA_SERVICEBUS_IDENTITY_USERASSIGNEDID", defaultValue: null);
         if (string.IsNullOrWhiteSpace(clientIdentityId) == false)
         {
             logger.LogInformation("Using user-assigned identity with ID {UserAssignedIdentityId}", clientIdentityId);

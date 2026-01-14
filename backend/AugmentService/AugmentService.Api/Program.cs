@@ -4,6 +4,7 @@ using Scalar.AspNetCore;
 using Application;
 using AugmentService.Api.Endpoints;
 using Dapr.Workflow;
+using Dapr.Actors;
 using AugmentService.Api.Workflows;
 using AugmentService.Api.Activities;
 using AugmentService.Infrastructure;
