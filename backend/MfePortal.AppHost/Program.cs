@@ -25,19 +25,19 @@ serviceBus.AddServiceBusQueue("orders");
 
 // Add AugmentService.Api with references
 var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice")
-    .WithDaprSidecar(new DaprSidecarOptions
-    {
-        ResourcesPaths = ["../dapr/components"],
-        AppPort = 8080,
-        DaprHttpPort = 3500,
-        DaprGrpcPort = 50001
-    })
     .WithReference(productdb)
     .WithReference(weatherdb)
     .WithReference(serviceBus)
     .WithExternalHttpEndpoints()
     .WaitFor(productdb)
-    .WaitFor(weatherdb);
+    .WaitFor(weatherdb)
+    .WithDaprSidecar(new DaprSidecarOptions
+    {
+        ResourcesPaths = ["../dapr/components"],
+        AppPort = 8080,  // Port used by dapr to call the application. Internal endpoint, not a public endpoint
+        DaprHttpPort = 3500, // Port used by the application to call dapr
+        DaprGrpcPort = 50001
+    });
 
 // Only add Key Vault reference in non-development
 if (!builder.Environment.IsDevelopment())

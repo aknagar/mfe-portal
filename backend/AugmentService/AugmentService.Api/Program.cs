@@ -48,13 +48,27 @@ builder.AddAzureKeyVaultClient("keyvault", settings =>
 // Add Service Bus client
 builder.AddAzureServiceBusClient("messaging");
 
-// Log the connection string for debugging
-var messagingConnectionString = builder.Configuration.GetConnectionString("messaging");
-var envVar = Environment.GetEnvironmentVariable("ConnectionStrings__messaging");
-Console.WriteLine($"=== Service Bus Configuration ===");
-Console.WriteLine($"ConnectionString from Configuration: {messagingConnectionString}");
-Console.WriteLine($"ConnectionString from Environment: {envVar}");
-Console.WriteLine($"=================================");
+// Log all environment variables injected by Aspire (Development only)
+if (builder.Environment.IsDevelopment())
+{
+    Console.WriteLine("=== ALL ENVIRONMENT VARIABLES ===");
+    foreach (var envVar in Environment.GetEnvironmentVariables().Cast<System.Collections.DictionaryEntry>().OrderBy(e => e.Key))
+    {
+        var key = envVar.Key.ToString();
+        var value = envVar.Value?.ToString();
+        
+        // Mask sensitive values
+        if (key != null && (key.Contains("PASSWORD", StringComparison.OrdinalIgnoreCase) || 
+            key.Contains("SECRET", StringComparison.OrdinalIgnoreCase) ||
+            key.Contains("KEY", StringComparison.OrdinalIgnoreCase)))
+        {
+            value = "***MASKED***";
+        }
+        
+        Console.WriteLine($"{key} = {value}");
+    }
+    Console.WriteLine("=================================");
+}
 
 // The connection name "productdb" matches what we defined in AppHost
 builder.AddNpgsqlDbContext<ProductDataContext>(connectionName: "productdb");
@@ -62,7 +76,7 @@ builder.AddNpgsqlDbContext<WeatherDatabaseContext>(connectionName: "weatherdb");
 
 builder.Services.AddDaprClient();
 
-// Add Dapr Workflow
+// Add Dapr Workflow (requires actor runtime)
 builder.Services.AddDaprWorkflow(options =>
 {  
     options.RegisterWorkflow<OrderProcessingWorkflow>();
@@ -72,6 +86,13 @@ builder.Services.AddDaprWorkflow(options =>
     options.RegisterActivity<ReserveInventoryActivity>();
     options.RegisterActivity<ProcessPaymentActivity>();
     options.RegisterActivity<UpdateInventoryActivity>();
+});
+
+// Enable Dapr Actors (required for workflows)
+builder.Services.AddActors(options =>
+{
+    // Workflows use actors internally - no need to register custom actors
+    // unless you're implementing your own actor types
 });
 
 
@@ -115,6 +136,9 @@ app.MapNotify();
 app.MapControllers();
 
 app.MapProxyEndpoints();
+
+// Map Dapr actor endpoints (required for workflows)
+app.MapActorsHandlers();
 
 app.UseStaticFiles();
 

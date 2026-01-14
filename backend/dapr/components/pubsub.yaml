@@ -3,9 +3,10 @@ kind: Component
 metadata:
   name: pubsub
 spec:
-  type: pubsub.azure.servicebus.queues
+  type: pubsub.redis
   version: v1
   metadata:
-  - name: connectionString
-    value: "{env:ConnectionStrings__messaging}"
-
+  - name: redisHost
+    value: localhost:6379
+  - name: redisPassword
+    value: ""
