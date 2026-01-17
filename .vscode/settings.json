@@ -32,5 +32,6 @@
   },
   "terminal.integrated.shellIntegration.enabled": true,
   "terminal.integrated.shellIntegration.decorationsEnabled": "both",
-  "terminal.integrated.shellIntegration.suggestEnabled": true
+  "terminal.integrated.shellIntegration.suggestEnabled": true,
+  "chat.mcp.serverSampling": {}
 }

@@ -23,6 +23,7 @@ packages/
 # Environment
 .env
 .env.local
+.devcontainer/.env
 docker-compose.override.yml
 
 # Local data volumes
