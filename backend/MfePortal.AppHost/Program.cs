@@ -31,6 +31,7 @@ var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentser
     .WithExternalHttpEndpoints()
     .WaitFor(productdb)
     .WaitFor(weatherdb)
+    .WaitFor(serviceBus)
     .WithDaprSidecar(new DaprSidecarOptions
     {
         ResourcesPaths = ["../dapr/components"],
