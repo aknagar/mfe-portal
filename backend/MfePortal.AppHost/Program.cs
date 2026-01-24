@@ -67,4 +67,9 @@ var frontend = builder.AddContainer("frontend", frontendImage)
     .WithExternalHttpEndpoints()
     .WaitFor(augmentService);
 
+// Add Diagrid Dashboard for Dapr monitoring
+var diagridDashboard = builder.AddContainer("diagrid-dashboard", "ghcr.io/diagridio/diagrid-dashboard:latest")
+    .WithHttpEndpoint(port: 8080, targetPort: 8080, name: "http")
+    .WithExternalHttpEndpoints();
+
 builder.Build().Run();
