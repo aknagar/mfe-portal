@@ -1,4 +1,6 @@
+using Aspire.Hosting;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Redis;
 using CommunityToolkit.Aspire.Hosting.Dapr;
 using Microsoft.Extensions.Hosting;
 
@@ -11,6 +13,10 @@ var postgres = builder.AddPostgres("postgres")
 
 var productdb = postgres.AddDatabase("productdb", "productdb");
 var weatherdb = postgres.AddDatabase("weatherdb", "weatherdb");
+
+// Add Redis for DAPR components
+var redis = builder.AddRedis("redis");
+
 
 // Add Azure Service Bus - use emulator in development
 var serviceBus = builder.AddAzureServiceBus("messaging");
@@ -28,16 +34,16 @@ var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentser
     .WithReference(productdb)
     .WithReference(weatherdb)
     .WithReference(serviceBus)
+    .WithReference(redis)
     .WithExternalHttpEndpoints()
     .WaitFor(productdb)
     .WaitFor(weatherdb)
     .WaitFor(serviceBus)
+    .WaitFor(redis)
     .WithDaprSidecar(new DaprSidecarOptions
     {
-        ResourcesPaths = ["../dapr/components"],
-        AppPort = 8080,  // REQUIRED for actors/workflows - Dapr needs to call the app
-        DaprHttpPort = 3500, // Port for app to call Dapr HTTP API
-        DaprGrpcPort = 50001 // Port for app to call Dapr gRPC API (workflows)
+        AppId = "augmentservice",  // REQUIRED - unique app ID for Dapr
+        ResourcesPaths = ["../dapr/components"]
     });
 
 // Only add Key Vault reference in non-development
@@ -49,6 +55,7 @@ if (!builder.Environment.IsDevelopment())
 
     augmentService.WithReference(keyVault);
 }
+
 
 // Add Frontend container - use local image in development, ACR in production
 var frontendImage = builder.Environment.IsDevelopment() 
