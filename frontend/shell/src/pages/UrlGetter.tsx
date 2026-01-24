@@ -15,7 +15,7 @@ interface Header {
 export const UrlGetter = () => {
   const { instance, accounts } = useMsal();
   const [method, setMethod] = useState('POST');
-  const [endpoint, setEndpoint] = useState('http://localhost:5116/api/Orders');
+  const [endpoint, setEndpoint] = useState('https://localhost:7201/api/Orders');
   const [headers, setHeaders] = useState<Header[]>([
     { name: 'Content-Type', value: 'application/json' },
     { name: 'Authorization', value: 'Bearer Loading...' },
