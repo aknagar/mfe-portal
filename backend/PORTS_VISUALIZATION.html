@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Port Usage Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .diagram-container {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .port-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .port-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .port-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .port-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        .port-table tr:hover {
+            background: #e3f2fd;
+        }
+        .port-number {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 16px;
+        }
+        .category {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .category-api {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        .category-aspire {
+            background: #f3e5f5;
+            color: #6a1b9a;
+        }
+        .category-dapr {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .category-infrastructure {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        .category-frontend {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+        .environment {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 8px;
+            margin-left: 8px;
+        }
+        .env-dev {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        .env-prod {
+            background: #ffccbc;
+            color: #d84315;
+        }
+        .env-both {
+            background: #b3e5fc;
+            color: #0277bd;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .card .value {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .card .description {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Backend Port Usage Visualization</h1>
+        <p class="subtitle">MFE Portal - Complete Port Mapping</p>
+
+        <div class="summary-cards">
+            <div class="card">
+                <h3>API Service Ports</h3>
+                <div class="value">2</div>
+                <div class="description">HTTP (7200) + HTTPS (7201)</div>
+            </div>
+            <div class="card">
+                <h3>Aspire Dashboard</h3>
+                <div class="value">4</div>
+                <div class="description">Management & Telemetry</div>
+            </div>
+            <div class="card">
+                <h3>DAPR Sidecar</h3>
+                <div class="value">2</div>
+                <div class="description">HTTP (3500) + gRPC (50001)</div>
+            </div>
+            <div class="card">
+                <h3>Frontend</h3>
+                <div class="value">1</div>
+                <div class="description">Port 1234</div>
+            </div>
+        </div>
+
+        <div class="diagram-container">
+            <h2 style="margin-top: 0;">Architecture Diagram</h2>
+            <div class="mermaid">
+graph TB
+    subgraph "Client Layer"
+        Browser[Web Browser]
+    end
+
+    subgraph "Frontend - Port 1234"
+        Frontend[Frontend Container<br/>Port: 1234<br/>Target: 1234]
+    end
+
+    subgraph "Aspire AppHost - Ports 15000-15001, 21295, 22028"
+        Dashboard[Aspire Dashboard<br/>HTTP: 15000<br/>HTTPS: 15001]
+        OTLP[OTLP Endpoint<br/>Port: 21295]
+        Resource[Resource Service<br/>Port: 22028]
+    end
+
+    subgraph "AugmentService API - Ports 7200-7201"
+        API[AugmentService.Api<br/>HTTP: 7200<br/>HTTPS: 7201]
+    end
+
+    subgraph "DAPR Sidecar - Ports 3500, 50001"
+        DaprHTTP[DAPR HTTP<br/>Port: 3500]
+        DaprGRPC[DAPR gRPC<br/>Port: 50001]
+    end
+
+    subgraph "Infrastructure Services"
+        Postgres[PostgreSQL<br/>Dynamic Port]
+        Redis[Redis<br/>Dynamic Port]
+        ServiceBus[Azure Service Bus<br/>Cloud/Emulator]
+    end
+
+    subgraph "Production - Container Apps"
+        ProdAPI[Container App<br/>Port: 8080]
+        ProdDaprHTTP[DAPR HTTP<br/>Port: 3500]
+        ProdDaprGRPC[DAPR gRPC<br/>Port: 50001]
+    end
+
+    Browser --> Frontend
+    Frontend --> API
+    Browser --> Dashboard
+    
+    API --> DaprHTTP
+    API --> DaprGRPC
+    API --> Postgres
+    API --> Redis
+    
+    DaprHTTP --> ServiceBus
+    DaprGRPC --> ServiceBus
+    
+    API --> OTLP
+    API --> Resource
+    
+    style Frontend fill:#fce4ec,stroke:#c2185b
+    style API fill:#e3f2fd,stroke:#1565c0
+    style Dashboard fill:#f3e5f5,stroke:#6a1b9a
+    style OTLP fill:#f3e5f5,stroke:#6a1b9a
+    style Resource fill:#f3e5f5,stroke:#6a1b9a
+    style DaprHTTP fill:#e8f5e9,stroke:#2e7d32
+    style DaprGRPC fill:#e8f5e9,stroke:#2e7d32
+    style ProdAPI fill:#fff3e0,stroke:#e65100
+    style ProdDaprHTTP fill:#fff3e0,stroke:#e65100
+    style ProdDaprGRPC fill:#fff3e0,stroke:#e65100
+            </div>
+        </div>
+
+        <h2>📋 Complete Port Reference</h2>
+        <table class="port-table">
+            <thead>
+                <tr>
+                    <th>Port</th>
+                    <th>Service</th>
+                    <th>Protocol</th>
+                    <th>Category</th>
+                    <th>Environment</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="port-number">7200</span></td>
+                    <td>AugmentService.Api</td>
+                    <td>HTTP</td>
+                    <td><span class="category category-api">API</span></td>
+                    <td><span class="environment env-dev">Development</span></td>
+                    <td>Main API service endpoint (HTTP only)</td>
+                </tr>
+                <tr>
+                    <td><span class="port-number">7201</span></td>
+                    <td>AugmentService.Api</td>
+                    <td>HTTPS</td>
+                    <td><span class="category category-api">API</span></td>
+                    <td><span class="environment env-dev">Development</span></td>
+                    <td>Main API service endpoint (HTTPS secure)</td>
+                </tr>
+                <tr>
+                    <td><span class="port-number">15000</span></td>
+                    <td>Aspire AppHost</td>
+                    <td>HTTP</td>
+                    <td><span class="category category-aspire">Aspire</span></td>
+                    <td><span class="environment env-dev">Development</span></td>
+                    <td>Aspire Dashboard HTTP endpoint</td>
+                </tr>
+                <tr>
+                    <td><span class="port-number">15001</span></td>
+                    <td>Aspire AppHost</td>
+                    <td>HTTPS</td>
+                    <td><span class="category category-aspire">Aspire</span></td>
+                    <td><span class="environment env-dev">Development</span></td>
+                    <td>Aspire Dashboard HTTPS endpoint</td>
+                </tr>
+                <tr>
+                    <td><span class="port-number">21295</span></td>
+                    <td>Aspire OTLP</td>
+                    <td>HTTPS</td>
+                    <td><span class="category category-aspire">Aspire</span></td>
+                    <td><span class="environment env-dev">Development</span></td>
+                    <td>OpenTelemetry Protocol endpoint for telemetry data</td>
+                </tr>
+                <tr>
+                    <td><span class="port-number">22028</span></td>
+                    <td>Aspire Resource Service</td>
+                    <td>HTTPS</td>
+                    <td><span class="category category-aspire">Aspire</span></td>
+                    <td><span class="environment env-dev">Development</span></td>
+                    <td>Aspire resource management service endpoint</td>
+                </tr>
+                <tr>
+                    <td><span class="port-number">3500</span></td>
+                    <td>DAPR Sidecar</td>
+                    <td>HTTP</td>
+                    <td><span class="category category-dapr">DAPR</span></td>
+                    <td><span class="environment env-both">Both</span></td>
+                    <td>DAPR HTTP API for state, pub/sub, bindings, etc.</td>
+                </tr>
+                <tr>
+                    <td><span class="port-number">50001</span></td>
+                    <td>DAPR Sidecar</td>
+                    <td>gRPC</td>
+                    <td><span class="category category-dapr">DAPR</span></td>
+                    <td><span class="environment env-both">Both</span></td>
+                    <td>DAPR gRPC API for high-performance communication</td>
+                </tr>
+                <tr>
+                    <td><span class="port-number">8080</span></td>
+                    <td>Container App</td>
+                    <td>HTTP</td>
+                    <td><span class="category category-infrastructure">Production</span></td>
+                    <td><span class="environment env-prod">Production</span></td>
+                    <td>Container port for production deployment in Azure Container Apps</td>
+                </tr>
+                <tr>
+                    <td><span class="port-number">1234</span></td>
+                    <td>Frontend Container</td>
+                    <td>HTTP</td>
+                    <td><span class="category category-frontend">Frontend</span></td>
+                    <td><span class="environment env-both">Both</span></td>
+                    <td>Frontend application (Piral shell) - target and exposed port</td>
+                </tr>
+                <tr>
+                    <td><span class="port-number">80</span></td>
+                    <td>Frontend Container</td>
+                    <td>HTTP</td>
+                    <td><span class="category category-frontend">Frontend</span></td>
+                    <td><span class="environment env-prod">Production</span></td>
+                    <td>Frontend exposed port in production (maps to target 1234)</td>
+                </tr>
+                <tr>
+                    <td><span class="port-number">Dynamic</span></td>
+                    <td>PostgreSQL</td>
+                    <td>PostgreSQL</td>
+                    <td><span class="category category-infrastructure">Infra</span></td>
+                    <td><span class="environment env-dev">Development</span></td>
+                    <td>Database - Aspire assigns dynamic port (productdb, weatherdb)</td>
+                </tr>
+                <tr>
+                    <td><span class="port-number">Dynamic</span></td>
+                    <td>Redis</td>
+                    <td>Redis</td>
+                    <td><span class="category category-infrastructure">Infra</span></td>
+                    <td><span class="environment env-dev">Development</span></td>
+                    <td>Cache/State - Aspire assigns dynamic port for DAPR components</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>📝 Key Notes</h2>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Development Environment</h3>
+            <ul>
+                <li><strong>API Service:</strong> Runs on ports 7200 (HTTP) and 7201 (HTTPS) as configured in launchSettings.json</li>
+                <li><strong>Aspire Dashboard:</strong> Runs on ports 15000 (HTTP) and 15001 (HTTPS) for monitoring and management</li>
+                <li><strong>Aspire Telemetry:</strong> Uses ports 21295 (OTLP) and 22028 (Resource Service) for observability</li>
+                <li><strong>DAPR Sidecar:</strong> Uses ports 3500 (HTTP) and 50001 (gRPC) for service communication</li>
+                <li><strong>Frontend:</strong> Runs on port 1234 in development</li>
+                <li><strong>Infrastructure:</strong> PostgreSQL and Redis get dynamic ports assigned by Aspire (visible in Aspire Dashboard)</li>
+            </ul>
+
+            <h3>Production Environment (Azure Container Apps)</h3>
+            <ul>
+                <li><strong>Container Port:</strong> Applications listen on port 8080 internally</li>
+                <li><strong>DAPR Ports:</strong> Same as development (3500 HTTP, 50001 gRPC)</li>
+                <li><strong>Frontend:</strong> Exposed on port 80, targeting internal port 1234</li>
+                <li><strong>External Access:</strong> Managed through Azure Container Apps ingress controller</li>
+            </ul>
+
+            <h3>Port Configuration Files</h3>
+            <ul>
+                <li><code>backend/AugmentService/AugmentService.Api/Properties/launchSettings.json</code> - API service ports</li>
+                <li><code>backend/MfePortal.AppHost/Properties/launchSettings.json</code> - Aspire dashboard ports</li>
+                <li><code>backend/MfePortal.AppHost/Program.cs</code> - Service orchestration and port mappings</li>
+                <li><code>backend/infra/main.parameters.json</code> - Production deployment port configuration</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+    </script>
+</body>
+</html>
