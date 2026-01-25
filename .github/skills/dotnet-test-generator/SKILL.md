@@ -36,13 +36,12 @@ tests/
 │   │   └── EndpointTests.cs
 │   └── Database/
 │       └── DbContextTests.cs
-└── {ProjectName}.AppHost.Tests/        # Aspire distributed app tests
-    └── IntegrationTests.cs
-
-Common/
-├── TestDataBuilders/
-├── Fakes/
-└── TestHelpers.cs
+├── {ProjectName}.AppHost.Tests/        # Aspire distributed app tests
+│   └── IntegrationTests.cs
+└── Common/
+    ├── TestDataBuilders/
+    ├── Fakes/
+    └── TestHelpers.cs
 ```
 
 ## Package References
