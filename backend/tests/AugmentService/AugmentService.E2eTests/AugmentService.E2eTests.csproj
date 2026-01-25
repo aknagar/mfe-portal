@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\MfePortal.AppHost\MfePortal.AppHost.csproj" />
+    <ProjectReference Include="..\..\..\MfePortal.AppHost\MfePortal.AppHost.csproj" />
   </ItemGroup>
 
 </Project>
