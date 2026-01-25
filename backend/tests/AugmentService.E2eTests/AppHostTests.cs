@@ -5,14 +5,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
-namespace MfePortal.AppHost.Tests;
+namespace AugmentService.E2eTests;
 
-public class IntegrationTests
+public class AppHostTests
 {
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
 
     [Fact]
-    [Trait("Category", "Integration")]
+    [Trait("Category", "E2E")]
     public async Task AppHost_StartsSuccessfully()
     {
         // Arrange
@@ -41,7 +41,7 @@ public class IntegrationTests
     }
 
     [Fact]
-    [Trait("Category", "Integration")]
+    [Trait("Category", "E2E")]
     public async Task AugmentServiceApi_RespondsToHealthCheck()
     {
         // Arrange
