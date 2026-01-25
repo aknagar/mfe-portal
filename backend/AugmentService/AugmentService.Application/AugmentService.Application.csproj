@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="AugmentService.Application.Tests" />
+    <InternalsVisibleTo Include="AugmentService.UnitTests" />
   </ItemGroup>
 
   <ItemGroup>

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
 
-namespace AugmentService.Infrastructure.Tests.Repositories;
+namespace AugmentService.UnitTests.Infrastructure;
 
 public class InMemoryProxyTargetRepositoryTests
 {

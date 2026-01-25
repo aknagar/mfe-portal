@@ -2,7 +2,7 @@ using AugmentService.Core.Entities;
 using FluentAssertions;
 using Xunit;
 
-namespace AugmentService.Core.Tests;
+namespace AugmentService.UnitTests.Domain;
 
 public class ProxyTargetTests
 {
