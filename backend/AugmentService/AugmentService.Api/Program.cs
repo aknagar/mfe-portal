@@ -86,6 +86,10 @@ builder.Services.AddDaprWorkflow(options =>
     options.RegisterActivity<ReserveInventoryActivity>();
     options.RegisterActivity<ProcessPaymentActivity>();
     options.RegisterActivity<UpdateInventoryActivity>();
+    
+    // Approval workflow activities
+    options.RegisterActivity<RequestApprovalActivity>();
+    options.RegisterActivity<HandleApprovalTimeoutActivity>();
 });
 
 var app = builder.Build();

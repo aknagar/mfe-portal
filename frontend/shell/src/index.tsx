@@ -13,6 +13,7 @@ import { Auth } from './pages/Auth';
 import { HelloWorld } from './pages/HelloWorld';
 import { UrlGetter } from './pages/UrlGetter';
 import { ProductTable } from './pages/ProductTable';
+import { Approvals } from './pages/Approvals';
 import { msalConfig } from './authConfig';
 import { config } from './config';
 import './index.css';
@@ -71,6 +72,7 @@ const App: React.FC = () => {
       <SetRoute path="/" component={Dashboard} />
       <SetRoute path="/users" component={Users} />
       <SetRoute path="/products" component={ProductTable} />
+      <SetRoute path="/approvals" component={Approvals} />
       <SetRoute path="/settings" component={Settings} />
       <SetRoute path="/hello-world" component={HelloWorld} />
       <SetRoute path="/api-playground" component={UrlGetter} />

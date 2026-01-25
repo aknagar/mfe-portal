@@ -11,7 +11,8 @@ import {
   Smile,
   Code,
   User,
-  ShoppingCart
+  ShoppingCart,
+  ClipboardCheck
 } from 'lucide-react';
 import {
   Sidebar,
@@ -38,6 +39,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Users', href: '/users', icon: Users },
   { name: 'Products', href: '/products', icon: ShoppingCart },
+  { name: 'Approvals', href: '/approvals', icon: ClipboardCheck },
   { name: 'Settings', href: '/settings', icon: Settings },
   { name: 'Hello World', href: '/hello-world', icon: Smile },
   { name: 'API Playground', href: '/api-playground', icon: Code },
