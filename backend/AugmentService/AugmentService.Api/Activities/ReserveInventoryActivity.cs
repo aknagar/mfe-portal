@@ -17,6 +17,15 @@ namespace AugmentService.Api.Activities
 
         public override async Task<InventoryResult> RunAsync(WorkflowActivityContext context, InventoryRequest req)
         {
+            // Validate required input - ItemName is used as the state store key
+            if (string.IsNullOrEmpty(req.ItemName))
+            {
+                this.logger.LogWarning(
+                    "ReserveInventory failed for order {requestId}: ItemName cannot be null or empty",
+                    req.RequestId);
+                return new InventoryResult(false, null);
+            }
+
             this.logger.LogInformation(
                 "Reserving inventory for order {requestId} of {quantity} {name}",
                 req.RequestId,

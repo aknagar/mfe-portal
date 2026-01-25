@@ -10,6 +10,8 @@ using AugmentService.Infrastructure;
 using AugmentService.Infrastructure.ProductData;
 using Azure.Identity;
 using AugmentService.Infrastructure.WeatherData;
+using Microsoft.OpenApi.Any;
+using AugmentService.Core.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +20,23 @@ var credential = new DefaultAzureCredential();
 
 builder.AddServiceDefaults();
 
-builder.Services.AddOpenApi();  // OpenAPI is the next version swagger
+builder.Services.AddOpenApi(options =>
+{
+    // Add default example for Order schema in Scalar UI
+    options.AddSchemaTransformer((schema, context, cancellationToken) =>
+    {
+        if (context.JsonTypeInfo.Type == typeof(Order))
+        {
+            schema.Example = new OpenApiObject
+            {
+                ["name"] = new OpenApiString("Paperclips"),
+                ["totalCost"] = new OpenApiInteger(100),
+                ["quantity"] = new OpenApiInteger(10)
+            };
+        }
+        return Task.CompletedTask;
+    });
+});
 
 builder.Services.AddControllers();
 
