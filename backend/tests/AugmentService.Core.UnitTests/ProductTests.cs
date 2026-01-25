@@ -2,7 +2,7 @@ using AugmentService.Core.Entities;
 using FluentAssertions;
 using Xunit;
 
-namespace AugmentService.UnitTests.Domain;
+namespace AugmentService.Core.UnitTests;
 
 public class ProductTests
 {

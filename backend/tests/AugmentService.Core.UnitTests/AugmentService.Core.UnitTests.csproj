@@ -15,11 +15,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="NSubstitute" />
-    <PackageReference Include="NSubstitute.Analyzers.CSharp">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="AutoFixture" />
     <PackageReference Include="AutoFixture.Xunit2" />
@@ -31,8 +26,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\AugmentService\AugmentService.Core\AugmentService.Core.csproj" />
-    <ProjectReference Include="..\..\AugmentService\AugmentService.Application\AugmentService.Application.csproj" />
-    <ProjectReference Include="..\..\AugmentService\AugmentService.Infrastructure\AugmentService.Infrastructure.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
 

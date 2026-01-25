@@ -7,7 +7,7 @@ using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Xunit;
 
-namespace AugmentService.UnitTests.Application;
+namespace AugmentService.Application.UnitTests;
 
 public class AddForecastCommandHandlerTests
 {
