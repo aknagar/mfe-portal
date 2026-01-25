@@ -18,18 +18,24 @@ packages/
 .nuget/
 
 # Nx
-.nx/cache
-.nx/workspace-data
+.nx/
 
 # Environment
 .env
 .env.local
+.devcontainer/.env
+docker-compose.override.yml
+
+# Local data volumes
+postgres_data/
 
 # IDE
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
 !.vscode/mcp.json
+!.vscode/launch.json
+!.vscode/tasks.json
 .idea/
 .vs/
 *.swp

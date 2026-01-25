@@ -18,63 +18,35 @@ namespace AugmentService.Api.Controllers
     {
         private readonly ServiceBusSender _serviceBusSender;
         private readonly DaprWorkflowClient _daprWorkflowClient;
+        private readonly DaprClient _daprClient;
 
-        /// <summary>
-        ///     Constructor
-        /// </summary>
-        /// <param name="queueClient">Client to send messages to queue with</param>
-        public OrdersController(ServiceBusClient serviceBusClient, DaprWorkflowClient daprWorkflowClient)
+        public OrdersController(ServiceBusClient serviceBusClient, DaprWorkflowClient daprWorkflowClient, DaprClient daprClient)
         {
             // Guard.NotNull(queueClient, nameof(queueClient));
-
             _serviceBusSender = serviceBusClient.CreateSender("orders");
             _daprWorkflowClient = daprWorkflowClient;
+            _daprClient = daprClient;
         }
-
-        /// <summary>
-        ///     Create Order
-        /// </summary>
+        
         [HttpPost(Name = "Order_Create")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         public async Task<IActionResult> Create([FromBody, Required] Order order)
         {
             var rawOrder = JsonConvert.SerializeObject(order);
-
-            /*
-            var orderMessage = new ServiceBusMessage(Encoding.UTF8.GetBytes(rawOrder));
-            await _serviceBusSender.SendMessageAsync(orderMessage);
-            */
-
             
             // Start the workflow
             Console.WriteLine("Starting workflow: Name={0}, Quantity={1}, TotalCost={2}", order.Name, order.Quantity, order.TotalCost);
-
+            
             var instanceId = await _daprWorkflowClient.ScheduleNewWorkflowAsync(
                 name: nameof(OrderProcessingWorkflow),
                 input: order);
 
-            /*
-            // Wait for the workflow to start and confirm the input
-            WorkflowState state = await _daprWorkflowClient.WaitForWorkflowStartAsync(
-                instanceId: instanceId);
-
-            Console.WriteLine("Your workflow has started. Here is the status of the workflow: {0}", Enum.GetName(typeof(WorkflowRuntimeStatus), state.RuntimeStatus));
-            */
-          
             var response = new
             {
                 InstanceId = instanceId
             };
             return Accepted(response);
         }
-
-        
-        [HttpGet]
-        public Task<string> Get()
-        {
-            return Task.FromResult<string>("Hello");
-        }
-        
 
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(string id)

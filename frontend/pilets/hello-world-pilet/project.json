@@ -1,0 +1,22 @@
+{
+  "name": "hello-world-pilet",
+  "sourceRoot": "pilets/hello-world-pilet/src",
+  "projectType": "application",
+  "targets": {
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm start",
+        "cwd": "pilets/hello-world-pilet"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pilet build",
+        "cwd": "pilets/hello-world-pilet"
+      },
+      "outputs": ["{projectRoot}/dist"]
+    }
+  }
+}

@@ -5,6 +5,7 @@
     "git clean": false,
     "git force-push": false,
     "git revert": false,
+    "git commit": false,
 
     "rm -rf": false,
     "rm -r": false,
@@ -31,5 +32,6 @@
   },
   "terminal.integrated.shellIntegration.enabled": true,
   "terminal.integrated.shellIntegration.decorationsEnabled": "both",
-  "terminal.integrated.shellIntegration.suggestEnabled": true
+  "terminal.integrated.shellIntegration.suggestEnabled": true,
+  "chat.mcp.serverSampling": {}
 }

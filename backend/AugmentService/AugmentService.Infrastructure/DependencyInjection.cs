@@ -16,7 +16,7 @@ public static class DependencyInjection
         builder
             .AddInfrastructureConfig();
         
-        builder.Services.AddDbContext<WeatherDatabaseContext>();
+        // DbContext is registered via Aspire AddNpgsqlDbContext in Program.cs
 
         builder.Services.AddScoped<IWeatherRepository, WeatherRepository>();
         

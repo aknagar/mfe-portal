@@ -1,14 +1,12 @@
-using Azure.Security.KeyVault.Secrets;
 using AugmentService.Core.Entities;
 using AugmentService.Infrastructure.ProductData;
 using Microsoft.EntityFrameworkCore;
 
 namespace AugmentService.Api.Endpoints
 {
-
     public static class ProductEndpoints
     {
-        public static void MapProductEndpoints(this IEndpointRouteBuilder routes, SecretClient secretClient)
+        public static void MapProductEndpoints(this IEndpointRouteBuilder routes)
         {
             var group = routes.MapGroup("/api/Product");
 
