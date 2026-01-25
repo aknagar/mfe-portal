@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="AugmentService.Application.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="FluentResults" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
