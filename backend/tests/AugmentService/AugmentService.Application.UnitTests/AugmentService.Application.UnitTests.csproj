@@ -30,9 +30,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AugmentService\AugmentService.Application\AugmentService.Application.csproj" />
-    <ProjectReference Include="..\..\AugmentService\AugmentService.Core\AugmentService.Core.csproj" />
-    <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\..\..\AugmentService\AugmentService.Application\AugmentService.Application.csproj" />
+    <ProjectReference Include="..\..\..\AugmentService\AugmentService.Core\AugmentService.Core.csproj" />
+    <ProjectReference Include="..\..\Common\Common.csproj" />
   </ItemGroup>
 
 </Project>
