@@ -15,8 +15,8 @@ public static class DependencyInjection
                 .AddOpenBehavior(typeof(LoggingBehavior<,>))
         );
 
-        // Register authorization service
-        builder.Services.AddScoped<IPermissionService, AuthorizationService>();
+        // Register user permission service
+        builder.Services.AddScoped<IUserPermissionService, UserPermissionService>();
 
         // Register memory cache if not already registered
         builder.Services.AddMemoryCache();

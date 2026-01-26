@@ -4,9 +4,8 @@ namespace AugmentService.Application.Interfaces;
 
 /// <summary>
 /// Service interface for user authorization and permission management.
-/// Note: Named IPermissionService to avoid conflict with ASP.NET Core's IAuthorizationService.
 /// </summary>
-public interface IPermissionService
+public interface IUserPermissionService
 {
     /// <summary>
     /// Retrieves all roles and aggregated permissions for a specific user.

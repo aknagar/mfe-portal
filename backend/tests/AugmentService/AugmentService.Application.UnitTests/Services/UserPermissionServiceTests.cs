@@ -10,27 +10,27 @@ using Xunit;
 namespace AugmentService.Application.UnitTests.Services;
 
 /// <summary>
-/// Unit tests for AuthorizationService.
+/// Unit tests for UserPermissionService.
 /// Tests permission aggregation logic and business rules.
 /// </summary>
-public class AuthorizationServiceTests
+public class UserPermissionServiceTests
 {
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IRoleRepository _roleRepository;
     private readonly IMemoryCache _memoryCache;
-    private readonly ILogger<AuthorizationService> _logger;
+    private readonly ILogger<UserPermissionService> _logger;
 
-    public AuthorizationServiceTests()
+    public UserPermissionServiceTests()
     {
         _userRoleRepository = Substitute.For<IUserRoleRepository>();
         _roleRepository = Substitute.For<IRoleRepository>();
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
-        _logger = Substitute.For<ILogger<AuthorizationService>>();
+        _logger = Substitute.For<ILogger<UserPermissionService>>();
     }
 
-    private AuthorizationService CreateService()
+    private UserPermissionService CreateService()
     {
-        return new AuthorizationService(_userRoleRepository, _roleRepository, _memoryCache, _logger);
+        return new UserPermissionService(_userRoleRepository, _roleRepository, _memoryCache, _logger);
     }
 
     [Fact]

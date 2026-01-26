@@ -306,7 +306,7 @@ public interface IRoleRepository
 // Infrastructure implementation
 public class RoleRepository : IRoleRepository
 {
-    private readonly AuthorizationDbContext _context;
+    private readonly UserDbContext _context;
     
     public async Task<Role?> GetByNameAsync(string name, CancellationToken ct)
     {
@@ -465,7 +465,7 @@ public async Task GetUserPermissions_MultipleRoles_AggregatesPermissions()
             new Role { Permission = "Read" },
             new Role { Permission = "Write" }
         });
-    var service = new AuthorizationService(mockRepo, ...);
+    var service = new UserPermissionService(mockRepo, ...);
     
     // Act
     var permissions = await service.GetUserPermissionsAsync(userId);

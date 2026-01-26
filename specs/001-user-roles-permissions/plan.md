@@ -63,7 +63,7 @@ backend/AugmentService/
 │   ├── Interfaces/
 │   │   ├── IUserRepository.cs             # NEW - user data access
 │   │   ├── IRoleRepository.cs             # NEW - role data access
-│   │   └── IPermissionService.cs          # NEW - permission logic abstraction
+│   │   └── IUserPermissionService.cs          # NEW - permission logic abstraction
 │   ├── Permissions.cs                     # ✅ EXISTS - permission constants & role definitions
 │   └── Attributes/
 │       └── PermissionPatternAttribute.cs  # NEW - validation attribute for "Resource.Action" pattern
@@ -77,7 +77,7 @@ backend/AugmentService/
 │   │   ├── PermissionService.cs          # NEW - permission aggregation, caching, business rules
 │   │   └── UserProvisioningService.cs    # NEW - auto-provisioning logic
 │   └── Interfaces/
-│       ├── IPermissionService.cs         # MOVE from Core (Application depends on Core)
+│       ├── IUserPermissionService.cs         # MOVE from Core (Application depends on Core)
 │       └── IUserProvisioningService.cs   # NEW - provisioning abstraction
 │
 ├── AugmentService.Infrastructure/         # EXISTING - Data access layer

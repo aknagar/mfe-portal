@@ -38,7 +38,7 @@ public static class DependencyInjection
     public static IHealthChecksBuilder AddInfrastructureHealthChecks(this IHealthChecksBuilder healthChecksBuilder)
     {
         healthChecksBuilder.AddDbContextCheck<WeatherDatabaseContext>();
-        healthChecksBuilder.AddDbContextCheck<Data.AuthorizationDbContext>();
+        healthChecksBuilder.AddDbContextCheck<Data.UserDbContext>();
 
         return healthChecksBuilder;
     }

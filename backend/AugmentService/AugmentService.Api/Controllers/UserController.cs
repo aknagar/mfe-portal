@@ -13,16 +13,16 @@ namespace AugmentService.Api.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public class AuthorizationController : ControllerBase
+public class UserController : ControllerBase
 {
-    private readonly IPermissionService _authorizationService;
-    private readonly ILogger<AuthorizationController> _logger;
+    private readonly IUserPermissionService _userService;
+    private readonly ILogger<UserController> _logger;
 
-    public AuthorizationController(
-        IPermissionService authorizationService,
-        ILogger<AuthorizationController> logger)
+    public UserController(
+        IUserPermissionService userService,
+        ILogger<UserController> logger)
     {
-        _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
+        _userService = userService ?? throw new ArgumentNullException(nameof(userService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -50,7 +50,7 @@ public class AuthorizationController : ControllerBase
 
             _logger.LogInformation("User {UserId} requesting their permissions", userId);
 
-            var permissions = await _authorizationService.GetUserPermissionsAsync(userId, cancellationToken);
+            var permissions = await _userService.GetUserPermissionsAsync(userId, cancellationToken);
 
             return Ok(permissions);
         }
@@ -101,7 +101,7 @@ public class AuthorizationController : ControllerBase
 
             _logger.LogDebug("User {UserId} checking permission {Permission}", userId, permission);
 
-            var hasPermission = await _authorizationService.HasPermissionAsync(userId, permission, cancellationToken);
+            var hasPermission = await _userService.HasPermissionAsync(userId, permission, cancellationToken);
 
             var response = new CheckPermissionResponse
             {
@@ -145,7 +145,7 @@ public class AuthorizationController : ControllerBase
             }
 
             // Check if user has Admin permission
-            var hasAdminPermission = await _authorizationService.HasPermissionAsync(userId, "System.Admin", cancellationToken);
+            var hasAdminPermission = await _userService.HasPermissionAsync(userId, "System.Admin", cancellationToken);
             if (!hasAdminPermission)
             {
                 _logger.LogWarning("User {UserId} attempted to access roles list without Admin permission", userId);
@@ -155,7 +155,7 @@ public class AuthorizationController : ControllerBase
 
             _logger.LogInformation("Admin user {UserId} requesting all roles", userId);
 
-            var roles = await _authorizationService.GetAllRolesAsync(cancellationToken);
+            var roles = await _userService.GetAllRolesAsync(cancellationToken);
 
             var response = new RolesListResponse
             {
