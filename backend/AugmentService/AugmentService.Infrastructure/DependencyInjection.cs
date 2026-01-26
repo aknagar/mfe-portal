@@ -22,6 +22,11 @@ public static class DependencyInjection
         
         builder.Services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<WeatherDatabaseContext>());
 
+        // Authorization repositories
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+        builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+
         // Proxy services
         builder.Services.AddSingleton<IProxyTargetRepository, InMemoryProxyTargetRepository>();
         builder.Services.AddScoped<IProxyService, ProxyApplicationService>();
@@ -33,6 +38,7 @@ public static class DependencyInjection
     public static IHealthChecksBuilder AddInfrastructureHealthChecks(this IHealthChecksBuilder healthChecksBuilder)
     {
         healthChecksBuilder.AddDbContextCheck<WeatherDatabaseContext>();
+        healthChecksBuilder.AddDbContextCheck<Data.AuthorizationDbContext>();
 
         return healthChecksBuilder;
     }

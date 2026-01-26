@@ -1,0 +1,397 @@
+openapi: 3.0.3
+info:
+  title: User Roles and Permissions API
+  description: |
+    API for managing user roles and permissions in the MfePortal system.
+    
+    **Core Functionality**:
+    - Retrieve current user's roles and permissions
+    - Check if user has specific permission
+    - List all available roles (admin only)
+    
+    **Authentication**: All endpoints require JWT Bearer token authentication.
+    
+    **Permission Naming**: Follows "Resource.Action" pattern:
+    - `System.Read` - Read access to system resources
+    - `System.Write` - Write access to system resources
+    - `System.Admin` - Administrative access to system resources
+    
+    **Roles**:
+    - `Reader` - Grants ["System.Read"] (Rank: 1)
+    - `Writer` - Grants ["System.Read", "System.Write"] (Rank: 50)
+    - `Administrator` - Grants ["System.Read", "System.Write", "System.Admin"] (Rank: 999)
+    
+    **Rank System**: When a user has multiple roles, the role with the highest rank value takes precedence as the primary role.
+    
+    **Note**: One role can have multiple permissions. Permissions are stored as JSONB in PostgreSQL.
+    
+  version: 1.0.0
+  contact:
+    name: MfePortal API Support
+    
+servers:
+  - url: https://localhost:7001
+    description: Local development server (HTTPS)
+  - url: https://api.mfeportal.example.com
+    description: Production server
+    
+security:
+  - BearerAuth: []
+
+tags:
+  - name: User
+    description: Endpoints for user permissions and role management
+
+paths:
+  /api/user/me/permissions:
+    get:
+      tags:
+        - User
+      summary: Get current user's permissions
+      description: |
+        Retrieves all roles and permissions for the authenticated user.
+        
+        **Use Case**: Called when user logs in to determine what UI features to show.
+        
+        **Caching**: Response is cached for the session duration to improve performance.
+        Results are aggregated from all assigned roles using union logic.
+        
+        **Priority**: P1 (Core MVP functionality)
+        
+      operationId: getMyPermissions
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved user permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPermissionsResponse'
+              examples:
+                singleRole:
+                  summary: User with single role
+                  value:
+                    userId: "123e4567-e89b-12d3-a456-426614174000"
+                    roles:
+                      - roleId: "00000000-0000-0000-0000-000000000001"
+                        name: "Reader"
+                        description: "Read-only access to resources"
+                        permissions: ["System.Read"]
+                        rank: 1
+                    permissions:
+                      - "System.Read"
+                multipleRoles:
+                  summary: User with multiple roles
+                  value:
+                    userId: "123e4567-e89b-12d3-a456-426614174000"
+                    roles:
+                      - roleId: "00000000-0000-0000-0000-000000000001"
+                        name: "Reader"
+                        description: "Read-only access to resources"
+                        permissions: ["System.Read"]
+                        rank: 1
+                      - roleId: "00000000-0000-0000-0000-000000000002"
+                        name: "Writer"
+                        description: "Read and write access to resources"
+                        permissions: ["System.Read", "System.Write"]
+                        rank: 50
+                    permissions:
+                      - "System.Read"
+                      - "System.Write"
+                noRoles:
+                  summary: User with no roles assigned
+                  value:
+                    userId: "123e4567-e89b-12d3-a456-426614174000"
+                    roles: []
+                    permissions: []
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/user/me/permissions/{permission}:
+    get:
+      tags:
+        - User
+      summary: Check if user has specific permission
+      description: |
+        Helper endpoint to check if the authenticated user has a specific permission.
+        
+        **Use Case**: Called before performing actions to verify authorization.
+        
+        **Performance**: Leverages cached permissions, returns boolean result.
+        
+        **Priority**: P2 (Convenience feature)
+        
+      operationId: checkPermission
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: permission
+          in: path
+          required: true
+          description: Permission name to check (e.g., "System.Write")
+          schema:
+            type: string
+            pattern: '^[A-Za-z]+\.[A-Za-z]+$'
+          examples:
+            write:
+              value: "System.Write"
+              summary: Check Write permission
+            admin:
+              value: "System.Admin"
+              summary: Check Admin permission
+      responses:
+        '200':
+          description: Permission check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckPermissionResponse'
+              examples:
+                hasPermission:
+                  summary: User has the permission
+                  value:
+                    permission: "System.Write"
+                    hasPermission: true
+                noPermission:
+                  summary: User does not have the permission
+                  value:
+                    permission: "System.Admin"
+                    hasPermission: false
+                nonExistentPermission:
+                  summary: Permission doesn't exist (returns false)
+                  value:
+                    permission: "InvalidPermission"
+                    hasPermission: false
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/user/roles:
+    get:
+      tags:
+        - User
+      summary: List all available roles (Admin only)
+      description: |
+        Retrieves all active roles in the system with their associated permissions.
+        
+        **Use Case**: Used by administrators to understand the authorization model
+        and assign roles to users.
+        
+        **Authorization**: Requires Admin permission. Non-admin users receive 403 Forbidden.
+        
+        **Priority**: P3 (Administrative feature)
+        
+      operationId: listRoles
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolesListResponse'
+              examples:
+                allRoles:
+                  summary: All system roles
+                  value:
+                    roles:
+                      - roleId: "00000000-0000-0000-0000-000000000001"
+                        name: "Reader"
+                        description: "Read-only access to resources"
+                        permissions: ["System.Read"]
+                        rank: 1
+                      - roleId: "00000000-0000-0000-0000-000000000002"
+                        name: "Writer"
+                        description: "Read and write access to resources"
+                        permissions: ["System.Read", "System.Write"]
+                        rank: 50
+                      - roleId: "00000000-0000-0000-0000-000000000003"
+                        name: "Administrator"
+                        description: "Full administrative access"
+                        permissions: ["System.Read", "System.Write", "System.Admin"]
+                        rank: 999
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from authentication system (contains user ID in claims)
+
+  schemas:
+    UserPermissionsResponse:
+      type: object
+      required:
+        - userId
+        - roles
+        - permissions
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: Unique identifier for the authenticated user
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        roles:
+          type: array
+          description: List of roles assigned to the user
+          items:
+            $ref: '#/components/schemas/RoleDto'
+        permissions:
+          type: array
+          description: Aggregated unique permissions from all roles
+          items:
+            type: string
+            pattern: '^[A-Za-z]+\.[A-Za-z]+$'
+          example: ["Augment.Read", "Augment.Write"]
+
+    RoleDto:
+      type: object
+      required:
+        - roleId
+        - name
+        - description
+        - permissions
+        - rank
+      properties:
+        roleId:
+          type: string
+          format: uuid
+          description: Unique identifier for the role
+          example: "00000000-0000-0000-0000-000000000001"
+        name:
+          type: string
+          maxLength: 50
+          description: Role name
+          example: "Reader"
+        description:
+          type: string
+          maxLength: 200
+          description: Human-readable role description
+          example: "Read-only access to resources"
+        permissions:
+          type: array
+          description: List of permissions granted by this role
+          items:
+            type: string
+            pattern: '^[A-Za-z]+\.[A-Za-z]+$'
+          example: ["System.Read"]
+        rank:
+          type: integer
+          minimum: 1
+          maximum: 999
+          description: Role hierarchy rank; higher values indicate higher priority
+          example: 1
+
+    CheckPermissionRequest:
+      type: object
+      required:
+        - permission
+      properties:
+        permission:
+          type: string
+          description: Permission name to check (case-sensitive)
+          example: "Write"
+
+    CheckPermissionResponse:
+      type: object
+      required:
+        - permission
+        - hasPermission
+      properties:
+        permission:
+          type: string
+          description: The permission that was checked
+          example: "Write"
+        hasPermission:
+          type: boolean
+          description: True if user has the permission, false otherwise
+          example: true
+
+    RolesListResponse:
+      type: object
+      required:
+        - roles
+      properties:
+        roles:
+          type: array
+          description: List of all active roles in the system
+          items:
+            $ref: '#/components/schemas/RoleDto'
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: "Unauthorized"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Authentication required"
+        details:
+          type: string
+          description: Additional error details (optional)
+          example: "JWT token is missing or invalid"
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required - JWT token missing, invalid, or expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Unauthorized"
+            message: "Authentication required"
+            details: "JWT token is missing or invalid"
+    
+    ForbiddenError:
+      description: Insufficient permissions - User authenticated but lacks required permission
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Forbidden"
+            message: "Insufficient permissions"
+            details: "Admin permission required to access this resource"
+    
+    BadRequestError:
+      description: Invalid request - Malformed input or validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "BadRequest"
+            message: "Invalid request"
+            details: "Permission field is required"
+    
+    InternalServerError:
+      description: Internal server error - Unexpected failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "InternalServerError"
+            message: "An unexpected error occurred"
+            details: "Database connection failed"
