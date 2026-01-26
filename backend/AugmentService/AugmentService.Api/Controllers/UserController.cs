@@ -10,7 +10,7 @@ namespace AugmentService.Api.Controllers;
 /// Controller for user authorization and permission management.
 /// All endpoints require JWT Bearer authentication.
 /// </summary>
-[Route("api/[controller]")]
+[Route("api/user")]
 [ApiController]
 [Authorize]
 public class UserController : ControllerBase
@@ -33,7 +33,7 @@ public class UserController : ControllerBase
     /// <response code="200">Successfully retrieved user permissions.</response>
     /// <response code="401">User is not authenticated or JWT token is invalid/expired.</response>
     /// <response code="500">Internal server error occurred.</response>
-    [HttpGet("my-permissions")]
+    [HttpGet("me/permissions")]
     [ProducesResponseType(typeof(UserPermissionsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -65,22 +65,22 @@ public class UserController : ControllerBase
     /// <summary>
     /// Checks if the current user has a specific permission.
     /// </summary>
-    /// <param name="permission">Permission name to check (e.g., "System.Write").</param>
+    /// <param name="permissionName">Permission name to check (e.g., "System.Write").</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Result indicating whether the user has the permission.</returns>
     /// <response code="200">Permission check completed successfully.</response>
     /// <response code="400">Invalid request - permission parameter is malformed or doesn't match pattern.</response>
     /// <response code="401">User is not authenticated or JWT token is invalid/expired.</response>
     /// <response code="500">Internal server error occurred.</response>
-    [HttpGet("my-permissions/{permission}")]
+    [HttpGet("me/permissions/{permissionName}")]
     [ProducesResponseType(typeof(CheckPermissionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> CheckPermission(string permission, CancellationToken cancellationToken)
+    public async Task<IActionResult> CheckPermission(string permissionName, CancellationToken cancellationToken)
     {
         // Validate permission parameter format (Resource.Action pattern)
-        if (string.IsNullOrWhiteSpace(permission) || !System.Text.RegularExpressions.Regex.IsMatch(permission, @"^[A-Za-z]+\.[A-Za-z]+$"))
+        if (string.IsNullOrWhiteSpace(permissionName) || !System.Text.RegularExpressions.Regex.IsMatch(permissionName, @"^[A-Za-z]+\.[A-Za-z]+$"))
         {
             return BadRequest(new
             {
@@ -99,13 +99,13 @@ public class UserController : ControllerBase
                 return Unauthorized(new { error = "Unauthorized", message = "Authentication required", details = "User ID not found in JWT claims" });
             }
 
-            _logger.LogDebug("User {UserId} checking permission {Permission}", userId, permission);
+            _logger.LogDebug("User {UserId} checking permission {Permission}", userId, permissionName);
 
-            var hasPermission = await _userService.HasPermissionAsync(userId, permission, cancellationToken);
+            var hasPermission = await _userService.HasPermissionAsync(userId, permissionName, cancellationToken);
 
             var response = new CheckPermissionResponse
             {
-                Permission = permission,
+                Permission = permissionName,
                 HasPermission = hasPermission
             };
 
@@ -113,7 +113,7 @@ public class UserController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking permission {Permission} for current user", permission);
+            _logger.LogError(ex, "Error checking permission {Permission} for current user", permissionName);
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { error = "InternalServerError", message = "An unexpected error occurred", details = ex.Message });
         }
