@@ -41,7 +41,7 @@
 - [X] T007 [P] Create IUserRepository interface in backend/AugmentService/AugmentService.Core/Interfaces/IUserRepository.cs with GetByIdAsync, AddAsync methods
 - [X] T008 [P] Create IRoleRepository interface in backend/AugmentService/AugmentService.Core/Interfaces/IRoleRepository.cs with GetByIdAsync, GetByNameAsync, GetAllAsync methods
 - [X] T009 [P] Create IUserRoleRepository interface in backend/AugmentService/AugmentService.Core/Interfaces/IUserRoleRepository.cs with GetUserRolesAsync, GetUserPermissionsAsync, HasPermissionAsync methods
-- [X] T010 Configure DbContext in backend/AugmentService/AugmentService.Infrastructure/Data/AuthorizationDbContext.cs (or extend existing DbContext) with Users, Roles, UserRoles DbSets, Fluent API for Role.Permissions JSONB column mapping, relationships, unique constraints, GIN index on Permissions
+- [X] T010 Configure DbContext in backend/AugmentService/AugmentService.Infrastructure/Data/UserDbContext.cs (or extend existing DbContext) with Users, Roles, UserRoles DbSets, Fluent API for Role.Permissions JSONB column mapping, relationships, unique constraints, GIN index on Permissions
 - [X] T011 Create EF Core migration named AddRolesAndPermissions: dotnet ef migrations add AddRolesAndPermissions --project backend/AugmentService/AugmentService.Infrastructure
 - [X] T012 Add HasData seed configuration in OnModelCreating using Permissions.cs role definitions (Reader, Writer, Administrator with fixed GUIDs and rank values)
 - [X] T013 Apply database migration: dotnet ef database update (creates Users, Roles, UserRoles tables with seed data)
@@ -64,9 +64,9 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [X] T018 [P] [US1] Create AuthorizationServiceTests.cs in backend/tests/AugmentService/Application.Tests/Services/AuthorizationServiceTests.cs with unit test for GetUserPermissionsAsync with single role returns correct permissions list
-- [X] T019 [P] [US1] Add unit test in AuthorizationServiceTests.cs for GetUserPermissionsAsync with multiple roles (Reader + Writer) returns distinct union of permissions ["System.Read", "System.Write"]
-- [X] T020 [P] [US1] Add unit test in AuthorizationServiceTests.cs for GetUserPermissionsAsync with no assigned roles returns empty permissions array
+- [X] T018 [P] [US1] Create UserPermissionServiceTests.cs in backend/tests/AugmentService/Application.Tests/Services/UserPermissionServiceTests.cs with unit test for GetUserPermissionsAsync with single role returns correct permissions list
+- [X] T019 [P] [US1] Add unit test in UserPermissionServiceTests.cs for GetUserPermissionsAsync with multiple roles (Reader + Writer) returns distinct union of permissions ["System.Read", "System.Write"]
+- [X] T020 [P] [US1] Add unit test in UserPermissionServiceTests.cs for GetUserPermissionsAsync with no assigned roles returns empty permissions array
 - [X] T021 [P] [US1] Create RoleRepositoryTests.cs in backend/tests/AugmentService/Infrastructure.Tests/Repositories/RoleRepositoryTests.cs with integration test using TestContainers PostgreSQL to verify GetAllAsync returns seeded roles
 - [X] T022 [P] [US1] Add integration test in RoleRepositoryTests.cs for GetByNameAsync returns correct role with JSONB permissions array
 - [X] T023 [P] [US1] Create UserRoleRepositoryTests.cs in backend/tests/AugmentService/Infrastructure.Tests/Repositories/UserRoleRepositoryTests.cs with integration test for GetUserPermissionsAsync aggregating permissions from multiple roles using SelectMany
@@ -75,15 +75,15 @@
 
 - [X] T024 [P] [US1] Create UserPermissionsDto.cs in backend/AugmentService/AugmentService.Application/DTOs/UserPermissionsDto.cs with UserId, Roles (List<RoleDto>), Permissions (List<string>) properties
 - [X] T025 [P] [US1] Create RoleDto.cs in backend/AugmentService/AugmentService.Application/DTOs/RoleDto.cs with RoleId, Name, Description, Permissions (List<string>), Rank properties matching OpenAPI spec
-- [X] T026 [P] [US1] Create IPermissionService interface (renamed from IAuthorizationService to avoid ASP.NET Core conflict) in backend/AugmentService/AugmentService.Application/Interfaces/IPermissionService.cs with GetUserPermissionsAsync method signature
-- [X] T027 [US1] Implement AuthorizationService.cs in backend/AugmentService/AugmentService.Application/Services/AuthorizationService.cs with GetUserPermissionsAsync method: retrieve user roles via IUserRoleRepository, aggregate permissions using SelectMany + Distinct, map to UserPermissionsDto with primary role (highest rank) first
-- [X] T028 [US1] Integrated IMemoryCache-based caching into AuthorizationService with session-scoped cache keys (permissions:{userId}), 8hr absolute + 30min sliding expiration
+- [X] T026 [P] [US1] Create IUserPermissionService interface (renamed from IUserPermissionService to avoid ASP.NET Core conflict) in backend/AugmentService/AugmentService.Application/Interfaces/IUserPermissionService.cs with GetUserPermissionsAsync method signature
+- [X] T027 [US1] Implement UserPermissionService.cs in backend/AugmentService/AugmentService.Application/Services/UserPermissionService.cs with GetUserPermissionsAsync method: retrieve user roles via IUserRoleRepository, aggregate permissions using SelectMany + Distinct, map to UserPermissionsDto with primary role (highest rank) first
+- [X] T028 [US1] Integrated IMemoryCache-based caching into UserPermissionService with session-scoped cache keys (permissions:{userId}), 8hr absolute + 30min sliding expiration
 - [X] T029 [US1] Cache integration complete: check cache first, on miss fetch from repository and populate cache
-- [X] T030 [US1] Create AuthorizationController.cs in backend/AugmentService/AugmentService.Api/Controllers/AuthorizationController.cs with [Authorize] attribute and GetMyPermissions endpoint
-- [X] T031 [US1] Implement GetMyPermissions() GET endpoint in AuthorizationController: extract userId from JWT claims (ClaimTypes.NameIdentifier), call IPermissionService.GetUserPermissionsAsync, return 200 OK with UserPermissionsDto, handle 401 if no userId claim
+- [X] T030 [US1] Create UserController.cs in backend/AugmentService/AugmentService.Api/Controllers/UserController.cs with [Authorize] attribute and GetMyPermissions endpoint
+- [X] T031 [US1] Implement GetMyPermissions() GET endpoint in UserController: extract userId from JWT claims (ClaimTypes.NameIdentifier), call IUserPermissionService.GetUserPermissionsAsync, return 200 OK with UserPermissionsDto, handle 401 if no userId claim
 - [X] T032 [US1] Add XML documentation comments to GetMyPermissions endpoint for OpenAPI generation: summary, returns tag, response codes 200/401, example response
-- [X] T033 [US1] Register IPermissionService in DI container in backend/AugmentService/AugmentService.Application/DependencyInjection.cs: AddScoped<IPermissionService, AuthorizationService> + AddMemoryCache()
-- [X] T034 [US1] Add structured logging in AuthorizationService.GetUserPermissionsAsync: log userId, cache hit/miss, permissions count, elapsed time using ILogger
+- [X] T033 [US1] Register IUserPermissionService in DI container in backend/AugmentService/AugmentService.Application/DependencyInjection.cs: AddScoped<IUserPermissionService, UserPermissionService> + AddMemoryCache()
+- [X] T034 [US1] Add structured logging in UserPermissionService.GetUserPermissionsAsync: log userId, cache hit/miss, permissions count, elapsed time using ILogger
 
 **Checkpoint**: User Story 1 complete - users can retrieve their permissions via GET /my-permissions with caching
 
@@ -97,18 +97,18 @@
 
 ### Tests for User Story 2
 
-- [ ] T035 [P] [US2] Add unit test in AuthorizationServiceTests.cs for HasPermissionAsync returns true when user has permission "System.Write"
-- [ ] T036 [P] [US2] Add unit test in AuthorizationServiceTests.cs for HasPermissionAsync returns false when user lacks permission "System.Admin"
-- [ ] T037 [P] [US2] Add unit test in AuthorizationServiceTests.cs for HasPermissionAsync returns false for non-existent permission (not an error)
+- [ ] T035 [P] [US2] Add unit test in UserPermissionServiceTests.cs for HasPermissionAsync returns true when user has permission "System.Write"
+- [ ] T036 [P] [US2] Add unit test in UserPermissionServiceTests.cs for HasPermissionAsync returns false when user lacks permission "System.Admin"
+- [ ] T037 [P] [US2] Add unit test in UserPermissionServiceTests.cs for HasPermissionAsync returns false for non-existent permission (not an error)
 - [ ] T038 [P] [US2] Add integration test in UserRoleRepositoryTests.cs for HasPermissionAsync using EF Core JSONB Contains operator verifies correct boolean result
 
 ### Implementation for User Story 2
 
 - [ ] T039 [P] [US2] Create CheckPermissionRequest.cs in backend/AugmentService/AugmentService.Application/DTOs/CheckPermissionRequest.cs with Permission (string, required) property and FluentValidation rules (not null/empty, matches pattern "^[A-Za-z]+\.[A-Za-z]+$")
 - [ ] T040 [P] [US2] Create CheckPermissionResponse.cs in backend/AugmentService/AugmentService.Application/DTOs/CheckPermissionResponse.cs with Permission (string) and HasPermission (bool) properties
-- [ ] T041 [US2] Add HasPermissionAsync method to IAuthorizationService interface with userId and permission name parameters
-- [ ] T042 [US2] Implement AuthorizationService.HasPermissionAsync: retrieve cached permissions via GetUserPermissionsAsync (reuse US1 caching), check if permission exists in list, return boolean
-- [ ] T043 [US2] Implement CheckPermission() POST endpoint in AuthorizationController: extract userId from JWT claims, validate request body, call IAuthorizationService.HasPermissionAsync, return 200 OK with CheckPermissionResponse
+- [ ] T041 [US2] Add HasPermissionAsync method to IUserPermissionService interface with userId and permission name parameters
+- [ ] T042 [US2] Implement UserPermissionService.HasPermissionAsync: retrieve cached permissions via GetUserPermissionsAsync (reuse US1 caching), check if permission exists in list, return boolean
+- [ ] T043 [US2] Implement CheckPermission() POST endpoint in UserController: extract userId from JWT claims, validate request body, call IUserPermissionService.HasPermissionAsync, return 200 OK with CheckPermissionResponse
 - [ ] T044 [US2] Add XML documentation comments to CheckPermission endpoint with summary, param description, response codes 200/400/401
 - [ ] T045 [US2] Add FluentValidation validator registration for CheckPermissionRequest in DI container
 
@@ -124,16 +124,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T046 [P] [US3] Add unit test in AuthorizationServiceTests.cs for GetAllRolesAsync returns all active roles ordered by name
-- [ ] T047 [P] [US3] Add integration test for AuthorizationController.GetAllRoles: mock user with Admin permission, verify 200 OK with all roles
-- [ ] T048 [P] [US3] Add integration test for AuthorizationController.GetAllRoles: mock user without Admin permission, verify 403 Forbidden response
+- [ ] T046 [P] [US3] Add unit test in UserPermissionServiceTests.cs for GetAllRolesAsync returns all active roles ordered by name
+- [ ] T047 [P] [US3] Add integration test for UserController.GetAllRoles: mock user with Admin permission, verify 200 OK with all roles
+- [ ] T048 [P] [US3] Add integration test for UserController.GetAllRoles: mock user without Admin permission, verify 403 Forbidden response
 
 ### Implementation for User Story 3
 
 - [ ] T049 [P] [US3] Create RolesListResponse.cs in backend/AugmentService/AugmentService.Application/DTOs/RolesListResponse.cs with Roles (List<RoleDto>) property
-- [ ] T050 [US3] Add GetAllRolesAsync method to IAuthorizationService interface returning Task<IEnumerable<RoleDto>>
-- [ ] T051 [US3] Implement AuthorizationService.GetAllRolesAsync: call IRoleRepository.GetAllAsync, filter IsActive = true, order by Name, map to List<RoleDto>
-- [ ] T052 [US3] Implement GetAllRoles() GET endpoint in AuthorizationController with [Authorize] attribute
+- [ ] T050 [US3] Add GetAllRolesAsync method to IUserPermissionService interface returning Task<IEnumerable<RoleDto>>
+- [ ] T051 [US3] Implement UserPermissionService.GetAllRolesAsync: call IRoleRepository.GetAllAsync, filter IsActive = true, order by Name, map to List<RoleDto>
+- [ ] T052 [US3] Implement GetAllRoles() GET endpoint in UserController with [Authorize] attribute
 - [ ] T053 [US3] Add admin permission check in GetAllRoles endpoint: call HasPermissionAsync for "System.Admin", return 403 Forbidden if false, otherwise return 200 OK with RolesListResponse
 - [ ] T054 [US3] Add XML documentation comments to GetAllRoles endpoint with summary, admin requirement note, response codes 200/401/403
 
@@ -174,8 +174,8 @@
 ### User Story Dependencies
 
 - **User Story 1 (P1)**: Independent after Foundational phase - No dependencies on other stories
-- **User Story 2 (P2)**: Builds on US1's AuthorizationService and PermissionCacheService - Should implement US1 first for efficiency, but technically independent
-- **User Story 3 (P3)**: Reuses US1's AuthorizationService.HasPermissionAsync for admin check - Should implement US1 first
+- **User Story 2 (P2)**: Builds on US1's UserPermissionService and PermissionCacheService - Should implement US1 first for efficiency, but technically independent
+- **User Story 3 (P3)**: Reuses US1's UserPermissionService.HasPermissionAsync for admin check - Should implement US1 first
 
 ### Within Each User Story
 
@@ -230,9 +230,9 @@
 
 ```bash
 # Launch all test file creation for User Story 1 together:
-Task T018: "Create AuthorizationServiceTests.cs with single role test"
-Task T019: "Add multiple roles test to AuthorizationServiceTests.cs"
-Task T020: "Add no roles test to AuthorizationServiceTests.cs"
+Task T018: "Create UserPermissionServiceTests.cs with single role test"
+Task T019: "Add multiple roles test to UserPermissionServiceTests.cs"
+Task T020: "Add no roles test to UserPermissionServiceTests.cs"
 Task T021: "Create RoleRepositoryTests.cs with GetAllAsync test"
 Task T022: "Add GetByNameAsync test to RoleRepositoryTests.cs"
 Task T023: "Create UserRoleRepositoryTests.cs with GetUserPermissionsAsync test"

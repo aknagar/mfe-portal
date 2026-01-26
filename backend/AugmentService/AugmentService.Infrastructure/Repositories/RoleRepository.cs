@@ -10,9 +10,9 @@ namespace AugmentService.Infrastructure.Repositories;
 /// </summary>
 public class RoleRepository : IRoleRepository
 {
-    private readonly AuthorizationDbContext _context;
+    private readonly UserDbContext _context;
 
-    public RoleRepository(AuthorizationDbContext context)
+    public RoleRepository(UserDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }

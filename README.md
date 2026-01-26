@@ -94,7 +94,7 @@ The AugmentService includes a comprehensive authorization system with role-based
 
 ### Endpoints
 
-#### GET /api/authorization/my-permissions
+#### GET /api/user/my-permissions
 Returns the authenticated user's complete permission set with roles and rank.
 
 **Response:**
@@ -114,7 +114,7 @@ Returns the authenticated user's complete permission set with roles and rank.
 }
 ```
 
-#### POST /api/authorization/check-permission
+#### POST /api/user/check-permission
 Check if the authenticated user has a specific permission.
 
 **Request:**
@@ -131,7 +131,7 @@ Check if the authenticated user has a specific permission.
 }
 ```
 
-#### GET /api/authorization/roles
+#### GET /api/user/roles
 **[Admin Only]** Returns all system roles with permissions.
 
 **Response:**

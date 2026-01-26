@@ -10,9 +10,9 @@ namespace AugmentService.Infrastructure.Repositories;
 /// </summary>
 public class UserRepository : IUserRepository
 {
-    private readonly AuthorizationDbContext _context;
+    private readonly UserDbContext _context;
 
-    public UserRepository(AuthorizationDbContext context)
+    public UserRepository(UserDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }

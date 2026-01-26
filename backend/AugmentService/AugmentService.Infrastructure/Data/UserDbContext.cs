@@ -7,12 +7,12 @@ namespace AugmentService.Infrastructure.Data;
 /// <summary>
 /// Database context for user authorization (roles and permissions).
 /// </summary>
-public class AuthorizationDbContext : DbContext
+public class UserDbContext : DbContext
 {
     private readonly IOptions<InfrastructureConfig> _config;
 
-    public AuthorizationDbContext(
-        DbContextOptions<AuthorizationDbContext> options,
+    public UserDbContext(
+        DbContextOptions<UserDbContext> options,
         IOptions<InfrastructureConfig> config)
         : base(options)
     {

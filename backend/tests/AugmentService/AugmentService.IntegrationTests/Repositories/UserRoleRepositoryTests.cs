@@ -20,7 +20,7 @@ public class UserRoleRepositoryTests : IAsyncLifetime
         .WithImage("postgres:16-alpine")
         .Build();
 
-    private AuthorizationDbContext _context = null!;
+    private UserDbContext _context = null!;
     private UserRoleRepository _repository = null!;
     private UserRepository _userRepository = null!;
 
@@ -28,7 +28,7 @@ public class UserRoleRepositoryTests : IAsyncLifetime
     {
         await _postgres.StartAsync();
 
-        var options = new DbContextOptionsBuilder<AuthorizationDbContext>()
+        var options = new DbContextOptionsBuilder<UserDbContext>()
             .UseNpgsql(_postgres.GetConnectionString())
             .Options;
 
@@ -38,7 +38,7 @@ public class UserRoleRepositoryTests : IAsyncLifetime
             EnableSensitiveDataLogging = true
         });
 
-        _context = new AuthorizationDbContext(options, config);
+        _context = new UserDbContext(options, config);
         await _context.Database.EnsureCreatedAsync();
 
         _repository = new UserRoleRepository(_context);

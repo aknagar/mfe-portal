@@ -8,24 +8,24 @@ using Microsoft.Extensions.Logging;
 namespace AugmentService.Application.Services;
 
 /// <summary>
-/// Implementation of authorization service with permission caching.
+/// Implementation of user permission service with permission caching.
 /// </summary>
-public class AuthorizationService : IPermissionService
+public class UserPermissionService : IUserPermissionService
 {
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IRoleRepository _roleRepository;
     private readonly IMemoryCache _cache;
-    private readonly ILogger<AuthorizationService> _logger;
+    private readonly ILogger<UserPermissionService> _logger;
 
     // Cache configuration
     private static readonly TimeSpan AbsoluteExpiration = TimeSpan.FromHours(8);
     private static readonly TimeSpan SlidingExpiration = TimeSpan.FromMinutes(30);
 
-    public AuthorizationService(
+    public UserPermissionService(
         IUserRoleRepository userRoleRepository,
         IRoleRepository roleRepository,
         IMemoryCache cache,
-        ILogger<AuthorizationService> logger)
+        ILogger<UserPermissionService> logger)
     {
         _userRoleRepository = userRoleRepository ?? throw new ArgumentNullException(nameof(userRoleRepository));
         _roleRepository = roleRepository ?? throw new ArgumentNullException(nameof(roleRepository));

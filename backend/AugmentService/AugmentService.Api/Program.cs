@@ -149,7 +149,7 @@ if (builder.Environment.IsDevelopment())
 // The connection name "productdb" matches what we defined in AppHost
 builder.AddNpgsqlDbContext<ProductDataContext>(connectionName: "productdb");
 builder.AddNpgsqlDbContext<WeatherDatabaseContext>(connectionName: "weatherdb");
-builder.AddNpgsqlDbContext<AugmentService.Infrastructure.Data.AuthorizationDbContext>(connectionName: "weatherdb");
+builder.AddNpgsqlDbContext<AugmentService.Infrastructure.Data.UserDbContext>(connectionName: "weatherdb");
 
 builder.Services.AddDaprClient();
 

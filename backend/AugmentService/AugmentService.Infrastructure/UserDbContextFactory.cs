@@ -6,14 +6,14 @@ using Microsoft.Extensions.Options;
 namespace AugmentService.Infrastructure;
 
 /// <summary>
-/// Design-time factory for creating AuthorizationDbContext instances.
+/// Design-time factory for creating UserDbContext instances.
 /// Used by EF Core tools (migrations) when the application isn't running.
 /// </summary>
-public class AuthorizationDbContextFactory : IDesignTimeDbContextFactory<AuthorizationDbContext>
+public class UserDbContextFactory : IDesignTimeDbContextFactory<UserDbContext>
 {
-    public AuthorizationDbContext CreateDbContext(string[] args)
+    public UserDbContext CreateDbContext(string[] args)
     {
-        var optionsBuilder = new DbContextOptionsBuilder<AuthorizationDbContext>();
+        var optionsBuilder = new DbContextOptionsBuilder<UserDbContext>();
         
         // Use a default connection string for design-time operations
         // This will be overridden at runtime by the actual configuration
@@ -26,6 +26,6 @@ public class AuthorizationDbContextFactory : IDesignTimeDbContextFactory<Authori
             EnableSensitiveDataLogging = false
         });
 
-        return new AuthorizationDbContext(optionsBuilder.Options, config);
+        return new UserDbContext(optionsBuilder.Options, config);
     }
 }

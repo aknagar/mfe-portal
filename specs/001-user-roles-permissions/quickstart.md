@@ -20,9 +20,9 @@ Before you begin, ensure you have:
 
 This feature provides three REST API endpoints for user authorization:
 
-1. **GET /api/authorization/my-permissions** - Get current user's roles and permissions
-2. **POST /api/authorization/check-permission** - Check if user has specific permission
-3. **GET /api/authorization/roles** - List all roles (admin only)
+1. **GET /api/user/my-permissions** - Get current user's roles and permissions
+2. **POST /api/user/check-permission** - Check if user has specific permission
+3. **GET /api/user/roles** - List all roles (admin only)
 
 **Supported Roles & Permissions**:
 - `Reader` → `["System.Read"]` (Rank: 1)
@@ -98,9 +98,9 @@ https://localhost:7001/swagger
 ```
 
 You'll see three new endpoints under the "Authorization" tag:
-- `GET /api/authorization/my-permissions`
-- `POST /api/authorization/check-permission`
-- `GET /api/authorization/roles`
+- `GET /api/user/my-permissions`
+- `POST /api/user/check-permission`
+- `GET /api/user/roles`
 
 ---
 
@@ -120,17 +120,17 @@ You'll see three new endpoints under the "Authorization" tag:
 
 ```bash
 # Get user permissions
-curl -X GET https://localhost:7001/api/authorization/my-permissions \
+curl -X GET https://localhost:7001/api/user/my-permissions \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 # Check specific permission
-curl -X POST https://localhost:7001/api/authorization/check-permission \
+curl -X POST https://localhost:7001/api/user/check-permission \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"permission": "System.Write"}'
 
 # List all roles (admin only)
-curl -X GET https://localhost:7001/api/authorization/roles \
+curl -X GET https://localhost:7001/api/user/roles \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
@@ -143,11 +143,11 @@ Create `test-authorization.http`:
 @token = YOUR_JWT_TOKEN
 
 ### Get my permissions
-GET {{baseUrl}}/api/authorization/my-permissions
+GET {{baseUrl}}/api/user/my-permissions
 Authorization: Bearer {{token}}
 
 ### Check Write permission
-POST {{baseUrl}}/api/authorization/check-permission
+POST {{baseUrl}}/api/user/check-permission
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -156,7 +156,7 @@ Content-Type: application/json
 }
 
 ### List all roles
-GET {{baseUrl}}/api/authorization/roles
+GET {{baseUrl}}/api/user/roles
 Authorization: Bearer {{token}}
 ```
 
@@ -237,7 +237,7 @@ var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 ```typescript
 // Frontend TypeScript example
 async function checkCanEdit(): Promise<boolean> {
-  const response = await fetch('/api/authorization/check-permission', {
+  const response = await fetch('/api/user/check-permission', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${jwt}`,
@@ -263,7 +263,7 @@ if (await checkCanEdit()) {
 ```typescript
 // Frontend TypeScript example
 async function initializeApp() {
-  const response = await fetch('/api/authorization/my-permissions', {
+  const response = await fetch('/api/user/my-permissions', {
     headers: { 'Authorization': `Bearer ${jwt}` }
   });
   
@@ -285,7 +285,7 @@ async function initializeApp() {
 ```typescript
 // Frontend TypeScript example (admin only)
 async function loadRoles(): Promise<Role[]> {
-  const response = await fetch('/api/authorization/roles', {
+  const response = await fetch('/api/user/roles', {
     headers: { 'Authorization': `Bearer ${jwt}` }
   });
   
@@ -352,7 +352,7 @@ function hasPermission(permission: string): boolean {
 
 ### Issue: 403 Forbidden on /roles endpoint
 
-**Symptom**: User gets 403 when calling `/api/authorization/roles`  
+**Symptom**: User gets 403 when calling `/api/user/roles`  
 **Cause**: User doesn't have Admin permission  
 **Fix**: Assign Administrator role to user:
 
@@ -392,7 +392,7 @@ VALUES (
 4. Handle 401/403 errors gracefully (redirect to login, show access denied)
 
 ### For Backend Developers
-1. Use `IAuthorizationService` in your business logic to check permissions
+1. Use `IUserPermissionService` in your business logic to check permissions
 2. Add `[Authorize]` attribute to protected endpoints
 3. Implement role assignment endpoints (out of scope for this feature)
 4. Add audit logging for permission checks if required
@@ -407,16 +407,16 @@ VALUES (
 
 ## Code Examples
 
-### Backend: Use AuthorizationService in Your Controller
+### Backend: Use UserPermissionService in Your Controller
 
 ```csharp
 [ApiController]
 [Route("api/documents")]
 public class DocumentsController : ControllerBase
 {
-    private readonly IAuthorizationService _authService;
+    private readonly IUserPermissionService _authService;
 
-    public DocumentsController(IAuthorizationService authService)
+    public DocumentsController(IUserPermissionService authService)
     {
         _authService = authService;
     }
@@ -468,7 +468,7 @@ export function usePermissions(): PermissionsData {
   });
 
   useEffect(() => {
-    fetch('/api/authorization/my-permissions', {
+    fetch('/api/user/my-permissions', {
       headers: { 'Authorization': `Bearer ${getToken()}` }
     })
       .then(res => res.json())
@@ -506,9 +506,9 @@ function DocumentEditor() {
 
 | Endpoint | Method | Auth | Purpose | Response Time |
 |----------|--------|------|---------|---------------|
-| `/api/authorization/my-permissions` | GET | Required | Get user's roles & permissions | <5ms (cached), ~50ms (first call) |
-| `/api/authorization/check-permission` | POST | Required | Check specific permission | <5ms (cached) |
-| `/api/authorization/roles` | GET | Required (Admin) | List all roles | ~20ms |
+| `/api/user/my-permissions` | GET | Required | Get user's roles & permissions | <5ms (cached), ~50ms (first call) |
+| `/api/user/check-permission` | POST | Required | Check specific permission | <5ms (cached) |
+| `/api/user/roles` | GET | Required (Admin) | List all roles | ~20ms |
 
 ---
 
