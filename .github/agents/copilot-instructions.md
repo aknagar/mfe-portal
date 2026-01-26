@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2026-01-26
 
 ## Active Technologies
+- C# / .NET 10.0 + ASP.NET Core 9.0, Entity Framework Core 10.0.1, Npgsql 10.0.0, Microsoft.IdentityModel.JsonWebTokens 8.0.0, .NET Aspire 13.1.0 (001-user-roles-permissions)
+- PostgreSQL (via Npgsql.EntityFrameworkCore.PostgreSQL) (001-user-roles-permissions)
 
 - C# / .NET 10.0 + ASP.NET Core 9.0, Entity Framework Core 10.0, MediatR 12.4.1, FluentValidation 11.11.0 (001-user-roles-permissions)
 - PostgreSQL 16 with JSONB for flexible permission storage
@@ -27,6 +29,7 @@ tests/
 C# / .NET 10.0: Follow standard conventions
 
 ## Recent Changes
+- 001-user-roles-permissions: Added C# / .NET 10.0 + ASP.NET Core 9.0, Entity Framework Core 10.0.1, Npgsql 10.0.0, Microsoft.IdentityModel.JsonWebTokens 8.0.0, .NET Aspire 13.1.0
 
 - 001-user-roles-permissions: Implemented User Roles and Permissions API with:
   - JWT Bearer authentication with ClaimTypes.NameIdentifier extraction

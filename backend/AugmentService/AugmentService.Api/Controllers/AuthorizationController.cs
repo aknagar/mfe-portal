@@ -65,23 +65,29 @@ public class AuthorizationController : ControllerBase
     /// <summary>
     /// Checks if the current user has a specific permission.
     /// </summary>
-    /// <param name="request">Permission check request containing the permission name.</param>
+    /// <param name="permission">Permission name to check (e.g., "System.Write").</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Result indicating whether the user has the permission.</returns>
     /// <response code="200">Permission check completed successfully.</response>
-    /// <response code="400">Invalid request - permission field is required or malformed.</response>
+    /// <response code="400">Invalid request - permission parameter is malformed or doesn't match pattern.</response>
     /// <response code="401">User is not authenticated or JWT token is invalid/expired.</response>
     /// <response code="500">Internal server error occurred.</response>
-    [HttpPost("check-permission")]
+    [HttpGet("my-permissions/{permission}")]
     [ProducesResponseType(typeof(CheckPermissionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> CheckPermission([FromBody] CheckPermissionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> CheckPermission(string permission, CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
+        // Validate permission parameter format (Resource.Action pattern)
+        if (string.IsNullOrWhiteSpace(permission) || !System.Text.RegularExpressions.Regex.IsMatch(permission, @"^[A-Za-z]+\.[A-Za-z]+$"))
         {
-            return BadRequest(new { error = "BadRequest", message = "Invalid request", details = ModelState });
+            return BadRequest(new
+            {
+                error = "BadRequest",
+                message = "Invalid permission format",
+                details = "Permission must follow 'Resource.Action' pattern (e.g., 'System.Write')"
+            });
         }
 
         try
@@ -93,13 +99,13 @@ public class AuthorizationController : ControllerBase
                 return Unauthorized(new { error = "Unauthorized", message = "Authentication required", details = "User ID not found in JWT claims" });
             }
 
-            _logger.LogDebug("User {UserId} checking permission {Permission}", userId, request.Permission);
+            _logger.LogDebug("User {UserId} checking permission {Permission}", userId, permission);
 
-            var hasPermission = await _authorizationService.HasPermissionAsync(userId, request.Permission, cancellationToken);
+            var hasPermission = await _authorizationService.HasPermissionAsync(userId, permission, cancellationToken);
 
             var response = new CheckPermissionResponse
             {
-                Permission = request.Permission,
+                Permission = permission,
                 HasPermission = hasPermission
             };
 
@@ -107,7 +113,7 @@ public class AuthorizationController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking permission {Permission} for current user", request.Permission);
+            _logger.LogError(ex, "Error checking permission {Permission} for current user", permission);
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { error = "InternalServerError", message = "An unexpected error occurred", details = ex.Message });
         }

@@ -14,6 +14,12 @@
 - Q: When should role/permission changes take effect for an active user session? → A: Take effect on next login (session unchanged)
 - Q: How should the system handle users with references to deleted roles? → A: Treat deleted roles as having no permissions (ignore gracefully)
 - Q: How should permission checks behave when the user's session has expired? → A: Return 401 Unauthorized error (requires re-authentication)
+- Q: What authentication mechanism should the API use to identify and authenticate users? → A: Azure AD / Entra ID (OpenID Connect)
+- Q: How should Azure AD user identities be mapped to role assignments in the system? → A: Email address
+- Q: Where should role assignments and role definitions be persisted? → A: PostgreSQL database
+- Q: What should happen when an Azure AD user authenticates but doesn't have a record in the PostgreSQL database yet? → A: Auto-provision user record
+- Q: How should permission caching be implemented to reduce database queries? → A: In-memory cache
+- Q: What should the API controller be named for the roles and permissions endpoints? → A: UserController
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -29,7 +35,7 @@ As an authenticated user, when I access the application, I need to know what rol
 
 1. **Given** I am logged in as a user with "Administrator" role, **When** I request my current roles and permissions, **Then** the system returns my "Administrator" role with permissions ["System.Read", "System.Write", "System.Admin"] and rank 999
 2. **Given** I am logged in as a user with multiple roles ("Reader" and "Writer"), **When** I request my permissions, **Then** the system returns the combined set containing ["System.Read", "System.Write"] and the primary role is "Writer" (highest rank: 50)
-3. **Given** I am logged in but have no roles assigned, **When** I request my permissions, **Then** the system returns an empty permissions set with appropriate status
+3. **Given** I am logged in but have no roles assigned (or I'm a new user auto-provisioned on first login), **When** I request my permissions, **Then** the system returns an empty permissions set with appropriate status
 4. **Given** I am not authenticated, **When** I attempt to request my permissions, **Then** the system returns an authentication error
 
 ---
@@ -67,6 +73,7 @@ As a system administrator, I need to see what roles exist in the system and thei
 
 ### Edge Cases
 
+- What happens when an Azure AD user logs in for the first time? The system automatically creates a user record in the database with no roles assigned (auto-provisioning), allowing the user to authenticate successfully but receive empty permissions until an administrator assigns roles.
 - What happens when a user's roles are modified while they are logged in? Role changes take effect only on the user's next login; the current session maintains its original permissions for consistency.
 - How does the system handle permission checks for resources that don't exist?
 - What happens if a role is deleted but users still have that role assigned? The system treats deleted roles as having no permissions (ignores them gracefully) and continues processing remaining valid roles.
@@ -84,17 +91,30 @@ As a system administrator, I need to see what roles exist in the system and thei
 - **FR-005**: System MUST handle unauthenticated requests and expired sessions by returning appropriate error responses (401 Unauthorized)
 - **FR-006**: System MUST handle users with no assigned roles by returning an empty permission set (not an error)
 - **FR-007**: System MUST provide an endpoint to list all available roles in the system with their associated permissions (restricted to administrator users only)
-- **FR-008**: System MUST cache user permissions for the duration of their session to avoid repeated database lookups
+- **FR-008**: System MUST cache user permissions using ASP.NET Core IMemoryCache with per-user cache keys for the duration of their session (configurable timeout, default 60 minutes) to avoid repeated database lookups
 - **FR-009**: System MUST validate that role assignments exist and are active when returning user permissions; deleted or inactive roles are ignored gracefully (treated as having no permissions)
 - **FR-010**: System MUST return permission data in a structured, machine-readable format (e.g., JSON)
 - **FR-011**: System MUST maintain consistent permissions throughout a user's session; role changes take effect only on next login
+- **FR-012**: System MUST use Azure AD / Entra ID (OpenID Connect) for user authentication, validating JWT bearer tokens on all protected endpoints
+- **FR-013**: System MUST persist user-to-role assignments in PostgreSQL database tables, enabling dynamic role management without requiring Azure AD configuration changes
+- **FR-014**: System MUST automatically create a user record in the database on first login if the authenticated Azure AD user doesn't exist (auto-provisioning), with no roles assigned initially (empty permissions)
+
+### Technical Constraints
+
+- **TC-001**: Authentication mechanism is Azure AD / Entra ID using OpenID Connect protocol with JWT bearer tokens
+- **TC-002**: All API endpoints requiring user context must enforce authentication via ASP.NET Core authentication middleware
+- **TC-003**: User identity claims (including user ID and email) are extracted from validated Azure AD JWT tokens
+- **TC-004**: User email address from Azure AD token claims is used to map authenticated users to role assignments stored in the application database
+- **TC-005**: Role assignments and role definitions are persisted in PostgreSQL database with tables for Users, Roles, and UserRoles entities
+- **TC-006**: Permission caching uses ASP.NET Core IMemoryCache for in-memory storage with per-user cache keys, entries expire after configurable timeout (default 60 minutes)
+- **TC-007**: API endpoints for roles and permissions are exposed through a controller named UserController (not AuthorizationController) to reflect user-centric operations
 
 ### Key Entities *(include if feature involves data)*
 
-- **User**: Represents an authenticated individual who can have one or more roles assigned. Key attributes include UserId (Guid), Email, authentication status.
+- **User**: Represents an authenticated individual who can have one or more roles assigned. The user's email address from the Azure AD token is used as the primary identifier to link authentication identity to role assignments in the database. User records are automatically created on first login if they don't exist (auto-provisioned with no roles). Key attributes include UserId (Guid - internal database ID), Email (string - from Azure AD token, used for identity matching), authentication status.
 - **Role**: Represents a named collection of permissions that can be assigned to users. The system supports three roles: Reader (grants System.Read permission, Rank: 1), Writer (grants System.Read and System.Write permissions, Rank: 50), and Administrator (grants System.Read, System.Write, and System.Admin permissions, Rank: 999). Key attributes include role name, description, permissions list, and rank for hierarchy. A user can have multiple roles, with the highest rank role being the primary role. Role definitions are defined in Permissions.cs file.
 - **Permission**: Represents a specific capability or action that can be performed in the system. Permissions follow a naming pattern "Resource.Action" (e.g., "System.Read", "User.Manage"). One role can have multiple permissions stored as a list.
-- **UserRole**: Represents the assignment relationship between a user and a role, linking users to their authorized roles.
+- **UserRole**: Represents the assignment relationship between a user and a role, linking users to their authorized roles. Stored in PostgreSQL database as a many-to-many relationship table with foreign keys to Users and Roles tables.
 
 ## Success Criteria *(mandatory)*
 

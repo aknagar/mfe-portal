@@ -4,6 +4,9 @@ namespace AugmentService.Application.DTOs;
 
 /// <summary>
 /// Request DTO for checking if user has a specific permission.
+/// NOTE: This class is not currently used. The CheckPermission endpoint
+/// uses a path parameter instead of request body.
+/// Kept for potential future use.
 /// </summary>
 public class CheckPermissionRequest
 {
@@ -16,18 +19,3 @@ public class CheckPermissionRequest
     public required string Permission { get; set; }
 }
 
-/// <summary>
-/// Response DTO for permission check result.
-/// </summary>
-public class CheckPermissionResponse
-{
-    /// <summary>
-    /// The permission that was checked.
-    /// </summary>
-    public required string Permission { get; set; }
-
-    /// <summary>
-    /// True if user has the permission, false otherwise.
-    /// </summary>
-    public required bool HasPermission { get; set; }
-}

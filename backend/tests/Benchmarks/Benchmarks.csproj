@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\AugmentService\AugmentService.Api\AugmentService.Api.csproj" />
+    <ProjectReference Include="..\..\AugmentService\AugmentService.Application\AugmentService.Application.csproj" />
+    <ProjectReference Include="..\..\AugmentService\AugmentService.Core\AugmentService.Core.csproj" />
+    <ProjectReference Include="..\..\AugmentService\AugmentService.Infrastructure\AugmentService.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -23,14 +23,14 @@
 
 **Implementation Approach**:
 ```csharp
-// Cache key pattern: "permissions:{userId}:{sessionId}"
-var cacheKey = $"permissions:{userId}:{sessionId}";
-if (!_cache.TryGetValue(cacheKey, out List<Permission> permissions))
+// Cache key pattern: "permissions:{email}" (simplified - email from Azure AD token)
+var cacheKey = $"permissions:{email}";
+if (!_cache.TryGetValue(cacheKey, out UserPermissionsDto? permissions))
 {
-    permissions = await _repository.GetUserPermissionsAsync(userId);
+    permissions = await _repository.GetUserPermissionsAsync(email);
+    var cacheTimeout = _configuration.GetValue("CacheSettings:PermissionCacheDurationMinutes", 60);
     var cacheOptions = new MemoryCacheEntryOptions()
-        .SetAbsoluteExpiration(TimeSpan.FromHours(8)) // Session timeout
-        .SetSlidingExpiration(TimeSpan.FromMinutes(30));
+        .SetAbsoluteExpiration(TimeSpan.FromMinutes(cacheTimeout)); // Default 60 min
     _cache.Set(cacheKey, permissions, cacheOptions);
 }
 ```
@@ -105,30 +105,48 @@ modelBuilder.Entity<UserRole>()
 
 ---
 
-### 3. ASP.NET Core Authentication & Authorization Best Practices
+### 3. Azure AD / Entra ID Authentication & Authorization
 
-**Question**: How to authenticate users and enforce authorization on endpoints?
+**Question**: How to authenticate users via Azure AD and enforce authorization on endpoints?
 
-**Decision**: Use JWT Bearer authentication with claims-based authorization
+**Decision**: Use Microsoft.Identity.Web with OpenID Connect for Azure AD JWT Bearer token validation
 
 **Rationale**:
-- JWT already used in the codebase (Microsoft.IdentityModel.JsonWebTokens in dependencies)
-- Claims-based approach maps naturally to permissions
-- User ID extracted from JWT claims for permission lookups
-- Standard pattern in ASP.NET Core microservices
+- Microsoft.Identity.Web provides first-class Azure AD/Entra ID integration
+- Handles JWT validation, OpenID Connect discovery, and claims extraction automatically
+- User email from Azure AD token maps to database User.Email for role lookups
+- Integrates seamlessly with ASP.NET Core authorization policies
+- Supports development (appsettings) and production (Azure Managed Identity) scenarios
 
 **Implementation Approach**:
 ```csharp
-// Extract user ID from JWT claims
-var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+// Program.cs - Add Microsoft.Identity.Web authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+
+builder.Services.AddAuthorization();
+
+// appsettings.json
+{
+  "AzureAd": {
+    "Instance": "https://login.microsoftonline.com/",
+    "TenantId": "<tenant-id>",
+    "ClientId": "<api-client-id>",
+    "Audience": "api://<client-id>"
+  }
+}
+
+// Extract user email from Azure AD JWT claims for database lookup
+var email = User.FindFirst(ClaimTypes.Email)?.Value 
+    ?? User.FindFirst("preferred_username")?.Value;
+if (string.IsNullOrEmpty(email))
 {
     return Unauthorized();
 }
 
 // Require authentication on endpoints
-[Authorize] // All endpoints require authentication
-[HttpGet("my-permissions")]
+[Authorize] // All endpoints require Azure AD authentication
+[HttpGet("me/permissions")]
 public async Task<IActionResult> GetMyPermissions() { ... }
 
 // Admin-only endpoint
@@ -136,8 +154,8 @@ public async Task<IActionResult> GetMyPermissions() { ... }
 [HttpGet("roles")]
 public async Task<IActionResult> GetAllRoles()
 {
-    // Manual admin check within method
-    var hasAdminPermission = await _authService.HasPermissionAsync(userId, "Admin");
+    var email = User.FindFirst(ClaimTypes.Email)?.Value;
+    var hasAdminPermission = await _permissionService.HasPermissionAsync(email, "System.Admin");
     if (!hasAdminPermission)
     {
         return Forbid(); // 403
@@ -147,16 +165,121 @@ public async Task<IActionResult> GetAllRoles()
 ```
 
 **Alternatives Considered**:
-- Custom authorization policies: More complex for simple permission checks
-- Role-based [Authorize(Roles = "Admin")]: Less flexible than permission-based checks
+- Manual JWT validation with System.IdentityModel.Tokens.Jwt: Rejected due to boilerplate and lack of Azure AD-specific features
+- IdentityServer: Overkill for delegated Azure AD authentication
+- Cookie-based auth: Not suitable for API endpoints consumed by micro-frontends
+
+**Key Claims from Azure AD Token**:
+- Email: `ClaimTypes.Email` or `"preferred_username"` - used for User.Email lookup
+- Object ID: `"http://schemas.microsoft.com/identity/claims/objectidentifier"` - unique Azure AD user ID
+- Name: `ClaimTypes.Name` - display name
 
 **References**:
+- [Microsoft.Identity.Web Documentation](https://learn.microsoft.com/en-us/azure/active-directory/develop/microsoft-identity-web)
 - [ASP.NET Core Authentication](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/)
-- [JWT Bearer Authentication](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/jwt)
+- [Azure AD JWT Claims](https://learn.microsoft.com/en-us/azure/active-directory/develop/access-tokens)
 
 ---
 
-### 4. Repository Pattern with EF Core
+### 4. Auto-Provisioning First-Time Azure AD Users
+
+**Question**: How to automatically create user records in the database when an Azure AD user authenticates for the first time?
+
+**Decision**: Use custom middleware that runs after authentication, checks user existence by email, and provisions if needed
+
+**Rationale**:
+- Middleware executes once per request after Azure AD JWT validation
+- Ensures user record exists before any controller logic executes
+- Centralized logic - no need to add provisioning checks to each endpoint
+- Idempotent - safe for concurrent first requests (unique constraint on email prevents duplicates)
+- Non-blocking - provisions synchronously but only on first request per user (rare operation)
+
+**Implementation Approach**:
+```csharp
+// UserProvisioningMiddleware.cs
+public class UserProvisioningMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<UserProvisioningMiddleware> _logger;
+    
+    public UserProvisioningMiddleware(RequestDelegate next, ILogger<UserProvisioningMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+    
+    public async Task InvokeAsync(HttpContext context, IUserProvisioningService provisioningService)
+    {
+        if (context.User.Identity?.IsAuthenticated == true)
+        {
+            var email = context.User.FindFirst(ClaimTypes.Email)?.Value
+                ?? context.User.FindFirst("preferred_username")?.Value;
+            
+            if (!string.IsNullOrEmpty(email))
+            {
+                try
+                {
+                    await provisioningService.EnsureUserExistsAsync(email);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to provision user {Email}", email);
+                    // Continue - let authorization naturally fail if needed
+                }
+            }
+        }
+        
+        await _next(context);
+    }
+}
+
+// Program.cs registration (after authentication/authorization)
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseMiddleware<UserProvisioningMiddleware>(); // Before MapControllers
+app.MapControllers();
+
+// IUserProvisioningService implementation
+public async Task EnsureUserExistsAsync(string email)
+{
+    var existingUser = await _userRepository.GetByEmailAsync(email);
+    if (existingUser == null)
+    {
+        var newUser = new User
+        {
+            Email = email,
+            CreatedDate = DateTime.UtcNow
+            // No roles assigned initially - empty permissions
+        };
+        await _userRepository.AddAsync(newUser);
+        _logger.LogInformation("Auto-provisioned new user {Email}", email);
+    }
+}
+```
+
+**Alternatives Considered**:
+- Controller-level provisioning: Rejected due to code duplication across all endpoints
+- Background job provisioning: Rejected; creates race condition if user request proceeds before provisioning completes
+- Require manual admin provisioning: Rejected; violates auto-provisioning requirement (FR-014)
+- Database trigger: Rejected; violates Clean Architecture (business logic should not be in database)
+
+**Edge Cases Handled**:
+- **Concurrent first requests**: Unique constraint on `User.Email` prevents duplicate inserts; first request succeeds, others catch exception and continue
+- **Missing email claim**: Provisioning skipped, request continues, authorization fails naturally with 401/403
+- **Provisioning failure**: Logged but doesn't block request; authorization will fail if user doesn't exist
+- **Email case sensitivity**: Use case-insensitive email comparison in database query
+
+**Performance Impact**:
+- First request per user: +20-50ms for database insert (rare operation)
+- Subsequent requests: +0.1ms for existence check (cached in IMemoryCache after first permission lookup)
+
+**References**:
+- [ASP.NET Core Middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/)
+- [Custom Middleware Patterns](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/write)
+
+---
+
+### 5. Repository Pattern with EF Core
 
 **Question**: What's the optimal repository pattern for this feature?
 
@@ -273,7 +396,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 
 ---
 
-### 6. OpenAPI Documentation Standards
+### 7. OpenAPI Documentation Standards
 
 **Question**: How to document the new authorization endpoints in Swagger/OpenAPI?
 
@@ -315,7 +438,7 @@ public async Task<IActionResult> GetMyPermissions() { ... }
 
 ---
 
-### 7. Testing Strategy for Authorization Logic
+### 8. Testing Strategy for Authorization Logic
 
 **Question**: What testing approach ensures correct permission resolution?
 
@@ -407,7 +530,13 @@ public async Task RoleRepository_GetByName_ReturnsCorrectRole()
 - ✅ xUnit + NSubstitute + FluentAssertions for testing
 - ✅ TestContainers for integration tests
 
-**No New External Dependencies Required** - All decisions use existing infrastructure.
+**New Dependencies Required**:
+- ➕ `Microsoft.Identity.Web` - for Azure AD/Entra ID OpenID Connect integration
+- ➕ `Microsoft.Identity.Web.UI` (optional) - for UI components if needed
+
+**Configuration Changes**:
+- ➕ AzureAd section in appsettings.json (TenantId, ClientId, Instance, Audience)
+- ➕ CacheSettings section for permission cache timeout (default 60 minutes)
 
 ---
 

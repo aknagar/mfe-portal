@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AugmentService.E2eTests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AugmentService.IntegrationTests", "tests\AugmentService\AugmentService.IntegrationTests\AugmentService.IntegrationTests.csproj", "{4B0FF2FB-6067-4764-85E4-31B9D298D9A2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "tests\Benchmarks\Benchmarks.csproj", "{7E70A021-13D2-4F7B-B779-A50992D848C1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -177,6 +179,18 @@ Global
 		{4B0FF2FB-6067-4764-85E4-31B9D298D9A2}.Release|x64.Build.0 = Release|Any CPU
 		{4B0FF2FB-6067-4764-85E4-31B9D298D9A2}.Release|x86.ActiveCfg = Release|Any CPU
 		{4B0FF2FB-6067-4764-85E4-31B9D298D9A2}.Release|x86.Build.0 = Release|Any CPU
+		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Debug|x64.Build.0 = Debug|Any CPU
+		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Debug|x86.Build.0 = Debug|Any CPU
+		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Release|x64.ActiveCfg = Release|Any CPU
+		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Release|x64.Build.0 = Release|Any CPU
+		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Release|x86.ActiveCfg = Release|Any CPU
+		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -190,5 +204,6 @@ Global
 		{51BE2B4A-B205-4EB6-818C-4ADFA3824062} = {D19F7CB7-3C54-4256-52C2-106B4A58CB28}
 		{ABA46427-36D0-4284-9407-9976805B3508} = {D19F7CB7-3C54-4256-52C2-106B4A58CB28}
 		{4B0FF2FB-6067-4764-85E4-31B9D298D9A2} = {D19F7CB7-3C54-4256-52C2-106B4A58CB28}
+		{7E70A021-13D2-4F7B-B779-A50992D848C1} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

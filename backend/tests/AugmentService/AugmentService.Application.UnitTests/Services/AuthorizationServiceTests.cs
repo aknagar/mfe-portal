@@ -1,6 +1,9 @@
+using AugmentService.Application.Services;
 using AugmentService.Core.Entities;
 using AugmentService.Core.Interfaces;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
 
@@ -14,17 +17,27 @@ public class AuthorizationServiceTests
 {
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IRoleRepository _roleRepository;
+    private readonly IMemoryCache _memoryCache;
+    private readonly ILogger<AuthorizationService> _logger;
 
     public AuthorizationServiceTests()
     {
         _userRoleRepository = Substitute.For<IUserRoleRepository>();
         _roleRepository = Substitute.For<IRoleRepository>();
+        _memoryCache = new MemoryCache(new MemoryCacheOptions());
+        _logger = Substitute.For<ILogger<AuthorizationService>>();
+    }
+
+    private AuthorizationService CreateService()
+    {
+        return new AuthorizationService(_userRoleRepository, _roleRepository, _memoryCache, _logger);
     }
 
     [Fact]
     public async Task GetUserPermissionsAsync_WithSingleRole_ReturnsCorrectPermissions()
     {
         // Arrange
+        var service = CreateService();
         var userId = Guid.NewGuid();
         var readerRole = new Role
         {
@@ -43,12 +56,15 @@ public class AuthorizationServiceTests
             .Returns(new List<string> { "System.Read" });
 
         // Act
-        var permissions = await _userRoleRepository.GetUserPermissionsAsync(userId);
+        var result = await service.GetUserPermissionsAsync(userId);
 
         // Assert
-        permissions.Should().NotBeNull();
-        permissions.Should().ContainSingle();
-        permissions.Should().Contain("System.Read");
+        result.Should().NotBeNull();
+        result.UserId.Should().Be(userId);
+        result.Roles.Should().ContainSingle();
+        result.Roles[0].Name.Should().Be("Reader");
+        result.Permissions.Should().ContainSingle();
+        result.Permissions.Should().Contain("System.Read");
 
         await _userRoleRepository.Received(1).GetUserPermissionsAsync(userId, Arg.Any<CancellationToken>());
     }
@@ -57,6 +73,7 @@ public class AuthorizationServiceTests
     public async Task GetUserPermissionsAsync_WithMultipleRoles_ReturnsDistinctUnionOfPermissions()
     {
         // Arrange
+        var service = CreateService();
         var userId = Guid.NewGuid();
         var readerRole = new Role
         {
@@ -85,13 +102,14 @@ public class AuthorizationServiceTests
             .Returns(new List<string> { "System.Read", "System.Write" });
 
         // Act
-        var permissions = await _userRoleRepository.GetUserPermissionsAsync(userId);
+        var result = await service.GetUserPermissionsAsync(userId);
 
         // Assert
-        permissions.Should().NotBeNull();
-        permissions.Should().HaveCount(2);
-        permissions.Should().Contain("System.Read");
-        permissions.Should().Contain("System.Write");
+        result.Should().NotBeNull();
+        result.Permissions.Should().HaveCount(2);
+        result.Permissions.Should().Contain("System.Read");
+        result.Permissions.Should().Contain("System.Write");
+        result.Roles.Should().HaveCount(2);
 
         await _userRoleRepository.Received(1).GetUserPermissionsAsync(userId, Arg.Any<CancellationToken>());
     }
@@ -100,6 +118,7 @@ public class AuthorizationServiceTests
     public async Task GetUserPermissionsAsync_WithNoAssignedRoles_ReturnsEmptyPermissionsArray()
     {
         // Arrange
+        var service = CreateService();
         var userId = Guid.NewGuid();
 
         _userRoleRepository.GetUserRolesAsync(userId, Arg.Any<CancellationToken>())
@@ -109,74 +128,113 @@ public class AuthorizationServiceTests
             .Returns(new List<string>());
 
         // Act
-        var permissions = await _userRoleRepository.GetUserPermissionsAsync(userId);
+        var result = await service.GetUserPermissionsAsync(userId);
 
         // Assert
-        permissions.Should().NotBeNull();
-        permissions.Should().BeEmpty();
+        result.Should().NotBeNull();
+        result.Permissions.Should().BeEmpty();
+        result.Roles.Should().BeEmpty();
 
         await _userRoleRepository.Received(1).GetUserPermissionsAsync(userId, Arg.Any<CancellationToken>());
     }
+
+    // User Story 2 Tests: HasPermissionAsync with caching (T035-T037)
 
     [Fact]
     public async Task HasPermissionAsync_WhenUserHasPermission_ReturnsTrue()
     {
         // Arrange
+        var service = CreateService();
         var userId = Guid.NewGuid();
         var permission = "System.Write";
 
-        _userRoleRepository.HasPermissionAsync(userId, permission, Arg.Any<CancellationToken>())
-            .Returns(true);
+        var writerRole = new Role
+        {
+            Id = Guid.NewGuid(),
+            Name = "Writer",
+            Description = "Read and write access",
+            Permissions = new List<string> { "System.Read", "System.Write" },
+            Rank = 50,
+            IsActive = true
+        };
+
+        _userRoleRepository.GetUserRolesAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(new List<Role> { writerRole });
+
+        _userRoleRepository.GetUserPermissionsAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(new List<string> { "System.Read", "System.Write" });
 
         // Act
-        var result = await _userRoleRepository.HasPermissionAsync(userId, permission);
+        var result = await service.HasPermissionAsync(userId, permission);
 
         // Assert
         result.Should().BeTrue();
 
-        await _userRoleRepository.Received(1).HasPermissionAsync(userId, permission, Arg.Any<CancellationToken>());
+        // Verify GetUserPermissionsAsync was called (which calls repository)
+        await _userRoleRepository.Received(1).GetUserPermissionsAsync(userId, Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task HasPermissionAsync_WhenUserLacksPermission_ReturnsFalse()
     {
         // Arrange
+        var service = CreateService();
         var userId = Guid.NewGuid();
         var permission = "System.Admin";
 
-        _userRoleRepository.HasPermissionAsync(userId, permission, Arg.Any<CancellationToken>())
-            .Returns(false);
+        var readerRole = new Role
+        {
+            Id = Guid.NewGuid(),
+            Name = "Reader",
+            Description = "Read-only access",
+            Permissions = new List<string> { "System.Read" },
+            Rank = 1,
+            IsActive = true
+        };
+
+        _userRoleRepository.GetUserRolesAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(new List<Role> { readerRole });
+
+        _userRoleRepository.GetUserPermissionsAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(new List<string> { "System.Read" });
 
         // Act
-        var result = await _userRoleRepository.HasPermissionAsync(userId, permission);
+        var result = await service.HasPermissionAsync(userId, permission);
 
         // Assert
         result.Should().BeFalse();
 
-        await _userRoleRepository.Received(1).HasPermissionAsync(userId, permission, Arg.Any<CancellationToken>());
+        await _userRoleRepository.Received(1).GetUserPermissionsAsync(userId, Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task HasPermissionAsync_WithNonExistentPermission_ReturnsFalse()
     {
         // Arrange
+        var service = CreateService();
         var userId = Guid.NewGuid();
-        var permission = "InvalidPermission";
+        var permission = "InvalidPermission.DoesNotExist";
 
-        _userRoleRepository.HasPermissionAsync(userId, permission, Arg.Any<CancellationToken>())
-            .Returns(false);
+        _userRoleRepository.GetUserRolesAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(new List<Role>());
+
+        _userRoleRepository.GetUserPermissionsAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(new List<string>());
 
         // Act
-        var result = await _userRoleRepository.HasPermissionAsync(userId, permission);
+        var result = await service.HasPermissionAsync(userId, permission);
 
         // Assert
         result.Should().BeFalse();
     }
 
+    // User Story 3 Test: GetAllRolesAsync
+
     [Fact]
     public async Task GetAllRolesAsync_ReturnsAllActiveRoles()
     {
         // Arrange
+        var service = CreateService();
         var roles = new List<Role>
         {
             new Role
@@ -209,15 +267,18 @@ public class AuthorizationServiceTests
         };
 
         _roleRepository.GetAllAsync(Arg.Any<CancellationToken>())
-            .Returns(roles.OrderBy(r => r.Name));
+            .Returns(roles);
 
         // Act
-        var result = await _roleRepository.GetAllAsync();
+        var result = await service.GetAllRolesAsync();
 
         // Assert
         result.Should().NotBeNull();
-        result.Should().HaveCount(3);
-        result.Should().BeInAscendingOrder(r => r.Name);
+        var resultList = result.ToList();
+        resultList.Should().HaveCount(3);
+        resultList.Should().Contain(r => r.Name == "Administrator");
+        resultList.Should().Contain(r => r.Name == "Reader");
+        resultList.Should().Contain(r => r.Name == "Writer");
 
         await _roleRepository.Received(1).GetAllAsync(Arg.Any<CancellationToken>());
     }

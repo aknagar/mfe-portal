@@ -39,14 +39,14 @@ security:
   - BearerAuth: []
 
 tags:
-  - name: Authorization
-    description: Endpoints for user authorization and permission management
+  - name: User
+    description: Endpoints for user permissions and role management
 
 paths:
-  /api/authorization/my-permissions:
+  /api/user/me/permissions:
     get:
       tags:
-        - Authorization
+        - User
       summary: Get current user's permissions
       description: |
         Retrieves all roles and permissions for the authenticated user.
@@ -110,10 +110,10 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /api/authorization/check-permission:
-    post:
+  /api/user/me/permissions/{permission}:
+    get:
       tags:
-        - Authorization
+        - User
       summary: Check if user has specific permission
       description: |
         Helper endpoint to check if the authenticated user has a specific permission.
@@ -127,21 +127,21 @@ paths:
       operationId: checkPermission
       security:
         - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CheckPermissionRequest'
-            examples:
-              checkWrite:
-                summary: Check Write permission
-                value:
-                  permission: "System.Write"
-              checkAdmin:
-                summary: Check Admin permission
-                value:
-                  permission: "System.Admin"
+      parameters:
+        - name: permission
+          in: path
+          required: true
+          description: Permission name to check (e.g., "System.Write")
+          schema:
+            type: string
+            pattern: '^[A-Za-z]+\.[A-Za-z]+$'
+          examples:
+            write:
+              value: "System.Write"
+              summary: Check Write permission
+            admin:
+              value: "System.Admin"
+              summary: Check Admin permission
       responses:
         '200':
           description: Permission check result
@@ -172,10 +172,10 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /api/authorization/roles:
+  /api/user/roles:
     get:
       tags:
-        - Authorization
+        - User
       summary: List all available roles (Admin only)
       description: |
         Retrieves all active roles in the system with their associated permissions.
