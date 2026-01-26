@@ -145,18 +145,18 @@
 
 **Purpose**: Final improvements affecting multiple user stories
 
-- [ ] T055 [P] Add GlobalExceptionHandler or exception middleware in backend/AugmentService/AugmentService.Api/Middleware/ExceptionHandlerMiddleware.cs to catch unhandled exceptions, log with structured logging, return consistent error JSON format per OpenAPI ErrorResponse schema
-- [ ] T056 [P] Add validation for Role.Permissions pattern "^[A-Za-z]+\.[A-Za-z]+$" in Role entity using FluentValidation or data annotations
-- [ ] T057 [P] Add validation for Role.Rank range (1-999) using data annotations with RangeAttribute in Role.cs
-- [ ] T058 [P] Configure HTTPS-only enforcement in backend/AugmentService/AugmentService.Api/Program.cs using UseHttpsRedirection middleware
+- [X] T055 [P] Add GlobalExceptionHandler or exception middleware in backend/AugmentService/AugmentService.Api/Middleware/ExceptionHandlerMiddleware.cs to catch unhandled exceptions, log with structured logging, return consistent error JSON format per OpenAPI ErrorResponse schema
+- [X] T056 [P] Add validation for Role.Permissions pattern "^[A-Za-z]+\.[A-Za-z]+$" in Role entity using FluentValidation or data annotations
+- [X] T057 [P] Add validation for Role.Rank range (1-999) using data annotations with RangeAttribute in Role.cs
+- [X] T058 [P] Configure HTTPS-only enforcement in backend/AugmentService/AugmentService.Api/Program.cs using UseHttpsRedirection middleware
 - [ ] T059 Verify OpenAPI spec generation: start application, navigate to https://localhost:7001/scalar/v1, confirm all 3 endpoints visible under Authorization tag with XML comment documentation
 - [ ] T060 [P] Add health check verification: call GET /health endpoint, confirm database connectivity check includes Roles table
 - [ ] T061 Run quickstart.md validation: execute all steps in quickstart guide as new developer, verify no errors, update guide if steps need clarification
 - [ ] T062 [P] Performance validation: use ApacheBench or k6 to test GET /my-permissions endpoint with 100 concurrent requests, verify <200ms average latency (first call) and <5ms (cached calls)
 - [ ] T063 [P] Cache hit rate validation: enable logging for cache hits/misses in PermissionCacheService, simulate 100 requests, verify >90% cache hit rate
 - [ ] T064 [P] Security audit: verify no JWT secrets in code, all endpoints require [Authorize], admin check enforced on /roles, HTTPS enforced, 401/403 returned correctly
-- [ ] T065 Update SOLUTION_SUMMARY.md or README.md in repository root with new Authorization API section documenting the 3 endpoints and quickstart reference
-- [ ] T066 Update .github/agents/copilot-instructions.md with completed feature: User Roles and Permissions API with JWT Bearer auth, PostgreSQL JSONB permissions, session caching
+- [X] T065 Update SOLUTION_SUMMARY.md or README.md in repository root with new Authorization API section documenting the 3 endpoints and quickstart reference
+- [X] T066 Update .github/agents/copilot-instructions.md with completed feature: User Roles and Permissions API with JWT Bearer auth, PostgreSQL JSONB permissions, session caching
 
 ---
 

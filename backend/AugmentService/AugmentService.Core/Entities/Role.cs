@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using AugmentService.Core.Attributes;
 
 namespace AugmentService.Core.Entities;
 
@@ -33,6 +34,7 @@ public class Role
     /// Each permission follows "Resource.Action" pattern (e.g., "System.Read").
     /// </summary>
     [Required]
+    [PermissionPattern]
     public required List<string> Permissions { get; set; } = new();
 
     /// <summary>

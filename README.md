@@ -5,6 +5,7 @@ This solution contains the backend services for the MfePortal application, orche
 ## Projects
 
 - **AugmentService**: A microservice that acts as a reverse proxy. It takes a URL as input, makes a request to it, logs the response, and returns the result.
+  - **Authorization API**: Provides role-based access control (RBAC) with JWT authentication, PostgreSQL JSONB permission storage, and session-scoped caching for sub-200ms permission retrieval.
 - **MfePortal.AppHost**: The .NET Aspire orchestrator project.
 - **MfePortal.ServiceDefaults**: Shared service configurations (OpenTelemetry, Health Checks, etc.).
 
@@ -79,6 +80,101 @@ Connection strings are retrieved from Key Vault at runtime using `DefaultAzureCr
    ```
    GET /proxy?url=https://example.com
    ```
+
+## Authorization API
+
+The AugmentService includes a comprehensive authorization system with role-based permissions:
+
+### Features
+- **JWT Bearer Authentication**: Secure user identification from token claims
+- **Role-Based Access Control (RBAC)**: Three predefined roles (Reader, Writer, Administrator)
+- **JSONB Permission Storage**: Flexible permissions stored as PostgreSQL JSONB with GIN index
+- **Session-Scoped Caching**: IMemoryCache with 8-hour absolute and 30-minute sliding expiration
+- **Performance**: Sub-200ms permission retrieval (first call), sub-5ms cached calls
+
+### Endpoints
+
+#### GET /api/authorization/my-permissions
+Returns the authenticated user's complete permission set with roles and rank.
+
+**Response:**
+```json
+{
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "roles": [
+    {
+      "roleId": "789e4567-e89b-12d3-a456-426614174000",
+      "name": "Reader",
+      "description": "Read-only access to system resources",
+      "permissions": ["System.Read"],
+      "rank": 1
+    }
+  ],
+  "permissions": ["System.Read"]
+}
+```
+
+#### POST /api/authorization/check-permission
+Check if the authenticated user has a specific permission.
+
+**Request:**
+```json
+{
+  "permission": "System.Write"
+}
+```
+
+**Response:**
+```json
+{
+  "hasPermission": false
+}
+```
+
+#### GET /api/authorization/roles
+**[Admin Only]** Returns all system roles with permissions.
+
+**Response:**
+```json
+{
+  "roles": [
+    {
+      "roleId": "...",
+      "name": "Reader",
+      "description": "Read-only access",
+      "permissions": ["System.Read"],
+      "rank": 1
+    },
+    {
+      "roleId": "...",
+      "name": "Writer",
+      "description": "Read and write access",
+      "permissions": ["System.Read", "System.Write"],
+      "rank": 50
+    },
+    {
+      "roleId": "...",
+      "name": "Administrator",
+      "description": "Full system access",
+      "permissions": ["System.Read", "System.Write", "System.Admin"],
+      "rank": 999
+    }
+  ]
+}
+```
+
+### Predefined Roles
+- **Reader** (Rank: 1): `System.Read` permission
+- **Writer** (Rank: 50): `System.Read`, `System.Write` permissions
+- **Administrator** (Rank: 999): `System.Read`, `System.Write`, `System.Admin` permissions
+
+### Database Schema
+Roles and permissions are stored in the `weatherdb` database:
+- **Users** table: User identifiers and email
+- **Roles** table: Role definitions with JSONB permissions column
+- **UserRoles** table: Many-to-many mapping between users and roles
+
+See [Authorization Quickstart Guide](specs/001-user-roles-permissions/quickstart.md) for implementation details and integration examples.
 
 ## Azure KeyVault Integration
 

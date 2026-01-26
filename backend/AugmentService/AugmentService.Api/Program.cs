@@ -111,6 +111,10 @@ builder.Services.AddDaprWorkflow(options =>
     options.RegisterActivity<HandleApprovalTimeoutActivity>();
 });
 
+// Add global exception handler
+builder.Services.AddExceptionHandler<AugmentService.Api.Middleware.GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 var app = builder.Build();
 
 #region HTTP Pipeline Configuration
@@ -119,11 +123,16 @@ var app = builder.Build();
 //await VerifyDaprPlacementServiceAsync(app.Logger);
 
 // Configure the HTTP request pipeline.
+// Add exception handler middleware
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi(); //publish endpoint at /openapi/v1.json
     app.MapScalarApiReference(); // similar to swagger UI at /scalar/v1
 };
+
+app.UseHttpsRedirection(); // Enforce HTTPS-only
 
 app.UseCors(); // Enable CORS
 
