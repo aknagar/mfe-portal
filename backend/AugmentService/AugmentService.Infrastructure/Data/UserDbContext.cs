@@ -107,6 +107,12 @@ public class UserDbContext : DbContext
 
         // Seed initial roles using Permissions.cs definitions
         SeedRoles(modelBuilder);
+        
+        // Seed default admin user
+        SeedUsers(modelBuilder);
+        
+        // Seed user-role assignments
+        SeedUserRoles(modelBuilder);
     }
 
     /// <summary>
@@ -129,5 +135,41 @@ public class UserDbContext : DbContext
                 CreatedDate = DateTime.UtcNow
             });
         }
+    }
+
+    /// <summary>
+    /// Seeds the database with default administrator user.
+    /// </summary>
+    private void SeedUsers(ModelBuilder modelBuilder)
+    {
+        // Seed default administrator user for bootstrapping the system
+        var adminUser = new
+        {
+            UserId = Guid.Parse("00000000-0000-0000-0000-000000000100"),
+            Email = "akashnagar47@outlook.com",
+            CreatedDate = DateTime.UtcNow,
+            UpdatedDate = (DateTime?)null
+        };
+
+        modelBuilder.Entity<User>().HasData(adminUser);
+    }
+
+    /// <summary>
+    /// Seeds the database with user-role assignments.
+    /// Links the default admin user to the Administrator role.
+    /// </summary>
+    private void SeedUserRoles(ModelBuilder modelBuilder)
+    {
+        // Link default admin user to Administrator role
+        var adminUserRole = new
+        {
+            Id = Guid.Parse("00000000-0000-0000-0000-000000000200"),
+            UserId = Guid.Parse("00000000-0000-0000-0000-000000000100"), // Admin user from SeedUsers()
+            RoleId = Guid.Parse("00000000-0000-0000-0000-000000000003"), // Administrator role from Permissions.cs
+            CreatedDate = DateTime.UtcNow,
+            UpdatedDate = (DateTime?)null
+        };
+
+        modelBuilder.Entity<UserRole>().HasData(adminUserRole);
     }
 }

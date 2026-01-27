@@ -44,6 +44,10 @@
 - [X] T010 Configure DbContext in backend/AugmentService/AugmentService.Infrastructure/Data/UserDbContext.cs (or extend existing DbContext) with Users, Roles, UserRoles DbSets, Fluent API for Role.Permissions JSONB column mapping, relationships, unique constraints, GIN index on Permissions
 - [X] T011 Create EF Core migration named AddRolesAndPermissions: dotnet ef migrations add AddRolesAndPermissions --project backend/AugmentService/AugmentService.Infrastructure
 - [X] T012 Add HasData seed configuration in OnModelCreating using Permissions.cs role definitions (Reader, Writer, Administrator with fixed GUIDs and rank values)
+- [X] T012a [P] Add SeedUsers() method in UserDbContext.cs to seed default admin user (UserId=00000000-0000-0000-0000-000000000100, Email=akashnagar47@outlook.com) using HasData()
+- [X] T012b [P] Add SeedUserRoles() method in UserDbContext.cs to link admin user to Administrator role (UserRoleId=00000000-0000-0000-0000-000000000200) using HasData()
+- [X] T012c Create new EF Core migration: backend/AugmentService/AugmentService.Infrastructure/migrations/20260127083254_SeedDefaultAdminUser.cs created manually (EF tooling has .NET 10 Roslyn conflicts)
+- [ ] T012d Apply migration to seed admin user: dotnet ef database update --project backend/AugmentService/AugmentService.Infrastructure (requires PostgreSQL running locally or in container)
 - [X] T013 Apply database migration: dotnet ef database update (creates Users, Roles, UserRoles tables with seed data)
 - [X] T014 [P] Implement UserRepository in backend/AugmentService/AugmentService.Infrastructure/Repositories/UserRepository.cs with CRUD operations
 - [X] T015 [P] Implement RoleRepository in backend/AugmentService/AugmentService.Infrastructure/Repositories/RoleRepository.cs with GetByIdAsync, GetByNameAsync, GetAllAsync using EF Core
