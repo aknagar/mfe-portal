@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Exclude>[*.Tests]*,[*.IntegrationTests]*,[*.E2eTests]*,[xunit.*]*</Exclude>
+          <ExcludeByFile>
+            <!-- Exclude auto-generated migrations -->
+            **/Migrations/*.cs,
+            **/migrations/*.cs,
+            <!-- Exclude auto-generated files -->
+            **/*.Designer.cs,
+            **/*.designer.cs,
+            **/GlobalUsings.g.cs,
+            **/*.AssemblyInfo.cs,
+            **/*.AssemblyAttributes.cs,
+            <!-- Exclude Program.cs (entry point) -->
+            **/Program.cs,
+            <!-- Exclude build artifacts -->
+            **/obj/**,
+            **/bin/**
+          </ExcludeByFile>
+          <IncludeDirectory>../</IncludeDirectory>
+          <SingleHit>false</SingleHit>
+          <UseSourceLink>true</UseSourceLink>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+          <SkipAutoProps>true</SkipAutoProps>
+          <!-- Threshold settings (warnings only, not enforced by coverlet) -->
+          <Threshold>80</Threshold>
+          <ThresholdType>line,branch</ThresholdType>
+          <ThresholdStat>total</ThresholdStat>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+  
+  <!-- Test execution settings -->
+  <RunConfiguration>
+    <MaxCpuCount>0</MaxCpuCount>
+    <ResultsDirectory>./TestResults</ResultsDirectory>
+    <TargetFramework>net10.0</TargetFramework>
+    <TreatNoTestsAsError>false</TreatNoTestsAsError>
+  </RunConfiguration>
+  
+  <!-- MSTest settings -->
+  <MSTest>
+    <Parallelize>
+      <Workers>0</Workers>
+      <Scope>MethodLevel</Scope>
+    </Parallelize>
+  </MSTest>
+  
+  <!-- XUnit settings -->
+  <xUnit>
+    <MaxParallelThreads>0</MaxParallelThreads>
+    <ParallelizeAssembly>true</ParallelizeAssembly>
+    <ParallelizeTestCollections>true</ParallelizeTestCollections>
+  </xUnit>
+  
+  <!-- Logger settings -->
+  <LoggerRunSettings>
+    <Loggers>
+      <Logger friendlyName="console" enabled="True">
+        <Configuration>
+          <Verbosity>Normal</Verbosity>
+        </Configuration>
+      </Logger>
+      <Logger friendlyName="trx" enabled="True">
+        <Configuration>
+          <LogFileName>test-results.trx</LogFileName>
+        </Configuration>
+      </Logger>
+    </Loggers>
+  </LoggerRunSettings>
+</RunSettings>
