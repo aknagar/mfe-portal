@@ -15,6 +15,7 @@ namespace AugmentService.Application.UnitTests.Services;
 /// </summary>
 public class UserPermissionServiceTests
 {
+    private readonly IUserRepository _userRepository;
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IRoleRepository _roleRepository;
     private readonly IMemoryCache _memoryCache;
@@ -22,6 +23,7 @@ public class UserPermissionServiceTests
 
     public UserPermissionServiceTests()
     {
+        _userRepository = Substitute.For<IUserRepository>();
         _userRoleRepository = Substitute.For<IUserRoleRepository>();
         _roleRepository = Substitute.For<IRoleRepository>();
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
@@ -30,7 +32,7 @@ public class UserPermissionServiceTests
 
     private UserPermissionService CreateService()
     {
-        return new UserPermissionService(_userRoleRepository, _roleRepository, _memoryCache, _logger);
+        return new UserPermissionService(_userRepository, _userRoleRepository, _roleRepository, _memoryCache, _logger);
     }
 
     [Fact]
@@ -39,6 +41,11 @@ public class UserPermissionServiceTests
         // Arrange
         var service = CreateService();
         var userId = Guid.NewGuid();
+        var testUser = new User
+        {
+            UserId = userId,
+            Email = "test@example.com"
+        };
         var readerRole = new Role
         {
             Id = Guid.NewGuid(),
@@ -48,6 +55,9 @@ public class UserPermissionServiceTests
             Rank = 1,
             IsActive = true
         };
+
+        _userRepository.GetByIdAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(testUser);
 
         _userRoleRepository.GetUserRolesAsync(userId, Arg.Any<CancellationToken>())
             .Returns(new List<Role> { readerRole });
@@ -62,7 +72,7 @@ public class UserPermissionServiceTests
         result.Should().NotBeNull();
         result.UserId.Should().Be(userId);
         result.Roles.Should().ContainSingle();
-        result.Roles[0].Name.Should().Be("Reader");
+        result.Roles[0].Should().Be("Reader");
         result.Permissions.Should().ContainSingle();
         result.Permissions.Should().Contain("System.Read");
 
@@ -75,6 +85,11 @@ public class UserPermissionServiceTests
         // Arrange
         var service = CreateService();
         var userId = Guid.NewGuid();
+        var testUser = new User
+        {
+            UserId = userId,
+            Email = "test@example.com"
+        };
         var readerRole = new Role
         {
             Id = Guid.NewGuid(),
@@ -94,6 +109,9 @@ public class UserPermissionServiceTests
             Rank = 50,
             IsActive = true
         };
+
+        _userRepository.GetByIdAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(testUser);
 
         _userRoleRepository.GetUserRolesAsync(userId, Arg.Any<CancellationToken>())
             .Returns(new List<Role> { readerRole, writerRole });
@@ -120,6 +138,14 @@ public class UserPermissionServiceTests
         // Arrange
         var service = CreateService();
         var userId = Guid.NewGuid();
+        var testUser = new User
+        {
+            UserId = userId,
+            Email = "test@example.com"
+        };
+
+        _userRepository.GetByIdAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(testUser);
 
         _userRoleRepository.GetUserRolesAsync(userId, Arg.Any<CancellationToken>())
             .Returns(new List<Role>());
@@ -147,6 +173,11 @@ public class UserPermissionServiceTests
         var service = CreateService();
         var userId = Guid.NewGuid();
         var permission = "System.Write";
+        var testUser = new User
+        {
+            UserId = userId,
+            Email = "test@example.com"
+        };
 
         var writerRole = new Role
         {
@@ -157,6 +188,9 @@ public class UserPermissionServiceTests
             Rank = 50,
             IsActive = true
         };
+
+        _userRepository.GetByIdAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(testUser);
 
         _userRoleRepository.GetUserRolesAsync(userId, Arg.Any<CancellationToken>())
             .Returns(new List<Role> { writerRole });
@@ -181,6 +215,11 @@ public class UserPermissionServiceTests
         var service = CreateService();
         var userId = Guid.NewGuid();
         var permission = "System.Admin";
+        var testUser = new User
+        {
+            UserId = userId,
+            Email = "test@example.com"
+        };
 
         var readerRole = new Role
         {
@@ -191,6 +230,9 @@ public class UserPermissionServiceTests
             Rank = 1,
             IsActive = true
         };
+
+        _userRepository.GetByIdAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(testUser);
 
         _userRoleRepository.GetUserRolesAsync(userId, Arg.Any<CancellationToken>())
             .Returns(new List<Role> { readerRole });
@@ -214,6 +256,14 @@ public class UserPermissionServiceTests
         var service = CreateService();
         var userId = Guid.NewGuid();
         var permission = "InvalidPermission.DoesNotExist";
+        var testUser = new User
+        {
+            UserId = userId,
+            Email = "test@example.com"
+        };
+
+        _userRepository.GetByIdAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(testUser);
 
         _userRoleRepository.GetUserRolesAsync(userId, Arg.Any<CancellationToken>())
             .Returns(new List<Role>());
