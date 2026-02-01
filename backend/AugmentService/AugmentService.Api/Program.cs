@@ -15,6 +15,9 @@ using AugmentService.Core.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
+using AugmentService.Api.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -147,9 +150,19 @@ if (builder.Environment.IsDevelopment())
 }
 
 // The connection name "productdb" matches what we defined in AppHost
-builder.AddNpgsqlDbContext<ProductDataContext>(connectionName: "productdb");
-builder.AddNpgsqlDbContext<WeatherDatabaseContext>(connectionName: "weatherdb");
-builder.AddNpgsqlDbContext<AugmentService.Infrastructure.Data.UserDbContext>(connectionName: "weatherdb");
+// Skip Aspire database registrations in test environment (integration tests will register their own)
+Console.WriteLine($"[Database Registration] Environment: {builder.Environment.EnvironmentName}");
+if (builder.Environment.EnvironmentName != "Test")
+{
+    Console.WriteLine("[Database Registration] Registering Aspire PostgreSQL DbContexts");
+    builder.AddNpgsqlDbContext<ProductDataContext>(connectionName: "productdb");
+    builder.AddNpgsqlDbContext<WeatherDatabaseContext>(connectionName: "weatherdb");
+    builder.AddNpgsqlDbContext<AugmentService.Infrastructure.Data.UserDbContext>(connectionName: "weatherdb");
+}
+else
+{
+    Console.WriteLine("[Database Registration] Skipping Aspire registration (Test environment)");
+}
 
 builder.Services.AddDaprClient();
 
@@ -173,6 +186,67 @@ builder.Services.AddDaprWorkflow(options =>
 builder.Services.AddExceptionHandler<AugmentService.Api.Middleware.GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+// Configure Rate Limiting
+var rateLimitingOptions = builder.Configuration
+    .GetSection(RateLimitingOptions.SectionName)
+    .Get<RateLimitingOptions>() ?? new RateLimitingOptions();
+
+if (rateLimitingOptions.Enabled)
+{
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        {
+            // Partition by authenticated user name, or fall back to IP address
+            var partitionKey = context.User.Identity?.Name 
+                ?? context.Connection.RemoteIpAddress?.ToString() 
+                ?? "anonymous";
+
+            return RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: partitionKey,
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = rateLimitingOptions.PermitLimit,
+                    Window = TimeSpan.FromSeconds(rateLimitingOptions.WindowSeconds),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = rateLimitingOptions.QueueLimit
+                });
+        });
+
+        // Customize rejection response
+        options.OnRejected = async (context, cancellationToken) =>
+        {
+            var logger = context.HttpContext.RequestServices
+                .GetRequiredService<ILogger<Program>>();
+            
+            logger.LogWarning(
+                "Rate limit exceeded for {User} from {IP} on {Method} {Path}",
+                context.HttpContext.User.Identity?.Name ?? "anonymous",
+                context.HttpContext.Connection.RemoteIpAddress,
+                context.HttpContext.Request.Method,
+                context.HttpContext.Request.Path);
+
+            context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+
+            TimeSpan? retryAfter = null;
+            if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfterValue))
+            {
+                retryAfter = retryAfterValue;
+                context.HttpContext.Response.Headers.RetryAfter = 
+                    ((int)retryAfterValue.TotalSeconds).ToString();
+            }
+
+            await context.HttpContext.Response.WriteAsJsonAsync(new
+            {
+                error = "TooManyRequests",
+                message = "Rate limit exceeded. Please try again later.",
+                statusCode = 429,
+                retryAfterSeconds = retryAfter?.TotalSeconds
+            }, cancellationToken);
+        };
+    });
+}
+
 var app = builder.Build();
 
 #region HTTP Pipeline Configuration
@@ -193,6 +267,12 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection(); // Enforce HTTPS-only
 
 app.UseCors(); // Enable CORS
+
+// Enable rate limiting (must be after UseCors and before UseAuthentication)
+if (rateLimitingOptions.Enabled)
+{
+    app.UseRateLimiter();
+}
 
 app.UseAuthentication(); // Enable authentication
 app.UseAuthorization(); // Enable authorization
