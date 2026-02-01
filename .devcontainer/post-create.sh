@@ -22,6 +22,11 @@ echo "📦 Installing frontend npm packages..."
 cd /workspace/frontend/shell
 npm install
 
+# Build frontend Docker image
+echo "🐳 Building frontend Docker image..."
+cd /workspace/frontend
+docker build -t frontend:latest . || echo "⚠️  Frontend Docker image build failed - ensure Docker daemon is running"
+
 # Initialize Dapr
 echo "🎯 Initializing Dapr..."
 dapr init --slim || echo "Dapr initialization skipped (may already be initialized)"
