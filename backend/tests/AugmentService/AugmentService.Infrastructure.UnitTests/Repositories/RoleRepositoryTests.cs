@@ -48,6 +48,23 @@ public class RoleRepositoryTests : IDisposable
         return new UserDbContext(_contextOptions, config);
     }
 
+    private async Task ClearSeedData(UserDbContext context)
+    {
+        // Remove seed data to ensure test isolation
+        var seedRoles = await context.Roles.Where(r => 
+            r.Name == "Reader" || r.Name == "Writer" || r.Name == "Administrator").ToListAsync();
+        context.Roles.RemoveRange(seedRoles);
+        
+        var seedUsers = await context.Users.Where(u => 
+            u.Email == "akashnagar47@outlook.com").ToListAsync();
+        context.Users.RemoveRange(seedUsers);
+        
+        var seedUserRoles = await context.UserRoles.ToListAsync();
+        context.UserRoles.RemoveRange(seedUserRoles);
+        
+        await context.SaveChangesAsync();
+    }
+
     [Fact]
     public void Should_ThrowArgumentNullException_When_ContextIsNull()
     {
@@ -123,6 +140,8 @@ public class RoleRepositoryTests : IDisposable
     {
         // Arrange
         using var context = CreateContext();
+        await ClearSeedData(context);
+        
         var role = RoleBuilder.CreateDefault()
             .WithName("Administrator")
             .Build();
@@ -225,6 +244,8 @@ public class RoleRepositoryTests : IDisposable
     {
         // Arrange
         using var context = CreateContext();
+        await ClearSeedData(context);
+        
         var role1 = RoleBuilder.CreateDefault().WithName("Admin").Build();
         var role2 = RoleBuilder.CreateDefault().WithName("User").Build();
         var role3 = RoleBuilder.CreateDefault().WithName("Guest").Build();
@@ -248,6 +269,8 @@ public class RoleRepositoryTests : IDisposable
     {
         // Arrange
         using var context = CreateContext();
+        await ClearSeedData(context);
+        
         var repository = new RoleRepository(context);
 
         // Act
@@ -262,6 +285,8 @@ public class RoleRepositoryTests : IDisposable
     {
         // Arrange
         using var context = CreateContext();
+        await ClearSeedData(context);
+        
         var activeRole = RoleBuilder.CreateDefault().WithName("Active").Build();
         var inactiveRole = RoleBuilder.CreateDefault().WithName("Inactive").Build();
         inactiveRole.IsActive = false;
@@ -284,6 +309,8 @@ public class RoleRepositoryTests : IDisposable
     {
         // Arrange
         using var context = CreateContext();
+        await ClearSeedData(context);
+        
         var roleZ = RoleBuilder.CreateDefault().WithName("Zebra").Build();
         var roleA = RoleBuilder.CreateDefault().WithName("Alpha").Build();
         var roleM = RoleBuilder.CreateDefault().WithName("Middle").Build();
@@ -347,6 +374,8 @@ public class RoleRepositoryTests : IDisposable
     {
         // Arrange
         using var context = CreateContext();
+        await ClearSeedData(context);
+        
         var repository = new RoleRepository(context);
         var role = RoleBuilder.CreateDefault()
             .WithName("ComplexRole")
@@ -362,7 +391,7 @@ public class RoleRepositoryTests : IDisposable
         result.Name.Should().Be("ComplexRole");
         result.Description.Should().Be("Complex description");
         result.Rank.Should().Be(100);
-        result.Permissions.Should().HaveCount(2);
+        result.Permissions.Should().HaveCount(3); // Default "System.Read" + 2 added
         result.Permissions.Should().Contain("read:data");
         result.Permissions.Should().Contain("write:data");
     }
@@ -410,6 +439,8 @@ public class RoleRepositoryTests : IDisposable
     {
         // Arrange
         using var context = CreateContext();
+        await ClearSeedData(context);
+        
         var role = RoleBuilder.CreateDefault().WithName("CancelTest").Build();
         await context.Roles.AddAsync(role);
         await context.SaveChangesAsync();
