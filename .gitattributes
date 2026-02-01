@@ -1,0 +1,8 @@
+# All files → stored with LF line endings
+* text=auto eol=lf
+
+# Windows-specific project files → stored with CRLF line endings
+*.sln  text eol=crlf
+*.csproj text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
