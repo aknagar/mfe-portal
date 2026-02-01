@@ -84,7 +84,11 @@
     1234,
     3500,
     5432,
-    8080
+    8080,
+    15000,
+    15001,
+    21295,
+    22028
   ],
 
   "portsAttributes": {
@@ -93,7 +97,11 @@
     "1234": { "label": "Frontend (Piral)", "onAutoForward": "openBrowser" },
     "3500": { "label": "Dapr HTTP", "onAutoForward": "silent" },
     "5432": { "label": "PostgreSQL", "onAutoForward": "silent" },
-    "8080": { "label": "Aspire Dashboard", "onAutoForward": "notify" }
+    "8080": { "label": "Aspire Dashboard", "onAutoForward": "notify" },
+    "15000": { "label": "Aspire Dashboard HTTP", "onAutoForward": "openBrowser" },
+    "15001": { "label": "Aspire Dashboard HTTPS", "onAutoForward": "openBrowser" },
+    "21295": { "label": "Aspire OTLP", "onAutoForward": "silent" },
+    "22028": { "label": "Aspire Resource Service", "onAutoForward": "silent" }
   },
 
   "postCreateCommand": "bash .devcontainer/post-create.sh",
