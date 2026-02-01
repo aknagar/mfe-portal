@@ -26,6 +26,13 @@ npm install
 echo "🎯 Initializing Dapr..."
 dapr init --slim || echo "Dapr initialization skipped (may already be initialized)"
 
+# Add Dapr to PATH
+echo "🔧 Configuring Dapr PATH..."
+if ! grep -q ".dapr/bin" ~/.bashrc; then
+    echo 'export PATH="$HOME/.dapr/bin:$PATH"' >> ~/.bashrc
+fi
+export PATH="$HOME/.dapr/bin:$PATH"
+
 # Create local databases
 echo "🗃️ Setting up local databases..."
 PGPASSWORD="${POSTGRES_PASSWORD}" psql -h postgres -U "${POSTGRES_USER:-postgres}" -c "CREATE DATABASE productdb;" 2>/dev/null || echo "productdb may already exist"
