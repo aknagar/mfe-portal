@@ -12,6 +12,7 @@ namespace AugmentService.Application.Services;
 /// </summary>
 public class UserPermissionService : IUserPermissionService
 {
+    private readonly IUserRepository _userRepository;
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IRoleRepository _roleRepository;
     private readonly IMemoryCache _cache;
@@ -22,11 +23,13 @@ public class UserPermissionService : IUserPermissionService
     private static readonly TimeSpan SlidingExpiration = TimeSpan.FromMinutes(30);
 
     public UserPermissionService(
+        IUserRepository userRepository,
         IUserRoleRepository userRoleRepository,
         IRoleRepository roleRepository,
         IMemoryCache cache,
         ILogger<UserPermissionService> logger)
     {
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _userRoleRepository = userRoleRepository ?? throw new ArgumentNullException(nameof(userRoleRepository));
         _roleRepository = roleRepository ?? throw new ArgumentNullException(nameof(roleRepository));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
@@ -49,16 +52,30 @@ public class UserPermissionService : IUserPermissionService
 
         // Fetch from database
         var startTime = DateTime.UtcNow;
+        
+        // Get user to retrieve email
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user == null)
+        {
+            _logger.LogWarning("User {UserId} not found in database", userId);
+            throw new InvalidOperationException($"User {userId} not found");
+        }
+
         var roles = await _userRoleRepository.GetUserRolesAsync(userId, cancellationToken);
         var permissions = await _userRoleRepository.GetUserPermissionsAsync(userId, cancellationToken);
 
         var rolesList = roles.ToList();
         var permissionsList = permissions.ToList();
 
+        // Get primary role (highest rank)
+        var primaryRole = rolesList.OrderByDescending(r => r.Rank).FirstOrDefault();
+
         var dto = new UserPermissionsDto
         {
             UserId = userId,
-            Roles = rolesList.Select(MapRoleToDto).ToList(),
+            Email = user.Email,
+            Roles = rolesList.Select(r => r.Name).ToList(), // Just role names
+            PrimaryRole = primaryRole?.Name, // Highest ranked role name
             Permissions = permissionsList
         };
 
@@ -71,8 +88,8 @@ public class UserPermissionService : IUserPermissionService
 
         var elapsed = DateTime.UtcNow - startTime;
         _logger.LogInformation(
-            "Fetched permissions for user {UserId}: {RoleCount} roles, {PermissionCount} permissions (elapsed: {ElapsedMs}ms)",
-            userId, rolesList.Count, permissionsList.Count, elapsed.TotalMilliseconds);
+            "Fetched permissions for user {UserId} ({Email}): {RoleCount} roles, {PermissionCount} permissions, primary role: {PrimaryRole} (elapsed: {ElapsedMs}ms)",
+            userId, user.Email, rolesList.Count, permissionsList.Count, primaryRole?.Name ?? "None", elapsed.TotalMilliseconds);
 
         return dto;
     }
@@ -109,7 +126,7 @@ public class UserPermissionService : IUserPermissionService
     }
 
     /// <summary>
-    /// Maps a Role entity to RoleDto.
+    /// Maps a Role entity to simplified RoleDto (no permissions or rank exposed).
     /// </summary>
     private static RoleDto MapRoleToDto(Role role)
     {
@@ -117,9 +134,7 @@ public class UserPermissionService : IUserPermissionService
         {
             RoleId = role.Id,
             Name = role.Name,
-            Description = role.Description,
-            Permissions = role.Permissions.ToList(),
-            Rank = role.Rank
+            Description = role.Description
         };
     }
 

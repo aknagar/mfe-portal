@@ -1,0 +1,23 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "plan",
+  "agent": {
+    "build": {
+      "mode": "primary",
+      "description": "Full tool access for development work"
+    },
+    "plan": {
+      "mode": "primary",
+      "description": "Read-only agent for planning and analysis (default)",
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny",
+          "git status": "allow",
+          "git log*": "allow",
+          "git diff*": "allow"
+        }
+      }
+    }
+  }
+}

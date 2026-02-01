@@ -124,6 +124,14 @@ namespace AugmentService.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = new Guid("00000000-0000-0000-0000-000000000100"),
+                            CreatedDate = new DateTime(2026, 1, 27, 8, 32, 54, 0, DateTimeKind.Utc),
+                            Email = "akashnagar47@outlook.com"
+                        });
                 });
 
             modelBuilder.Entity("AugmentService.Core.Entities.UserRole", b =>
@@ -154,6 +162,15 @@ namespace AugmentService.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("UserRoles");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000200"),
+                            CreatedDate = new DateTime(2026, 1, 27, 8, 32, 54, 0, DateTimeKind.Utc),
+                            RoleId = new Guid("00000000-0000-0000-0000-000000000003"),
+                            UserId = new Guid("00000000-0000-0000-0000-000000000100")
+                        });
                 });
 
             modelBuilder.Entity("AugmentService.Core.Entities.UserRole", b =>
