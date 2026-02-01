@@ -1,0 +1,227 @@
+name: CD - Deploy to Production Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Container image tag to deploy'
+        required: true
+        default: 'latest'
+        type: choice
+        options:
+          - latest
+      skip_health_check:
+        description: 'Skip health check after deployment'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID_PROD }}
+  AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  AZURE_LOCATION: ${{ vars.AZURE_LOCATION_PROD }}
+  AZURE_ENV_NAME: prod
+  AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP_PROD }}
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production  # Requires manual approval via GitHub environment protection rules
+    
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    outputs:
+      deployment_url: ${{ steps.get_url.outputs.url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install Azure Developer CLI
+        uses: Azure/setup-azd@v2
+
+      - name: Log in with Azure (Federated Credentials)
+        run: |
+          azd auth login \
+            --client-id "${{ env.AZURE_CLIENT_ID }}" \
+            --federated-credential-provider github \
+            --tenant-id "${{ env.AZURE_TENANT_ID }}"
+
+      - name: Create and select azd environment
+        run: |
+          # Create new environment if it doesn't exist
+          azd env new "${{ env.AZURE_ENV_NAME }}" --no-prompt || true
+          # Select the environment
+          azd env select "${{ env.AZURE_ENV_NAME }}"
+          # Initialize required variables
+          azd env set AZURE_RESOURCE_GROUP "${{ env.AZURE_RESOURCE_GROUP }}"
+          azd env set AZURE_LOCATION "${{ env.AZURE_LOCATION }}"
+          azd env set AZURE_SUBSCRIPTION_ID "${{ env.AZURE_SUBSCRIPTION_ID }}"
+
+      - name: Verify environment initialization
+        run: |
+          echo "Environment variables for '${{ env.AZURE_ENV_NAME }}':"
+          azd env get-values
+
+      - name: Display deployment information
+        run: |
+          echo "### 🚀 Production Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | Production |" >> $GITHUB_STEP_SUMMARY
+          echo "| Location | ${{ env.AZURE_LOCATION }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource Group | ${{ env.AZURE_RESOURCE_GROUP }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image Tag | ${{ inputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered By | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Timestamp | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **This is a production deployment. Please verify carefully before proceeding.**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Restore dependencies
+        run: dotnet restore MfePortal.Backend.sln
+
+      - name: Build backend
+        run: dotnet build MfePortal.Backend.sln --configuration Release --no-restore
+
+      - name: Deploy application
+        id: deploy
+        run: |
+          echo "Deploying to production environment..."
+          azd up --no-prompt
+          
+          echo "✅ Deployment command completed" >> $GITHUB_STEP_SUMMARY
+
+      - name: Get deployment outputs
+        id: get_url
+        run: |
+          echo "Deployment outputs:"
+          azd env get-values | tee deployment-outputs.log
+          
+          # Try to extract the app URL if available
+          if grep -q "APP_URL" deployment-outputs.log; then
+            APP_URL=$(grep "APP_URL" deployment-outputs.log | cut -d'=' -f2 | tr -d '"')
+            echo "url=$APP_URL" >> $GITHUB_OUTPUT
+            echo "Deployment URL: $APP_URL"
+          fi
+
+      - name: Upload deployment logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-logs-prod-${{ inputs.image_tag }}-${{ github.run_number }}
+          path: backend/deployment-outputs.log
+          retention-days: 90  # Keep prod logs longer
+
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: ${{ !inputs.skip_health_check }}
+    
+    steps:
+      - name: Wait for application startup
+        run: |
+          echo "Waiting 90 seconds for production application to start..."
+          sleep 90
+
+      - name: Check deployment health
+        id: health_check
+        run: |
+          APP_URL="${{ needs.deploy.outputs.deployment_url }}"
+          
+          if [ -z "$APP_URL" ]; then
+            echo "⚠️ Deployment URL not found, skipping health check"
+            echo "Please verify deployment manually in Azure Portal"
+            echo "### ⚠️ Health Check Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "Deployment URL not available. Please verify manually." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          
+          echo "Checking health endpoint: $APP_URL/health"
+          
+          MAX_RETRIES=5
+          RETRY_DELAY=45
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i of $MAX_RETRIES..."
+            
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 10 "$APP_URL/health" || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Health check passed (HTTP $HTTP_CODE)"
+              echo "### ✅ Production Deployment Successful" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+              echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+              echo "| Status | ✅ Healthy |" >> $GITHUB_STEP_SUMMARY
+              echo "| URL | $APP_URL |" >> $GITHUB_STEP_SUMMARY
+              echo "| Health Endpoint | $APP_URL/health |" >> $GITHUB_STEP_SUMMARY
+              echo "| Response Code | $HTTP_CODE |" >> $GITHUB_STEP_SUMMARY
+              echo "| Verified At | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+              exit 0
+            else
+              echo "⚠️ Health check failed (HTTP $HTTP_CODE)"
+              if [ $i -lt $MAX_RETRIES ]; then
+                echo "Retrying in $RETRY_DELAY seconds..."
+                sleep $RETRY_DELAY
+              fi
+            fi
+          done
+          
+          echo "❌ Health check failed after $MAX_RETRIES attempts"
+          echo "### ❌ Production Health Check Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Deployment completed but health check failed after $MAX_RETRIES attempts." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Check Azure Portal for service status" >> $GITHUB_STEP_SUMMARY
+          echo "2. Review application logs in Application Insights" >> $GITHUB_STEP_SUMMARY
+          echo "3. Verify network configuration and firewall rules" >> $GITHUB_STEP_SUMMARY
+          echo "4. Consider rolling back if issues persist" >> $GITHUB_STEP_SUMMARY
+          exit 1
+
+      - name: Post-deployment verification
+        if: always()
+        run: |
+          echo "### 📊 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | Production |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image Tag | ${{ inputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployed By | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployment Time | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Health Check | ${{ steps.health_check.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔄 Rollback Instructions" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "If you need to rollback this deployment:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "# 1. Navigate to the backend directory" >> $GITHUB_STEP_SUMMARY
+          echo "cd backend" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# 2. Select the production environment" >> $GITHUB_STEP_SUMMARY
+          echo "azd env select prod" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# 3. Deploy the previous stable version" >> $GITHUB_STEP_SUMMARY
+          echo "azd deploy --from-package <path-to-previous-package>" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Or re-run this workflow with a previous stable image tag." >> $GITHUB_STEP_SUMMARY
