@@ -1,4 +1,4 @@
-name: CD - Deploy to Test Environment
+name: CD - Backend Deploy to Test
 
 on:
   workflow_dispatch:

@@ -1,0 +1,260 @@
+name: CD - Frontend Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_version:
+        description: 'Artifact version to deploy (from CI build)'
+        required: true
+        type: string
+      skip_health_check:
+        description: 'Skip health check after deployment'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  REGISTRY: ${{ vars.AZURE_CONTAINER_REGISTRY_ENDPOINT }}
+  IMAGE_NAME: mfe-portal-frontend
+  AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID_PROD }}
+  AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  build-and-push:
+    name: Build & Push Container
+    runs-on: ubuntu-latest
+    environment: production  # Requires manual approval
+    
+    outputs:
+      image_tag: ${{ steps.image_tag.outputs.tag }}
+      image_uri: ${{ steps.image_tag.outputs.uri }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Display deployment information
+        shell: bash
+        run: |
+          echo "### 🚀 Production Frontend Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | Production |" >> $GITHUB_STEP_SUMMARY
+          echo "| Artifact Version | ${{ inputs.artifact_version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered By | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Timestamp | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **This is a production deployment. Please verify carefully before proceeding.**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Download shell artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: shell-${{ inputs.artifact_version }}
+          path: frontend/shell/dist/
+
+      - name: Download pilet artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: pilets-${{ inputs.artifact_version }}
+          path: frontend/pilets-dist/
+        continue-on-error: true
+
+      - name: Generate image tag
+        id: image_tag
+        run: |
+          TAG="${{ inputs.artifact_version }}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "uri=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$TAG" >> $GITHUB_OUTPUT
+          echo "### 🏷️ Container Image Tag: \`$TAG\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create Dockerfile
+        working-directory: ./frontend
+        run: |
+          cat > Dockerfile.frontend <<EOF
+          FROM nginx:alpine
+          
+          # Copy built shell
+          COPY shell/dist /usr/share/nginx/html
+          
+          # Copy pilets if available
+          COPY pilets-dist/* /usr/share/nginx/html/pilets/ 2>/dev/null || true
+          
+          # Custom nginx config for SPA with security headers
+          RUN echo 'server {
+              listen 80;
+              
+              # Security headers
+              add_header X-Frame-Options "SAMEORIGIN" always;
+              add_header X-Content-Type-Options "nosniff" always;
+              add_header X-XSS-Protection "1; mode=block" always;
+              add_header Referrer-Policy "no-referrer-when-downgrade" always;
+              
+              # Compression
+              gzip on;
+              gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+              
+              location / {
+                  root /usr/share/nginx/html;
+                  try_files \$uri \$uri/ /index.html;
+              }
+              
+              # Cache static assets
+              location ~* \.(jpg|jpeg|png|gif|ico|css|js|woff|woff2)$ {
+                  root /usr/share/nginx/html;
+                  expires 1y;
+                  add_header Cache-Control "public, immutable";
+              }
+          }' > /etc/nginx/conf.d/default.conf
+          
+          EXPOSE 80
+          CMD ["nginx", "-g", "daemon off;"]
+          EOF
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to ACR
+        run: |
+          az acr login --name ${{ env.REGISTRY }}
+
+      - name: Build and push container image
+        working-directory: ./frontend
+        run: |
+          docker build -f Dockerfile.frontend -t ${{ steps.image_tag.outputs.uri }} .
+          docker push ${{ steps.image_tag.outputs.uri }}
+          
+          # Also tag as production-latest
+          docker tag ${{ steps.image_tag.outputs.uri }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:production-latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:production-latest
+          
+          echo "### 📦 Container Image" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: \`${{ steps.image_tag.outputs.uri }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Also tagged: \`production-latest\`" >> $GITHUB_STEP_SUMMARY
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    
+    outputs:
+      app_url: ${{ steps.deploy_info.outputs.url }}
+    
+    steps:
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Container Apps (if exists)
+        id: deploy_info
+        run: |
+          # Check if container app exists
+          APP_EXISTS=$(az containerapp show \
+            --name mfe-portal-frontend-prod \
+            --resource-group ${{ vars.AZURE_RESOURCE_GROUP_PROD }} \
+            --query name -o tsv 2>/dev/null || echo "")
+          
+          if [ -n "$APP_EXISTS" ]; then
+            echo "Updating existing container app..."
+            az containerapp update \
+              --name mfe-portal-frontend-prod \
+              --resource-group ${{ vars.AZURE_RESOURCE_GROUP_PROD }} \
+              --image ${{ needs.build-and-push.outputs.image_uri }}
+            
+            # Get app URL
+            APP_URL=$(az containerapp show \
+              --name mfe-portal-frontend-prod \
+              --resource-group ${{ vars.AZURE_RESOURCE_GROUP_PROD }} \
+              --query properties.configuration.ingress.fqdn -o tsv)
+            
+            if [ -n "$APP_URL" ]; then
+              echo "url=https://$APP_URL" >> $GITHUB_OUTPUT
+            fi
+            
+            echo "### ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Frontend deployed to Azure Container Apps" >> $GITHUB_STEP_SUMMARY
+            if [ -n "$APP_URL" ]; then
+              echo "URL: https://$APP_URL" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "ℹ️ Container app 'mfe-portal-frontend-prod' not found" >> $GITHUB_STEP_SUMMARY
+            echo "Image pushed to ACR but not deployed. Create container app manually or use Aspire." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Deployment summary
+        run: |
+          echo "### 📊 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | Production |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | ${{ needs.build-and-push.outputs.image_uri }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployed By | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Timestamp | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: ${{ !inputs.skip_health_check && needs.deploy.outputs.app_url != '' }}
+    
+    steps:
+      - name: Wait for application startup
+        run: |
+          echo "Waiting 30 seconds for frontend to start..."
+          sleep 30
+
+      - name: Check deployment health
+        run: |
+          APP_URL="${{ needs.deploy.outputs.app_url }}"
+          
+          echo "Checking frontend availability: $APP_URL"
+          
+          MAX_RETRIES=5
+          RETRY_DELAY=30
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i of $MAX_RETRIES..."
+            
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 10 "$APP_URL" || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Health check passed (HTTP $HTTP_CODE)"
+              echo "### ✅ Production Frontend Deployment Successful" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+              echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+              echo "| Status | ✅ Healthy |" >> $GITHUB_STEP_SUMMARY
+              echo "| URL | $APP_URL |" >> $GITHUB_STEP_SUMMARY
+              echo "| Response Code | $HTTP_CODE |" >> $GITHUB_STEP_SUMMARY
+              echo "| Verified At | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+              exit 0
+            else
+              echo "⚠️ Health check failed (HTTP $HTTP_CODE)"
+              if [ $i -lt $MAX_RETRIES ]; then
+                echo "Retrying in $RETRY_DELAY seconds..."
+                sleep $RETRY_DELAY
+              fi
+            fi
+          done
+          
+          echo "❌ Health check failed after $MAX_RETRIES attempts"
+          echo "### ⚠️ Production Health Check Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Deployment completed but health check failed." >> $GITHUB_STEP_SUMMARY
+          echo "Please verify manually: $APP_URL" >> $GITHUB_STEP_SUMMARY
+          exit 1
