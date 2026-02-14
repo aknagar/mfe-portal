@@ -115,13 +115,48 @@
       "cwd": "${workspaceFolder}/backend",
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Test: Frontend (Playwright)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/frontend/node_modules/.bin/playwright",
+      "args": ["test"],
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Test: Frontend (Playwright UI)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/frontend/node_modules/.bin/playwright",
+      "args": ["test", "--ui"],
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Test: Frontend (Playwright Debug)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/frontend/node_modules/.bin/playwright",
+      "args": ["test", "--debug"],
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
     }
   ],
   "compounds": [
     {
       "name": "Full Stack",
       "configurations": ["AppHost (https)"],
-      "preLaunchTask": "build"
+      "preLaunchTask": "build all"
+    },
+    {
+      "name": "Test: All (Backend + Frontend)",
+      "configurations": ["Test: All Tests", "Test: Frontend (Playwright)"],
+      "stopAll": true
     }
   ]
 } 
