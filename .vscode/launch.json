@@ -21,6 +21,100 @@
       },
       "console": "internalConsole",
       "internalConsoleOptions": "openOnSessionStart"
+    },
+    {
+      "name": "Test: Unit Tests",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build backend",
+      "program": "dotnet",
+      "args": [
+        "test",
+        "${workspaceFolder}/backend/MfePortal.Backend.sln",
+        "--filter",
+        "Category!=Integration&Category!=E2E",
+        "--logger",
+        "console;verbosity=detailed"
+      ],
+      "cwd": "${workspaceFolder}/backend",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Test: Integration Tests",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build backend",
+      "program": "dotnet",
+      "args": [
+        "test",
+        "${workspaceFolder}/backend/MfePortal.Backend.sln",
+        "--filter",
+        "Category=Integration",
+        "--logger",
+        "console;verbosity=detailed"
+      ],
+      "cwd": "${workspaceFolder}/backend",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "TESTCONTAINERS_RYUK_DISABLED": "false"
+      }
+    },
+    {
+      "name": "Test: E2E Tests",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build backend",
+      "program": "dotnet",
+      "args": [
+        "test",
+        "${workspaceFolder}/backend/MfePortal.Backend.sln",
+        "--filter",
+        "Category=E2E",
+        "--logger",
+        "console;verbosity=detailed"
+      ],
+      "cwd": "${workspaceFolder}/backend",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Test: All Tests",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build backend",
+      "program": "dotnet",
+      "args": [
+        "test",
+        "${workspaceFolder}/backend/MfePortal.Backend.sln",
+        "--logger",
+        "console;verbosity=detailed"
+      ],
+      "cwd": "${workspaceFolder}/backend",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Test: All Tests (with Coverage)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build backend",
+      "program": "dotnet",
+      "args": [
+        "test",
+        "${workspaceFolder}/backend/MfePortal.Backend.sln",
+        "--collect:XPlat Code Coverage",
+        "--results-directory",
+        "${workspaceFolder}/backend/TestResults",
+        "--settings",
+        "${workspaceFolder}/backend/coverlet.runsettings",
+        "--logger",
+        "console;verbosity=detailed"
+      ],
+      "cwd": "${workspaceFolder}/backend",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
     }
   ],
   "compounds": [
