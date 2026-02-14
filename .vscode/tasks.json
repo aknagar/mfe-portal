@@ -84,6 +84,27 @@
       ],
       "problemMatcher": "$msCompile",
       "group": "test"
+    },
+    {
+      "label": "test frontend",
+      "type": "shell",
+      "command": "npx",
+      "args": ["playwright", "test"],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "test all",
+      "dependsOn": ["test backend", "test frontend"],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
     }
   ]
 } 
