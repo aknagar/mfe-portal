@@ -64,6 +64,14 @@ namespace AugmentService.Infrastructure.ProductData
 
             var services = scope.ServiceProvider;
             var context = services.GetRequiredService<ProductDataContext>();
+            
+            // For in-memory databases (like SQLite :memory:), ensure the connection is open
+            // This is important for test environments
+            if (context.Database.IsSqlite() && context.Database.GetConnectionString()?.Contains("memory", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                context.Database.OpenConnection();
+            }
+            
             context.Database.EnsureCreated();
             DbInitializer.Initialize(context);
         }

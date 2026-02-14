@@ -11,6 +11,30 @@ namespace AugmentService.Infrastructure.WeatherData;
 public class WeatherDatabaseContext(DbContextOptions<WeatherDatabaseContext> options) : DbContext(options), IUnitOfWork
 {
     public DbSet<Forecast> Forecasts { get; set; } = null!;
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Configure Forecast entity
+        modelBuilder.Entity<Forecast>(entity =>
+        {
+            entity.HasKey(f => f.Id);
+            
+            entity.Property(f => f.Date)
+                .IsRequired();
+            
+            entity.Property(f => f.TemperatureC)
+                .IsRequired();
+            
+            entity.Property(f => f.Summary)
+                .HasMaxLength(500);
+            
+            entity.Property(f => f.IsDeleted)
+                .IsRequired()
+                .HasDefaultValue(false);
+        });
+    }
 }
 
 public static class Extensions
@@ -21,6 +45,14 @@ public static class Extensions
 
         var services = scope.ServiceProvider;
         var context = services.GetRequiredService<WeatherDatabaseContext>();
+        
+        // For in-memory databases (like SQLite :memory:), ensure the connection is open
+        // This is important for test environments
+        if (context.Database.IsSqlite() && context.Database.GetConnectionString()?.Contains("memory", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            context.Database.OpenConnection();
+        }
+        
         context.Database.EnsureCreated();
         DbInitializer.Initialize(context);
     }
