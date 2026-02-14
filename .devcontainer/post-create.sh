@@ -22,9 +22,21 @@ echo "📦 Installing frontend npm packages..."
 cd /workspace/frontend/shell
 npm install
 
+# Build frontend Docker image
+echo "🐳 Building frontend Docker image..."
+cd /workspace/frontend
+docker build -t frontend:latest . || echo "⚠️  Frontend Docker image build failed - ensure Docker daemon is running"
+
 # Initialize Dapr
 echo "🎯 Initializing Dapr..."
 dapr init --slim || echo "Dapr initialization skipped (may already be initialized)"
+
+# Add Dapr to PATH
+echo "🔧 Configuring Dapr PATH..."
+if ! grep -q ".dapr/bin" ~/.bashrc; then
+    echo 'export PATH="$HOME/.dapr/bin:$PATH"' >> ~/.bashrc
+fi
+export PATH="$HOME/.dapr/bin:$PATH"
 
 # Create local databases
 echo "🗃️ Setting up local databases..."
