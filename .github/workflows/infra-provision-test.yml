@@ -47,6 +47,8 @@ jobs:
 
       - name: Deploy with Aspire
         working-directory: ./backend/MfePortal.AppHost
+        # The Aspire CLI discovers Azure Container Apps environment from the AppHost project
+        # configuration (AddAzureContainerAppEnvironment) and uses Azure login context
         run: aspire deploy
         shell: pwsh
         env:
