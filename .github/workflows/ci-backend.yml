@@ -55,8 +55,161 @@ jobs:
             backend/**/obj/Release/
           retention-days: 1
 
-  test:
-    name: Test
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: build
+    
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: backend/
+
+      - name: Restore dependencies
+        run: dotnet restore MfePortal.Backend.sln
+
+      - name: Run unit tests
+        run: |
+          echo "Running unit tests (fast feedback)..."
+          dotnet test MfePortal.Backend.sln \
+            --no-build \
+            --configuration Release \
+            --filter "Category!=Integration&Category!=E2E" \
+            --logger "trx;LogFileName=unit-test-results.trx" \
+            --logger "console;verbosity=normal"
+
+      - name: Upload unit test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: backend/TestResults/*.trx
+          retention-days: 30
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: build
+    
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    services:
+      # Docker-in-Docker for Testcontainers
+      docker:
+        image: docker:dind
+        options: --privileged
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: backend/
+
+      - name: Restore dependencies
+        run: dotnet restore MfePortal.Backend.sln
+
+      - name: Run integration tests
+        run: |
+          echo "Running integration tests with Testcontainers..."
+          dotnet test MfePortal.Backend.sln \
+            --no-build \
+            --configuration Release \
+            --filter "Category=Integration" \
+            --logger "trx;LogFileName=integration-test-results.trx" \
+            --logger "console;verbosity=normal"
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: backend/TestResults/*.trx
+          retention-days: 30
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: build
+    
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    services:
+      # Docker-in-Docker for Testcontainers
+      docker:
+        image: docker:dind
+        options: --privileged
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: backend/
+
+      - name: Restore dependencies
+        run: dotnet restore MfePortal.Backend.sln
+
+      - name: Run E2E tests
+        run: |
+          echo "Running E2E tests with Aspire.Hosting.Testing..."
+          dotnet test MfePortal.Backend.sln \
+            --no-build \
+            --configuration Release \
+            --filter "Category=E2E" \
+            --logger "trx;LogFileName=e2e-test-results.trx" \
+            --logger "console;verbosity=normal"
+
+      - name: Upload E2E test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: backend/TestResults/*.trx
+          retention-days: 30
+
+  coverage:
+    name: Code Coverage
     runs-on: ubuntu-latest
     needs: build
     
@@ -93,33 +246,6 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore MfePortal.Backend.sln
-
-      - name: Run unit tests
-        run: |
-          echo "Running unit tests (fast feedback)..."
-          dotnet test MfePortal.Backend.sln \
-            --no-build \
-            --configuration Release \
-            --filter "Category!=Integration&Category!=E2E" \
-            --logger "console;verbosity=normal"
-
-      - name: Run integration tests
-        run: |
-          echo "Running integration tests with Testcontainers..."
-          dotnet test MfePortal.Backend.sln \
-            --no-build \
-            --configuration Release \
-            --filter "Category=Integration" \
-            --logger "console;verbosity=normal"
-
-      - name: Run E2E tests
-        run: |
-          echo "Running E2E tests with Aspire.Hosting.Testing..."
-          dotnet test MfePortal.Backend.sln \
-            --no-build \
-            --configuration Release \
-            --filter "Category=E2E" \
-            --logger "console;verbosity=normal"
 
       - name: Run all tests with coverage
         run: |
@@ -181,7 +307,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results
+          name: coverage-test-results
           path: backend/TestResults/*.trx
           retention-days: 30
 
@@ -218,9 +344,9 @@ jobs:
             
             ### Test Results
             
-            - ✅ Unit tests passed
-            - ✅ Integration tests passed (Testcontainers)
-            - ✅ E2E tests passed (Aspire.Hosting.Testing)
+            - ✅ Unit tests passed (separate job)
+            - ✅ Integration tests passed (separate job with Testcontainers)
+            - ✅ E2E tests passed (separate job with Aspire.Hosting.Testing)
             
             ### Coverage Status
             
@@ -289,6 +415,39 @@ jobs:
         with:
           files: |
             backend/TestResults/**/*.trx
-          check_name: Backend CI Test Results
+          check_name: Code Coverage Test Results
           comment_mode: off
+
+  publish-test-results:
+    name: Publish Test Results
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, e2e-tests]
+    if: always()
+    
+    steps:
+      - name: Download unit test results
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-test-results
+          path: test-results/unit/
+
+      - name: Download integration test results
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-test-results
+          path: test-results/integration/
+
+      - name: Download E2E test results
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-test-results
+          path: test-results/e2e/
+
+      - name: Publish combined test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: |
+            test-results/**/*.trx
+          check_name: Backend Test Results
+          comment_mode: always
 
