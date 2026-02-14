@@ -2,7 +2,32 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build",
+      "label": "aspire run",
+      "command": "dotnet",
+      "type": "process",
+      "args": ["run", "--project", "MfePortal.AppHost/MfePortal.AppHost.csproj"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": "$msCompile",
+      "isBackground": true
+    },
+    {
+      "label": "aspire deploy test",
+      "type": "shell",
+      "command": "aspire",
+      "args": [
+        "deploy",
+        "--environment",
+        "test"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "build backend",
       "command": "dotnet",
       "type": "process",
       "args": [
@@ -18,6 +43,24 @@
       }
     },
     {
+      "label": "build frontend",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend/shell"
+      },
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "build all",
+      "dependsOn": ["build backend", "build frontend"],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
       "label": "clean",
       "command": "dotnet",
       "type": "process",
@@ -30,18 +73,17 @@
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "watch",
+      "label": "test backend",
       "command": "dotnet",
       "type": "process",
       "args": [
-        "watch",
-        "build",
+        "test",
         "${workspaceFolder}/backend/MfePortal.Backend.sln",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
       "problemMatcher": "$msCompile",
-      "isBackground": true
+      "group": "test"
     }
   ]
 } 
