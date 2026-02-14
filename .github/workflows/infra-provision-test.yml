@@ -44,15 +44,14 @@ jobs:
           tenant-id: ${{ env.AZURE_TENANT_ID }}
           subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Provision and Deploy with Aspire
+      - name: Deploy with Aspire
         working-directory: ./backend/MfePortal.AppHost
         run: |
-          dotnet run --publisher azd -- `
+          aspire deploy `
             --environment-name "${{ env.AZURE_ENV_NAME }}" `
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" `
             --location "${{ env.AZURE_LOCATION }}" `
-            --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}" `
-            --output-path "./aspire-output"
+            --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}"
         shell: pwsh
 
       - name: Get deployment outputs
@@ -66,7 +65,8 @@ jobs:
       - name: Provision summary
         run: |
           echo "Azure infrastructure provisioned successfully"
-          echo "Environment: test"
-          echo "Resource Group: rg-mfe-test"
+          echo "Environment: ${{ env.AZURE_ENV_NAME }}"
+          echo "Resource Group: ${{ env.AZURE_RESOURCE_GROUP }}"
+          echo "Location: ${{ env.AZURE_LOCATION }}"
           echo "Check Azure Portal for resource details"
         shell: bash
