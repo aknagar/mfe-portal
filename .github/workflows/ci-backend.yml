@@ -427,18 +427,21 @@ jobs:
     steps:
       - name: Download unit test results
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: unit-test-results
           path: test-results/unit/
 
       - name: Download integration test results
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: integration-test-results
           path: test-results/integration/
 
       - name: Download E2E test results
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: e2e-test-results
           path: test-results/e2e/
