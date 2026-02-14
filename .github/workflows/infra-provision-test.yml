@@ -50,6 +50,8 @@ jobs:
         run: aspire deploy --environment $env:AZURE_ENV_NAME
         shell: pwsh
         env:
-          AZURE_SUBSCRIPTION_ID: ${{ env.AZURE_SUBSCRIPTION_ID }}
-          AZURE_RESOURCE_GROUP: ${{ env.AZURE_RESOURCE_GROUP }}
-          AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
+          # Note: Colon (:) is not supported in environment variable names
+          # Use double underscore (__) instead. For example: Azure__SubscriptionId
+          Azure__SubscriptionId: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          Azure__ResourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
+          Azure__Location: ${{ env.AZURE_LOCATION }}
