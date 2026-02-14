@@ -30,46 +30,34 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Log in with Azure (Federated Credentials)
-        run: |
-          azd auth login `
-            --client-id "${{ env.AZURE_CLIENT_ID }}" `
-            --federated-credential-provider github `
-            --tenant-id "${{ env.AZURE_TENANT_ID }}"
+      - name: Install Aspire workload
+        run: dotnet workload install aspire
         shell: pwsh
 
-      # Required: Create and initialize the azd environment with .env file
-      # This step must run before 'azd provision' to properly bind environment variables
-      - name: Create and select azd environment
-        working-directory: ./backend
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Provision and Deploy with Aspire
+        working-directory: ./backend/MfePortal.AppHost
         run: |
-          # Create new environment
-          azd env new "${{ env.AZURE_ENV_NAME }}" --no-prompt
-          # Select the environment
-          azd env select "${{ env.AZURE_ENV_NAME }}"
-          # Initialize required variables
-          azd env set AZURE_RESOURCE_GROUP "${{ env.AZURE_RESOURCE_GROUP }}"
-          azd env set AZURE_LOCATION "${{ env.AZURE_LOCATION }}"
-          azd env set AZURE_SUBSCRIPTION_ID "${{ env.AZURE_SUBSCRIPTION_ID }}"
+          dotnet run --publisher azd -- `
+            --environment-name "${{ env.AZURE_ENV_NAME }}" `
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" `
+            --location "${{ env.AZURE_LOCATION }}" `
+            --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}"
         shell: pwsh
 
-      - name: Verify environment initialization
-        working-directory: ./backend
+      - name: Get deployment outputs
         run: |
-          Write-Host "Environment variables for '${{ env.AZURE_ENV_NAME }}':"
-          azd env get-values
+          az deployment group show `
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" `
+            --name "${{ env.AZURE_ENV_NAME }}" `
+            --query properties.outputs
         shell: pwsh
-
-      - name: Provision Azure resources
-        run: |
-          cd backend
-          azd provision --no-prompt --environment ${{ env.AZURE_ENV_NAME }}
-
-      - name: Get infrastructure outputs
-        run: |
-          cd backend
-          azd env get-values | tee infrastructure-outputs.log
-        shell: bash
 
       - name: Provision summary
         run: |

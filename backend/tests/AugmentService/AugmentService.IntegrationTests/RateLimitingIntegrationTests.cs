@@ -76,6 +76,30 @@ public class RateLimitingIntegrationTests : IClassFixture<WebApplicationFactory<
                 
                 services.AddDbContextPool<UserDbContext>(options =>
                     options.UseSqlite("Data Source=InMemoryUserDb;Mode=Memory;Cache=Shared"));
+
+                // Initialize databases with schema
+                var sp = services.BuildServiceProvider();
+                using var scope = sp.CreateScope();
+                var scopedServices = scope.ServiceProvider;
+                
+                try
+                {
+                    var productDb = scopedServices.GetRequiredService<ProductDataContext>();
+                    productDb.Database.OpenConnection();
+                    productDb.Database.EnsureCreated();
+                    
+                    var weatherDb = scopedServices.GetRequiredService<WeatherDatabaseContext>();
+                    weatherDb.Database.OpenConnection();
+                    weatherDb.Database.EnsureCreated();
+                    
+                    var userDb = scopedServices.GetRequiredService<UserDbContext>();
+                    userDb.Database.OpenConnection();
+                    userDb.Database.EnsureCreated();
+                }
+                catch
+                {
+                    // Ignore initialization errors - tests may not need all databases
+                }
             });
         });
     }
