@@ -50,6 +50,7 @@ jobs:
         run: aspire deploy
         shell: pwsh
         env:
+          AZURE_SUBSCRIPTION_ID: ${{ env.AZURE_SUBSCRIPTION_ID }}
           AZURE_ENV_NAME: ${{ env.AZURE_ENV_NAME }}
           AZURE_RESOURCE_GROUP: ${{ env.AZURE_RESOURCE_GROUP }}
           AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
