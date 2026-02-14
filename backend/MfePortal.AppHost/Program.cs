@@ -61,18 +61,12 @@ if (!builder.Environment.IsDevelopment())
     augmentService.WithReference(keyVault);
 }
 
-
-// Add Frontend container - use local image in development, ACR in production
-var frontendImage = builder.Environment.IsDevelopment() 
-    ? "frontend:latest" 
-    : "infraacrescmmynaae3lk.azurecr.io/frontend:latest";
-
 // Azure Container Apps requires HTTP endpoints to use port 80
 // In local development, use port 1234 for convenience
 // In Azure provisioning, always use port 80 (required by Azure Container Apps)
 var frontendPort = isAzureProvisioning ? 80 : (builder.Environment.IsDevelopment() ? 1234 : 80);
 
-var frontend = builder.AddContainer("frontend", frontendImage)
+var frontend = builder.AddDockerfile("frontend", "../../frontend", "Dockerfile")
     .WithHttpEndpoint(port: frontendPort, targetPort: 1234, name: "http")
     .WithExternalHttpEndpoints()
     .WaitFor(augmentService);
