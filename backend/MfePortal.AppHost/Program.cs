@@ -3,8 +3,27 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Redis;
 using CommunityToolkit.Aspire.Hosting.Dapr;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
+
+// Map standard Azure environment variables to .NET configuration format
+// This allows using AZURE_SUBSCRIPTION_ID instead of Azure__SubscriptionId
+var azureSubscriptionId = Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID");
+var azureLocation = Environment.GetEnvironmentVariable("AZURE_LOCATION");
+var azureResourceGroup = Environment.GetEnvironmentVariable("AZURE_RESOURCE_GROUP");
+
+if (!string.IsNullOrEmpty(azureSubscriptionId) || !string.IsNullOrEmpty(azureLocation) || !string.IsNullOrEmpty(azureResourceGroup))
+{
+    var inMemoryConfig = new Dictionary<string, string?>
+    {
+        ["Azure:SubscriptionId"] = azureSubscriptionId,
+        ["Azure:Location"] = azureLocation,
+        ["Azure:ResourceGroup"] = azureResourceGroup
+    };
+    
+    builder.Configuration.AddInMemoryCollection(inMemoryConfig);
+}
 
 // Detect if we're running in Azure provisioning mode
 // Azure Container Apps requires HTTP endpoints to use port 80
