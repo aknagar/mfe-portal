@@ -44,7 +44,8 @@ namespace AugmentService.Infrastructure.ProductData
                 entity.Property(p => p.Name)
                     .HasMaxLength(255);
                 
-                entity.Property(p => p.Description);
+                entity.Property(p => p.Description)
+                    .HasColumnType("text");
                 
                 entity.Property(p => p.Price)
                     .HasColumnType("decimal(18,2)")
