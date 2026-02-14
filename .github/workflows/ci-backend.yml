@@ -21,9 +21,44 @@ env:
   DOTNET_VERSION: '10.0.x'
 
 jobs:
-  build-and-test:
-    name: Build & Test
+  build:
+    name: Build
     runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore MfePortal.Backend.sln
+
+      - name: Build solution
+        run: dotnet build MfePortal.Backend.sln --no-restore --configuration Release
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            backend/**/bin/Release/
+            backend/**/obj/Release/
+          retention-days: 1
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build
     
     defaults:
       run:
@@ -50,11 +85,14 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: backend/
+
       - name: Restore dependencies
         run: dotnet restore MfePortal.Backend.sln
-
-      - name: Build solution
-        run: dotnet build MfePortal.Backend.sln --no-restore --configuration Release
 
       - name: Run unit tests
         run: |
