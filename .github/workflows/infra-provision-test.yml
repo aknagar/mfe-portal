@@ -29,11 +29,7 @@ jobs:
 
       - name: Install Aspire workload
         run: dotnet workload install aspire
-
-      - name: Install Aspire CLI
-        run: |
-          curl -sSL https://aspire.dev/install.sh | bash
-          echo "$HOME/.aspire/bin" >> $GITHUB_PATH
+        shell: pwsh
 
       - name: Install Dapr CLI
         uses: dapr/setup-dapr@v2
@@ -48,8 +44,9 @@ jobs:
       - name: Deploy with Aspire
         working-directory: ./backend/MfePortal.AppHost
         run: |
-          aspire deploy \
-            --environment-name "${{ env.AZURE_ENV_NAME }}" \
-            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
-            --location "${{ env.AZURE_LOCATION }}" \
+          aspire deploy `
+            --environment-name "${{ env.AZURE_ENV_NAME }}" `
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" `
+            --location "${{ env.AZURE_LOCATION }}" `
             --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}"
+        shell: pwsh
