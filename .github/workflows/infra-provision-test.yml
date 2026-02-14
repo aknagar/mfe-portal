@@ -1,4 +1,4 @@
-name: Provision Infrastructure - Test Environment
+name: Infrastructure Provision - Test
 
 on:
   workflow_dispatch:
