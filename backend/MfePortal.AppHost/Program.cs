@@ -13,15 +13,21 @@ var azureSubscriptionId = Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION
 var azureLocation = Environment.GetEnvironmentVariable("AZURE_LOCATION");
 var azureResourceGroup = Environment.GetEnvironmentVariable("AZURE_RESOURCE_GROUP");
 
-if (!string.IsNullOrEmpty(azureSubscriptionId) || !string.IsNullOrEmpty(azureLocation) || !string.IsNullOrEmpty(azureResourceGroup))
+// Only add configuration entries for non-empty environment variables
+// This prevents overriding existing configuration with null/empty values
+var inMemoryConfig = new Dictionary<string, string?>();
+
+if (!string.IsNullOrEmpty(azureSubscriptionId))
+    inMemoryConfig["Azure:SubscriptionId"] = azureSubscriptionId;
+
+if (!string.IsNullOrEmpty(azureLocation))
+    inMemoryConfig["Azure:Location"] = azureLocation;
+
+if (!string.IsNullOrEmpty(azureResourceGroup))
+    inMemoryConfig["Azure:ResourceGroup"] = azureResourceGroup;
+
+if (inMemoryConfig.Count > 0)
 {
-    var inMemoryConfig = new Dictionary<string, string?>
-    {
-        ["Azure:SubscriptionId"] = azureSubscriptionId,
-        ["Azure:Location"] = azureLocation,
-        ["Azure:ResourceGroup"] = azureResourceGroup
-    };
-    
     builder.Configuration.AddInMemoryCollection(inMemoryConfig);
 }
 
