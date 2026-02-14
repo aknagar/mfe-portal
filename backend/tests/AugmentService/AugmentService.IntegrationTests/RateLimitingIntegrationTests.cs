@@ -67,6 +67,13 @@ public class RateLimitingIntegrationTests : IClassFixture<WebApplicationFactory<
                     services.Remove(descriptor);
                 }
 
+                // Register InfrastructureConfig for contexts that need it
+                services.Configure<AugmentService.Infrastructure.InfrastructureConfig>(config =>
+                {
+                    config.ConnectionString = "Data Source=InMemoryTestDb;Mode=Memory;Cache=Shared";
+                    config.EnableSensitiveDataLogging = false;
+                });
+
                 // Add in-memory database contexts using SQLite with pooling (matching Aspire's behavior)
                 services.AddDbContextPool<ProductDataContext>(options =>
                     options.UseSqlite("Data Source=InMemoryProductDb;Mode=Memory;Cache=Shared"));

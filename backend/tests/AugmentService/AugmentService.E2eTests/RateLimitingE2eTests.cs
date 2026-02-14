@@ -61,6 +61,13 @@ public class RateLimitingE2eTests : IAsyncLifetime
                         services.Remove(userDbDescriptor);
                     }
 
+                    // Register InfrastructureConfig for contexts that need it
+                    services.Configure<AugmentService.Infrastructure.InfrastructureConfig>(config =>
+                    {
+                        config.ConnectionString = "Data Source=InMemoryE2eTestDb;Mode=Memory;Cache=Shared";
+                        config.EnableSensitiveDataLogging = false;
+                    });
+
                     // Add in-memory database contexts
                     services.AddDbContext<ProductDataContext>(options =>
                         options.UseSqlite("Data Source=InMemoryE2eProductDb;Mode=Memory;Cache=Shared"));
