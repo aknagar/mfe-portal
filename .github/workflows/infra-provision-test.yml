@@ -11,11 +11,11 @@ jobs:
   provision:
     runs-on: ubuntu-latest
     env:
+      AZURE_ENV_NAME: test
       AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}      
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       AZURE_CONTAINER_REGISTRY_ENDPOINT: ${{ vars.AZURE_CONTAINER_REGISTRY_ENDPOINT }}
     steps:
@@ -55,10 +55,9 @@ jobs:
         # - AZURE_ENV_NAME: Environment name (e.g., test, prod)
         # - AZURE_RESOURCE_GROUP: Resource group for Container Apps
         # - AZURE_LOCATION: Azure region (e.g., centralindia)
-        run: aspire deploy --environment Test
+        run: aspire deploy --environment $env:AZURE_ENV_NAME
         shell: pwsh
         env:
           AZURE_SUBSCRIPTION_ID: ${{ env.AZURE_SUBSCRIPTION_ID }}
-          AZURE_ENV_NAME: ${{ env.AZURE_ENV_NAME }}
           AZURE_RESOURCE_GROUP: ${{ env.AZURE_RESOURCE_GROUP }}
           AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
