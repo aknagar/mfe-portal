@@ -7,9 +7,7 @@ on:
       - 'backend/**'
       - '.github/workflows/ci-backend.yml'
   pull_request:
-    paths:
-      - 'backend/**'
-      - '.github/workflows/ci-backend.yml'
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 permissions:
