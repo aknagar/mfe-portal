@@ -47,9 +47,12 @@ jobs:
 
       - name: Deploy with Aspire
         working-directory: ./backend/MfePortal.AppHost
-        run: aspire deploy --environment $env:AZURE_ENV_NAME
+        run: aspire deploy --environment Test
         shell: pwsh
         env:
           AZURE_SUBSCRIPTION_ID: ${{ env.AZURE_SUBSCRIPTION_ID }}
           AZURE_RESOURCE_GROUP: ${{ env.AZURE_RESOURCE_GROUP }}
           AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
+          Azure__SubscriptionId: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          Azure__Location: ${{ env.AZURE_LOCATION }}
+          Azure__ResourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
