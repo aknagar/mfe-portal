@@ -44,7 +44,8 @@ jobs:
       - name: Deploy with Aspire
         working-directory: ./backend/MfePortal.AppHost
         run: |
-          aspire deploy `
+          dotnet run -- `
+            --publisher azd `
             --environment-name "${{ env.AZURE_ENV_NAME }}" `
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" `
             --location "${{ env.AZURE_LOCATION }}" `
