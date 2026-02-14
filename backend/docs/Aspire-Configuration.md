@@ -161,3 +161,41 @@ builder.AddProject<Projects.Api>(\"api\").WithReference(keyVault);
 - **Docs:** https://learn.microsoft.com/en-us/dotnet/aspire/
 - **GitHub:** https://github.com/dotnet/aspire
 - **NuGet:** Search for \Aspire.*\ packages
+
+## Azure Container Apps Port Requirements
+
+Azure Container Apps has strict requirements for HTTP endpoint configuration:
+
+| Endpoint Protocol | Required Port | Notes |
+|-------------------|---------------|-------|
+| **HTTP** | **80** | Must use port 80 for external access |
+| **HTTPS** | **443** | Must use port 443 for secure access |
+| **Internal/targetPort** | Any (e.g., 1234, 8080) | Container can listen on any port internally |
+
+### Implementation Pattern
+
+```csharp
+// Detect Azure provisioning mode (--publisher flag or AZURE_SUBSCRIPTION_ID env var)
+bool isAzureProvisioning = args.Contains("--publisher") || 
+                          Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID") != null;
+
+// Use port 80 for Azure, custom ports for local development
+var frontendPort = isAzureProvisioning ? 80 : (builder.Environment.IsDevelopment() ? 1234 : 80);
+
+var frontend = builder.AddContainer("frontend", image)
+    .WithHttpEndpoint(port: frontendPort, targetPort: 1234, name: "http");
+```
+
+### Why This Pattern?
+
+- **Azure Requirement**: Container Apps ingress requires HTTP on port 80
+- **Local Development**: Developers can use convenient ports (1234, 8080, etc.)
+- **Provisioning Detection**: The `--publisher azd` flag or `AZURE_SUBSCRIPTION_ID` env var indicates Azure deployment
+- **Environment vs Mode**: `IsDevelopment()` can be true during provisioning (due to launchSettings.json), so we need explicit Azure detection
+
+### Common Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "The endpoint 'http' is an http endpoint and must use port 80" | Using non-80 port during Azure provisioning | Use the pattern above to detect provisioning mode |
+| Port conflicts locally | Multiple services using same local port | Use different ports in development (1234, 8080, etc.) |
