@@ -1,0 +1,200 @@
+name: CI - Frontend Main Build
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/ci-frontend-main-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build:
+    name: Build & Package
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./frontend
+    
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      shell_artifact: ${{ steps.artifact_name.outputs.shell }}
+      pilets_artifact: ${{ steps.artifact_name.outputs.pilets }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'frontend/shell/package-lock.json'
+
+      - name: Generate version
+        id: version
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          VERSION="1.0.0-${TIMESTAMP}-${SHORT_SHA}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "### 📦 Build Version: \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Install shell dependencies
+        working-directory: ./frontend/shell
+        run: npm ci
+
+      - name: Type check shell
+        working-directory: ./frontend/shell
+        run: npx tsc --noEmit
+
+      - name: Build shell (production)
+        working-directory: ./frontend/shell
+        run: |
+          npm run build
+          echo "✅ Shell built successfully" >> $GITHUB_STEP_SUMMARY
+
+      - name: Build hello-world-pilet
+        working-directory: ./frontend/pilets/hello-world-pilet
+        run: |
+          npm ci
+          npm run build
+          echo "✅ hello-world-pilet built" >> $GITHUB_STEP_SUMMARY
+
+      - name: Build url-getter-pilet
+        working-directory: ./frontend/pilets/url-getter-pilet
+        run: |
+          npm ci
+          npm run build
+          echo "✅ url-getter-pilet built" >> $GITHUB_STEP_SUMMARY
+
+      - name: Calculate bundle sizes
+        working-directory: ./frontend
+        run: |
+          echo "### 📊 Bundle Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Size | Compressed |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|------|------------|" >> $GITHUB_STEP_SUMMARY
+          
+          SHELL_SIZE=$(du -sh shell/dist | cut -f1)
+          SHELL_GZ=$(cd shell/dist && tar czf - . | wc -c | numfmt --to=iec)
+          echo "| Shell | $SHELL_SIZE | $SHELL_GZ |" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -d "pilets/hello-world-pilet/dist" ]; then
+            HELLO_SIZE=$(du -sh pilets/hello-world-pilet/dist | cut -f1)
+            HELLO_GZ=$(cd pilets/hello-world-pilet/dist && tar czf - . | wc -c | numfmt --to=iec)
+            echo "| hello-world-pilet | $HELLO_SIZE | $HELLO_GZ |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -d "pilets/url-getter-pilet/dist" ]; then
+            URL_SIZE=$(du -sh pilets/url-getter-pilet/dist | cut -f1)
+            URL_GZ=$(cd pilets/url-getter-pilet/dist && tar czf - . | wc -c | numfmt --to=iec)
+            echo "| url-getter-pilet | $URL_SIZE | $URL_GZ |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Set artifact names
+        id: artifact_name
+        run: |
+          echo "shell=shell-${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "pilets=pilets-${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
+
+      - name: Upload shell artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact_name.outputs.shell }}
+          path: frontend/shell/dist/
+          retention-days: 90
+
+      - name: Upload pilet artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact_name.outputs.pilets }}
+          path: |
+            frontend/pilets/hello-world-pilet/dist/
+            frontend/pilets/url-getter-pilet/dist/
+          retention-days: 90
+
+      - name: Create release summary
+        run: |
+          echo "### 🚀 Build Completed Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifacts:**" >> $GITHUB_STEP_SUMMARY
+          echo "- 🏠 Shell: \`${{ steps.artifact_name.outputs.shell }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 Pilets: \`${{ steps.artifact_name.outputs.pilets }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Details:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: \`${GITHUB_SHA::7}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: \`${GITHUB_REF_NAME}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Triggered by: @${GITHUB_ACTOR}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build Number: #${GITHUB_RUN_NUMBER}" >> $GITHUB_STEP_SUMMARY
+
+  validate:
+    name: Post-Build Validation
+    runs-on: ubuntu-latest
+    needs: build
+    
+    defaults:
+      run:
+        working-directory: ./frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download shell artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.shell_artifact }}
+          path: frontend/shell/dist/
+
+      - name: Verify shell artifacts
+        run: |
+          echo "Verifying shell build artifacts..."
+          
+          if [ ! -d "shell/dist" ]; then
+            echo "❌ Shell dist directory not found"
+            exit 1
+          fi
+          
+          if [ ! -f "shell/dist/index.html" ]; then
+            echo "❌ Shell index.html not found"
+            exit 1
+          fi
+          
+          echo "✅ Shell artifacts verified" >> $GITHUB_STEP_SUMMARY
+
+      - name: Download pilet artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.pilets_artifact }}
+          path: frontend/pilets-dist/
+
+      - name: Verify pilet artifacts
+        run: |
+          echo "Verifying pilet build artifacts..."
+          
+          if [ ! -d "pilets-dist" ]; then
+            echo "❌ Pilets dist directory not found"
+            exit 1
+          fi
+          
+          echo "✅ Pilet artifacts verified" >> $GITHUB_STEP_SUMMARY
+
+      - name: Validation summary
+        run: |
+          echo "### ✅ Post-Build Validation Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All build artifacts have been validated and are ready for deployment." >> $GITHUB_STEP_SUMMARY
