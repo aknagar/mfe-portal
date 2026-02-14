@@ -98,6 +98,7 @@ jobs:
           name: playwright-report-${{ github.run_number }}
           path: frontend/playwright-report/
           retention-days: 30
+          if-no-files-found: ignore
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -106,6 +107,7 @@ jobs:
           name: playwright-results-${{ github.run_number }}
           path: frontend/test-results/
           retention-days: 30
+          if-no-files-found: ignore
 
       - name: Comment PR with test results
         if: github.event_name == 'pull_request' && always()

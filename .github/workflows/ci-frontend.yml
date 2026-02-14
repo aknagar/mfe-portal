@@ -143,6 +143,7 @@ jobs:
           name: ${{ steps.artifact_name.outputs.shell }}
           path: frontend/shell/dist/
           retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
+          if-no-files-found: warn
 
       - name: Upload pilet artifacts
         uses: actions/upload-artifact@v4
@@ -152,6 +153,7 @@ jobs:
             frontend/pilets/hello-world-pilet/dist/
             frontend/pilets/url-getter-pilet/dist/
           retention-days: ${{ github.event_name == 'push' && 90 || 7 }}
+          if-no-files-found: warn
 
       - name: Comment PR with build status
         if: github.event_name == 'pull_request'

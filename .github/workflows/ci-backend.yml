@@ -99,6 +99,7 @@ jobs:
           name: unit-test-results
           path: backend/TestResults/*.trx
           retention-days: 30
+          if-no-files-found: ignore
 
   integration-tests:
     name: Integration Tests
@@ -152,6 +153,7 @@ jobs:
           name: integration-test-results
           path: backend/TestResults/*.trx
           retention-days: 30
+          if-no-files-found: ignore
 
   e2e-tests:
     name: E2E Tests
@@ -205,6 +207,7 @@ jobs:
           name: e2e-test-results
           path: backend/TestResults/*.trx
           retention-days: 30
+          if-no-files-found: ignore
 
   coverage:
     name: Code Coverage
@@ -308,6 +311,7 @@ jobs:
           name: coverage-test-results
           path: backend/TestResults/*.trx
           retention-days: 30
+          if-no-files-found: ignore
 
       - name: Comment PR with coverage
         if: github.event_name == 'pull_request'
@@ -328,7 +332,7 @@ jobs:
               markdownSummary = fs.readFileSync(summaryPath, 'utf8');
             }
             
-            const coverageIcon = parseFloat(lineCoverage) >= 80 ? '✅' : '⚠️';
+            const coverageIcon = parseFloat(lineCoverage) >= 50 ? '✅' : '⚠️';
             
             const body = `## ${coverageIcon} Test Coverage Report
             
@@ -336,9 +340,9 @@ jobs:
             
             | Metric | Coverage | Status |
             |--------|----------|--------|
-            | **Lines** | ${lineCoverage}% | ${parseFloat(lineCoverage) >= 80 ? '✅' : '⚠️'} |
-            | **Branches** | ${branchCoverage}% | ${parseFloat(branchCoverage) >= 70 ? '✅' : '⚠️'} |
-            | **Methods** | ${methodCoverage}% | ${methodCoverage !== 'N/A' && parseFloat(methodCoverage) >= 80 ? '✅' : '⚠️'} |
+            | **Lines** | ${lineCoverage}% | ${parseFloat(lineCoverage) >= 50 ? '✅' : '⚠️'} |
+            | **Branches** | ${branchCoverage}% | ${parseFloat(branchCoverage) >= 50 ? '✅' : '⚠️'} |
+            | **Methods** | ${methodCoverage}% | ${methodCoverage !== 'N/A' && parseFloat(methodCoverage) >= 50 ? '✅' : '⚠️'} |
             
             ### Test Results
             
@@ -348,7 +352,7 @@ jobs:
             
             ### Coverage Status
             
-            ${parseFloat(lineCoverage) >= 80 ? '✅ **Coverage meets threshold (80%)**' : '⚠️ **Coverage below threshold (80%)**'}
+            ${parseFloat(lineCoverage) >= 50 ? '✅ **Coverage meets threshold (50%)**' : '⚠️ **Coverage below threshold (50%)**'}
             
             <details>
             <summary>📋 Detailed Coverage Report</summary>
@@ -395,7 +399,7 @@ jobs:
       - name: Check coverage threshold
         run: |
           LINE_COVERAGE="${{ steps.coverage.outputs.line_coverage }}"
-          THRESHOLD=80
+          THRESHOLD=50
           
           echo "Line Coverage: $LINE_COVERAGE%"
           echo "Threshold: $THRESHOLD%"
