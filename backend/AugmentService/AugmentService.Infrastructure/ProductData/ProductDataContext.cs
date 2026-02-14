@@ -27,6 +27,33 @@ namespace AugmentService.Infrastructure.ProductData
                     .EnableSensitiveDataLogging(_config.Value.EnableSensitiveDataLogging);
             }
         }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Configure Product entity
+            modelBuilder.Entity<Product>(entity =>
+            {
+                entity.HasKey(p => p.Id);
+                
+                // Id is auto-generated (IDENTITY in PostgreSQL, AUTOINCREMENT in SQLite)
+                entity.Property(p => p.Id)
+                    .ValueGeneratedOnAdd();
+                
+                entity.Property(p => p.Name)
+                    .HasMaxLength(255);
+                
+                entity.Property(p => p.Description);
+                
+                entity.Property(p => p.Price)
+                    .HasColumnType("decimal(18,2)")
+                    .IsRequired();
+                
+                entity.Property(p => p.ImageUrl)
+                    .HasMaxLength(500);
+            });
+        }
     }
 
     public static class Extensions
