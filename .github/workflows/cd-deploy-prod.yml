@@ -51,31 +51,19 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Install Azure Developer CLI
-        uses: Azure/setup-azd@v2
+      - name: Install Aspire workload
+        run: dotnet workload install aspire
+        shell: bash
 
-      - name: Log in with Azure (Federated Credentials)
-        run: |
-          azd auth login \
-            --client-id "${{ env.AZURE_CLIENT_ID }}" \
-            --federated-credential-provider github \
-            --tenant-id "${{ env.AZURE_TENANT_ID }}"
+      - name: Install Dapr CLI
+        uses: dapr/setup-dapr@v2
 
-      - name: Create and select azd environment
-        run: |
-          # Create new environment if it doesn't exist
-          azd env new "${{ env.AZURE_ENV_NAME }}" --no-prompt || true
-          # Select the environment
-          azd env select "${{ env.AZURE_ENV_NAME }}"
-          # Initialize required variables
-          azd env set AZURE_RESOURCE_GROUP "${{ env.AZURE_RESOURCE_GROUP }}"
-          azd env set AZURE_LOCATION "${{ env.AZURE_LOCATION }}"
-          azd env set AZURE_SUBSCRIPTION_ID "${{ env.AZURE_SUBSCRIPTION_ID }}"
-
-      - name: Verify environment initialization
-        run: |
-          echo "Environment variables for '${{ env.AZURE_ENV_NAME }}':"
-          azd env get-values
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
       - name: Display deployment information
         run: |
@@ -92,31 +80,38 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "⚠️ **This is a production deployment. Please verify carefully before proceeding.**" >> $GITHUB_STEP_SUMMARY
 
-      - name: Restore dependencies
-        run: dotnet restore MfePortal.Backend.sln
-
-      - name: Build backend
-        run: dotnet build MfePortal.Backend.sln --configuration Release --no-restore
-
       - name: Deploy application
         id: deploy
+        working-directory: ./backend/MfePortal.AppHost
         run: |
           echo "Deploying to production environment..."
-          azd up --no-prompt
+          
+          aspire deploy \
+            --environment-name "${{ env.AZURE_ENV_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --location "${{ env.AZURE_LOCATION }}" \
+            --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}"
           
           echo "✅ Deployment command completed" >> $GITHUB_STEP_SUMMARY
 
       - name: Get deployment outputs
         id: get_url
         run: |
-          echo "Deployment outputs:"
-          azd env get-values | tee deployment-outputs.log
+          echo "Querying deployment outputs from Azure..."
           
-          # Try to extract the app URL if available
-          if grep -q "APP_URL" deployment-outputs.log; then
-            APP_URL=$(grep "APP_URL" deployment-outputs.log | cut -d'=' -f2 | tr -d '"')
-            echo "url=$APP_URL" >> $GITHUB_OUTPUT
-            echo "Deployment URL: $APP_URL"
+          # Query deployment outputs from Azure
+          az deployment group show \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --name "${{ env.AZURE_ENV_NAME }}" \
+            --query properties.outputs \
+            --output json | tee deployment-outputs.log || echo "No deployment outputs found"
+          
+          # Try to extract app URL if available
+          if [ -f "deployment-outputs.log" ] && grep -q "url\|URL\|endpoint" deployment-outputs.log; then
+            echo "Deployment outputs available"
+            # This would need to be adjusted based on actual output structure
+          else
+            echo "No URL found in deployment outputs"
           fi
 
       - name: Upload deployment logs
@@ -214,14 +209,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "If you need to rollback this deployment:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "# 1. Navigate to the backend directory" >> $GITHUB_STEP_SUMMARY
-          echo "cd backend" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "# 2. Select the production environment" >> $GITHUB_STEP_SUMMARY
-          echo "azd env select prod" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "# 3. Deploy the previous stable version" >> $GITHUB_STEP_SUMMARY
-          echo "azd deploy --from-package <path-to-previous-package>" >> $GITHUB_STEP_SUMMARY
+          echo "# Re-run this workflow with a previous stable image tag" >> $GITHUB_STEP_SUMMARY
+          echo "# Or manually trigger deployment from Azure Portal" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Or re-run this workflow with a previous stable image tag." >> $GITHUB_STEP_SUMMARY
+          echo "Alternatively, use the GitHub Actions workflow to deploy a previous version." >> $GITHUB_STEP_SUMMARY
