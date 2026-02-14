@@ -31,9 +31,8 @@ jobs:
         run: dotnet workload install aspire
 
       - name: Install Aspire CLI
-        run: |
-          curl -sSL https://aspire.dev/install.sh | bash
-          echo "$HOME/.aspire/bin" >> $GITHUB_PATH
+        shell: pwsh
+        run: irm https://aspire.dev/install.ps1 | iex
 
       - name: Install Dapr CLI
         uses: dapr/setup-dapr@v2
