@@ -31,6 +31,10 @@ jobs:
         run: dotnet workload install aspire
         shell: pwsh
 
+      - name: Install Aspire CLI
+        run: dotnet tool install -g Aspire.Cli --prerelease
+        shell: pwsh
+
       - name: Install Dapr CLI
         uses: dapr/setup-dapr@v2
 
@@ -43,10 +47,18 @@ jobs:
 
       - name: Deploy with Aspire
         working-directory: ./backend/MfePortal.AppHost
-        run: |
-          aspire deploy `
-            --environment-name "${{ env.AZURE_ENV_NAME }}" `
-            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" `
-            --location "${{ env.AZURE_LOCATION }}" `
-            --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}"
+        # The Aspire CLI discovers Azure Container Apps environment from the AppHost project
+        # configuration (AddAzureContainerAppEnvironment) and uses Azure login context.
+        # The --environment parameter specifies the deployment environment (Test/Production).
+        # Environment variables below are used by Aspire to configure the Azure deployment:
+        # - AZURE_SUBSCRIPTION_ID: Target Azure subscription
+        # - AZURE_ENV_NAME: Environment name (e.g., test, prod)
+        # - AZURE_RESOURCE_GROUP: Resource group for Container Apps
+        # - AZURE_LOCATION: Azure region (e.g., centralindia)
+        run: aspire deploy --environment Production
         shell: pwsh
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          AZURE_ENV_NAME: ${{ env.AZURE_ENV_NAME }}
+          AZURE_RESOURCE_GROUP: ${{ env.AZURE_RESOURCE_GROUP }}
+          AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
