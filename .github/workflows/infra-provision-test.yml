@@ -31,6 +31,9 @@ jobs:
         run: dotnet tool install -g Aspire.Cli --prerelease
         shell: pwsh
 
+      - name: Install Dapr CLI
+        uses: dapr/setup-dapr@v2      
+
       - name: Log in to Azure
         uses: azure/login@v1
         with:
