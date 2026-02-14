@@ -22,9 +22,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Azure Developer CLI
-        uses: Azure/setup-azd@v2
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -53,20 +50,3 @@ jobs:
             --location "${{ env.AZURE_LOCATION }}" `
             --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}"
         shell: pwsh
-
-      - name: Get deployment outputs
-        run: |
-          az deployment group show `
-            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" `
-            --name "${{ env.AZURE_ENV_NAME }}" `
-            --query properties.outputs
-        shell: pwsh
-
-      - name: Provision summary
-        run: |
-          echo "Azure infrastructure provisioned successfully"
-          echo "Environment: ${{ env.AZURE_ENV_NAME }}"
-          echo "Resource Group: ${{ env.AZURE_RESOURCE_GROUP }}"
-          echo "Location: ${{ env.AZURE_LOCATION }}"
-          echo "Check Azure Portal for resource details"
-        shell: bash
