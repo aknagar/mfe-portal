@@ -47,14 +47,6 @@ jobs:
 
       - name: Deploy with Aspire
         working-directory: ./backend/MfePortal.AppHost
-        # The Aspire CLI discovers Azure Container Apps environment from the AppHost project
-        # configuration (AddAzureContainerAppEnvironment) and uses Azure login context.
-        # The --environment parameter specifies the deployment environment (Test/Production).
-        # Environment variables below are used by Aspire to configure the Azure deployment:
-        # - AZURE_SUBSCRIPTION_ID: Target Azure subscription
-        # - AZURE_ENV_NAME: Environment name (e.g., test, prod)
-        # - AZURE_RESOURCE_GROUP: Resource group for Container Apps
-        # - AZURE_LOCATION: Azure region (e.g., centralindia)
         run: aspire deploy --environment $env:AZURE_ENV_NAME
         shell: pwsh
         env:
