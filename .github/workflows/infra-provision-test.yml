@@ -51,7 +51,8 @@ jobs:
             --environment-name "${{ env.AZURE_ENV_NAME }}" `
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" `
             --location "${{ env.AZURE_LOCATION }}" `
-            --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}"
+            --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}" `
+            --output-path "./aspire-output"
         shell: pwsh
 
       - name: Get deployment outputs
