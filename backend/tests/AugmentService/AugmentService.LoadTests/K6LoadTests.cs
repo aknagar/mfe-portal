@@ -47,22 +47,25 @@ public class K6LoadTests
 
         _output.WriteLine($"Starting Aspire AppHost with K6 script: {scriptName}");
 
-        // Create custom AppHost with the specific script
-        var builder = AppHost.CreateBuilder(Array.Empty<string>(), scriptName);
+        // Create AppHost builder using the testing infrastructure
+        var appHostBuilder = await DistributedApplicationTestingBuilder.CreateAsync<AppHost>(cts.Token);
+
+        // Add the script name to configuration so AppHost can read it
+        appHostBuilder.Configuration["TestScriptName"] = scriptName;
 
         // Configure logging
-        builder.Services.AddLogging(logging =>
+        appHostBuilder.Services.AddLogging(logging =>
         {
             logging.SetMinimumLevel(LogLevel.Warning);
             logging.AddFilter("Aspire.Hosting.Dcp", LogLevel.Error);
             logging.AddProvider(new XunitLoggerProvider(_output));
         });
 
-        builder.Services.ConfigureHttpClientDefaults(clientBuilder =>
+        appHostBuilder.Services.ConfigureHttpClientDefaults(clientBuilder =>
             clientBuilder.AddStandardResilienceHandler());
 
         // Build and start the app
-        await using var app = builder.Build();
+        await using var app = await appHostBuilder.BuildAsync(cts.Token);
         await app.StartAsync(cts.Token);
 
         _output.WriteLine("AppHost started. Waiting for AugmentService to be healthy...");

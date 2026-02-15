@@ -1,24 +1,24 @@
 using Aspire.Hosting;
 using CommunityToolkit.Aspire.Hosting.k6;
+using Microsoft.Extensions.Configuration;
 
 namespace AugmentService.LoadTests;
 
 /// <summary>
 /// AppHost configuration for AugmentService load tests using k6
+/// This AppHost is designed to be used with DistributedApplicationTestingBuilder
 /// </summary>
-public static class AppHost
+public class AppHost
 {
-    /// <summary>
-    /// Creates a configured distributed application with k6 load testing
-    /// </summary>
-    /// <param name="args">Command line arguments</param>
-    /// <param name="scriptName">Optional specific script to run (e.g., "smoke-test.js"). If null, no K6 resources are added.</param>
-    public static IDistributedApplicationBuilder CreateBuilder(string[] args, string? scriptName = null)
+    public static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOptions options)
     {
-        var builder = DistributedApplication.CreateBuilder(args);
+        var builder = DistributedApplication.CreateBuilder(options);
 
         // Add the AugmentService API
         var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice-api");
+
+        // Read script name from configuration (set by tests)
+        var scriptName = builder.Configuration["TestScriptName"];
 
         // Add k6 load testing if script is specified
         if (!string.IsNullOrEmpty(scriptName))
