@@ -17,7 +17,9 @@ export default function () {
     const baseUrl = __ENV.services__augmentservice__http__0;
 
     // Test 1: Health endpoint
-    const healthResponse = http.get(`${baseUrl}/health`);
+    const healthEndpoint = `${baseUrl}/health`;
+    console.log(`Calling endpoint: ${healthEndpoint}`);
+    const healthResponse = http.get(healthEndpoint);
     check(healthResponse, {
         'health endpoint returns 200': (r) => r.status === 200,
     });
@@ -25,7 +27,9 @@ export default function () {
     sleep(0.5);
 
     // Test 2: API endpoint (adjust based on your actual endpoints)
-    const apiResponse = http.get(`${baseUrl}/api/augment`);
+    const apiEndpoint = `${baseUrl}/api/augment`;
+    console.log(`Calling endpoint: ${apiEndpoint}`);
+    const apiResponse = http.get(apiEndpoint);
     check(apiResponse, {
         'api endpoint is accessible': (r) => r.status >= 200 && r.status < 500,
     });

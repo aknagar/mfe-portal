@@ -32,7 +32,9 @@ export default function () {
         }
     });
 
-    const augmentResponse = http.post(`${baseUrl}/api/augment`, augmentPayload, { headers });
+    const augmentEndpoint = `${baseUrl}/api/augment`;
+    console.log(`Calling endpoint: POST ${augmentEndpoint}`);
+    const augmentResponse = http.post(augmentEndpoint, augmentPayload, { headers });
     check(augmentResponse, {
         'augment status is accessible': (r) => r.status >= 200 && r.status < 500,
         'augment response time < 1000ms': (r) => r.timings.duration < 1000,
@@ -41,7 +43,9 @@ export default function () {
     sleep(1);
 
     // Test proxy health
-    const proxyHealthResponse = http.get(`${baseUrl}/api/proxy/health`, { headers });
+    const proxyHealthEndpoint = `${baseUrl}/api/proxy/health`;
+    console.log(`Calling endpoint: ${proxyHealthEndpoint}`);
+    const proxyHealthResponse = http.get(proxyHealthEndpoint, { headers });
     check(proxyHealthResponse, {
         'proxy health status is accessible': (r) => r.status >= 200 && r.status < 500,
         'proxy health response time < 200ms': (r) => r.timings.duration < 200,

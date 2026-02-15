@@ -18,7 +18,9 @@ export default function () {
     const baseUrl = __ENV.services__augmentservice__http__0;
 
     // Test health endpoint
-    const healthResponse = http.get(`${baseUrl}/health`);
+    const healthEndpoint = `${baseUrl}/health`;
+    console.log(`Calling endpoint: ${healthEndpoint}`);
+    const healthResponse = http.get(healthEndpoint);
     check(healthResponse, {
         'health check status is 200': (r) => r.status === 200,
         'health check response time < 200ms': (r) => r.timings.duration < 200,

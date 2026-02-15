@@ -25,7 +25,9 @@ export default function () {
     };
 
     // Get user permissions
-    const getPermissionsResponse = http.get(`${baseUrl}/api/permissions`, { headers });
+    const getPermissionsEndpoint = `${baseUrl}/api/permissions`;
+    console.log(`Calling endpoint: ${getPermissionsEndpoint}`);
+    const getPermissionsResponse = http.get(getPermissionsEndpoint, { headers });
     check(getPermissionsResponse, {
         'get permissions status is 200 or 401': (r) => r.status === 200 || r.status === 401,
         'get permissions response time < 300ms': (r) => r.timings.duration < 300,
@@ -34,7 +36,9 @@ export default function () {
     sleep(1);
 
     // Check specific permission
-    const checkPermissionResponse = http.get(`${baseUrl}/api/permissions/check?permission=read`, { headers });
+    const checkPermissionEndpoint = `${baseUrl}/api/permissions/check?permission=read`;
+    console.log(`Calling endpoint: ${checkPermissionEndpoint}`);
+    const checkPermissionResponse = http.get(checkPermissionEndpoint, { headers });
     check(checkPermissionResponse, {
         'check permission status is accessible': (r) => r.status >= 200 && r.status < 500,
         'check permission response time < 200ms': (r) => r.timings.duration < 200,
