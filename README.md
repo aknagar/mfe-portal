@@ -218,3 +218,55 @@ docker-compose down -v
 ```
 
 The `-v` flag removes the PostgreSQL volume, clearing all local data. Omit `-v` to preserve data between restarts.
+
+## Testing
+
+### Unit and Integration Tests
+
+Run the test suite using:
+```bash
+cd backend
+dotnet test MfePortal.Backend.sln
+```
+
+For more details, see the [Testing Guide](backend/docs/TESTING.md).
+
+### Load Testing with k6
+
+The project includes comprehensive load testing using k6, integrated with .NET Aspire:
+
+**Run load tests locally:**
+```bash
+# Start services
+cd backend
+dotnet run --project MfePortal.AppHost/MfePortal.AppHost.csproj
+
+# In another terminal, run k6 tests
+cd backend/tests/k6/scripts
+k6 run smoke-test.js
+k6 run main.js
+```
+
+**Available test scripts:**
+- `smoke-test.js`: Quick sanity check (1 VU, 30s)
+- `main.js`: Standard load test (10 VUs, 2 min)
+- `proxy-test.js`: Proxy/augment API load test (15 VUs, 2 min)
+- `user-permissions-test.js`: Authorization API load test (20 VUs, 2 min)
+
+**Automated testing:**
+The project includes a GitHub Actions workflow that runs load tests:
+- Weekly on schedule (Sundays at 2 AM UTC)
+- On-demand via workflow dispatch with customizable parameters
+- Smoke tests on pull requests that modify k6 files
+
+For complete documentation, see the [Load Testing Guide](backend/docs/LOAD_TESTING.md).
+
+## Documentation
+
+- [Architecture Overview](backend/docs/ARCHITECTURE.md)
+- [Testing Guide](backend/docs/TESTING.md)
+- [Load Testing Guide](backend/docs/LOAD_TESTING.md)
+- [API Documentation](backend/docs/API_LIST.md)
+- [Deployment Guide](backend/DEPLOYMENT_QUICK_START.md)
+- [Authorization Quickstart](specs/001-user-roles-permissions/quickstart.md)
+

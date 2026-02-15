@@ -319,3 +319,4 @@ rm -r AugmentService/obj
 - [Azure Deployment](./infra/DEPLOYMENT.md)
 - [Dapr Documentation](https://docs.dapr.io/)
 - [.NET Aspire](https://learn.microsoft.com/en-us/dotnet/aspire/)
+- [Load Testing](https://www.mostlylucid.net/blog/k6-testing-practical)

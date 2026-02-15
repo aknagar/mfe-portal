@@ -37,6 +37,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AugmentService.IntegrationT
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "tests\Benchmarks\Benchmarks.csproj", "{7E70A021-13D2-4F7B-B779-A50992D848C1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AugmentService.LoadTests", "tests\AugmentService\AugmentService.LoadTests\AugmentService.LoadTests.csproj", "{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -191,6 +193,18 @@ Global
 		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Release|x64.Build.0 = Release|Any CPU
 		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Release|x86.ActiveCfg = Release|Any CPU
 		{7E70A021-13D2-4F7B-B779-A50992D848C1}.Release|x86.Build.0 = Release|Any CPU
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}.Debug|x64.Build.0 = Debug|Any CPU
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}.Debug|x86.Build.0 = Debug|Any CPU
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}.Release|x64.ActiveCfg = Release|Any CPU
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}.Release|x64.Build.0 = Release|Any CPU
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}.Release|x86.ActiveCfg = Release|Any CPU
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -205,5 +219,6 @@ Global
 		{ABA46427-36D0-4284-9407-9976805B3508} = {D19F7CB7-3C54-4256-52C2-106B4A58CB28}
 		{4B0FF2FB-6067-4764-85E4-31B9D298D9A2} = {D19F7CB7-3C54-4256-52C2-106B4A58CB28}
 		{7E70A021-13D2-4F7B-B779-A50992D848C1} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{E4176518-8FD5-4649-BEBC-5D1AAFE9CBAC} = {D19F7CB7-3C54-4256-52C2-106B4A58CB28}
 	EndGlobalSection
 EndGlobal

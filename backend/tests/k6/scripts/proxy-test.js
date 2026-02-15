@@ -1,0 +1,55 @@
+import http from "k6/http";
+import { check, sleep } from "k6";
+
+// Load test configuration for proxy API
+export const options = {
+    stages: [
+        { duration: '30s', target: 15 },  // Ramp up to 15 users
+        { duration: '1m', target: 15 },   // Stay at 15 users
+        { duration: '30s', target: 0 },   // Ramp down to 0 users
+    ],
+    thresholds: {
+        http_req_duration: ['p(95)<1000'], // 95% of requests should be below 1s (proxy may be slower)
+        http_req_failed: ['rate<0.05'],    // Less than 5% of requests should fail
+    },
+};
+
+export default function () {
+    // Use Aspire-injected environment variables with fallback chain
+    // Test AppHost uses 'augmentservice-api', Main AppHost uses 'augmentservice'
+    const baseUrl = __ENV.services__augmentservice__http__0;
+
+    // Test proxy/augment endpoints
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+
+    // Test augment API endpoint
+    const augmentPayload = JSON.stringify({
+        text: 'Sample text for augmentation',
+        options: {
+            enhance: true
+        }
+    });
+
+    const augmentEndpoint = `${baseUrl}/api/augment`;
+    console.log(`Calling endpoint: POST ${augmentEndpoint}`);
+    const augmentResponse = http.post(augmentEndpoint, augmentPayload, { headers });
+    check(augmentResponse, {
+        'augment status is accessible': (r) => r.status >= 200 && r.status < 500,
+        'augment response time < 1000ms': (r) => r.timings.duration < 1000,
+    });
+
+    sleep(1);
+
+    // Test proxy health
+    const proxyHealthEndpoint = `${baseUrl}/api/proxy/health`;
+    console.log(`Calling endpoint: ${proxyHealthEndpoint}`);
+    const proxyHealthResponse = http.get(proxyHealthEndpoint, { headers });
+    check(proxyHealthResponse, {
+        'proxy health status is accessible': (r) => r.status >= 200 && r.status < 500,
+        'proxy health response time < 200ms': (r) => r.timings.duration < 200,
+    });
+
+    sleep(0.5);
+}

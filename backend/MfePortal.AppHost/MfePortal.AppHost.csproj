@@ -25,6 +25,7 @@
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Aspire.Hosting.Redis" />
     <PackageReference Include="CommunityToolkit.Aspire.Hosting.Dapr" />
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.k6" />
   </ItemGroup>
 
 </Project>

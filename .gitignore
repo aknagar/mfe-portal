@@ -59,3 +59,8 @@ coverage-report/
 *.coverage
 *.coveragexml
 
+# K6 load test results
+backend/tests/k6/results/*.json
+backend/tests/k6/results/*.txt
+backend/tests/k6/results/*.html
+
