@@ -109,6 +109,8 @@ output messaging_serviceBusEndpoint string = messaging.outputs.serviceBusEndpoin
 
 output messaging_serviceBusHostName string = messaging.outputs.serviceBusHostName
 
+output infra_appinsights_appInsightsConnectionString string = infra_appinsights.outputs.appInsightsConnectionString
+
 output keyvault_vaultUri string = keyvault.outputs.vaultUri
 
 output augmentservice_identity_clientId string = augmentservice_identity.outputs.clientId

@@ -21,6 +21,8 @@ param messaging_outputs_servicebushostname string
 @secure()
 param redis_password_value string
 
+param infra_appinsights_outputs_appinsightsconnectionstring string
+
 param keyvault_outputs_vaulturi string
 
 param augmentservice_identity_outputs_clientid string
@@ -212,6 +214,10 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'REDIS_URI'
               secretRef: 'redis-uri'
+            }
+            {
+              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+              value: infra_appinsights_outputs_appinsightsconnectionstring
             }
             {
               name: 'ConnectionStrings__keyvault'
