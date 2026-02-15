@@ -61,7 +61,6 @@ if (!builder.Environment.IsDevelopment())
 
     // Add Application Insights - Aspire will manage provisioning
     var appInsights = builder.AddAzureApplicationInsights($"{Name}-appinsights", logAnalyticsWorkspace);
-    augmentService.WithReference(appInsights);
 
     // Add Key Vault - no provisioning, uses existing vault via configuration
     var keyVault = builder.AddAzureKeyVault("keyvault")
