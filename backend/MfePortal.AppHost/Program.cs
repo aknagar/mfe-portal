@@ -90,10 +90,14 @@ var diagridDashboard = builder.AddContainer("diagrid-dashboard", "ghcr.io/diagri
     .WithHttpEndpoint(port: diagridPort, targetPort: 8080, name: "http")
     .WithExternalHttpEndpoints();
 
-var k6 = builder.AddK6("k6")
-            .WithBindMount("../tests/k6/scripts", "/scripts", isReadOnly: true)
-            .WithScript("/scripts/main.js")
-            .WithReference(augmentService) // Aspire then injects environment variables into the k6 container, one per exported endpoint of myService. convention: services__{resourceName}__{bindingName}__{index}
-            .WaitFor(augmentService);
+// Add k6 load testing only in development
+if (builder.Environment.IsDevelopment())
+{
+    var k6 = builder.AddK6("k6")
+                .WithBindMount("../tests/k6/scripts", "/scripts", isReadOnly: true)
+                .WithScript("/scripts/main.js")
+                .WithReference(augmentService) // Aspire then injects environment variables into the k6 container, one per exported endpoint of myService. convention: services__{resourceName}__{bindingName}__{index}
+                .WaitFor(augmentService);
+}
 
 builder.Build().Run();
