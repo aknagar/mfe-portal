@@ -657,27 +657,60 @@ const data = new SharedArray('users', function() {
 
 ## CI/CD Integration
 
-### GitHub Actions Example
+The project includes a comprehensive GitHub Actions workflow for automated load testing.
+
+### Automated Workflow
+
+The [k6-load-tests.yml](../../.github/workflows/k6-load-tests.yml) workflow provides:
+
+**Triggers:**
+- **Manual:** Run on-demand via workflow dispatch with customizable parameters
+- **Scheduled:** Weekly runs every Sunday at 2 AM UTC
+- **Pull Requests:** Smoke tests on k6-related file changes
+
+**Features:**
+- Test selection (smoke, main, proxy, user-permissions, or all)
+- Load level adjustment (smoke, normal, stress)
+- Automatic service startup and health checks
+- Test result artifacts and reports
+- PR comments with smoke test results
+
+**Running manually:**
+
+1. Go to Actions → K6 Load Tests → Run workflow
+2. Select test script (default: all)
+3. Choose load level (smoke/normal/stress)
+4. Click "Run workflow"
+
+**Example workflow snippet:**
 
 ```yaml
-name: Load Testing
+name: K6 Load Tests
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      test_script:
+        description: 'Test script to run'
+        type: choice
+        options: [all, smoke-test.js, main.js, proxy-test.js]
+      load_level:
+        description: 'Load level'
+        type: choice
+        options: [smoke, normal, stress]
   schedule:
-    - cron: '0 0 * * 0'  # Weekly
+    - cron: '0 2 * * 0'  # Weekly on Sundays
 
 jobs:
   load-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
       
       - name: Start Services
         run: |
@@ -685,19 +718,25 @@ jobs:
           dotnet run --project MfePortal.AppHost/MfePortal.AppHost.csproj &
           sleep 30
       
+      - name: Setup k6
+        run: |
+          sudo apt-get update
+          sudo apt-get install k6
+      
       - name: Run k6 Load Test
-        uses: grafana/k6-action@v0.3.0
-        with:
-          filename: backend/tests/k6/scripts/main.js
+        working-directory: backend/tests/k6/scripts
         env:
           services__augmentservice__http__0: http://localhost:5139
+        run: k6 run main.js --out json=../results/results.json
       
       - name: Upload Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: k6-results
-          path: results/
+          path: backend/tests/k6/results/*.json
 ```
+
+See the full workflow at [.github/workflows/k6-load-tests.yml](../../.github/workflows/k6-load-tests.yml) for complete implementation.
 
 ## Additional Resources
 

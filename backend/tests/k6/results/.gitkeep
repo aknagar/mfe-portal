@@ -1,0 +1,12 @@
+# K6 Test Results
+
+This directory contains the output from k6 load tests.
+
+## Files
+
+- `*.json` - Raw k6 metrics in JSON format
+- `*.txt` - Console output from test runs
+
+## Note
+
+Results files are gitignored and generated during test execution.
