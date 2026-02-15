@@ -6,12 +6,14 @@ using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+const string Name = "infra";  // keep the name short and lowercase, as it may be used in resource names and URLs
+
 // Detect if we're running in Azure provisioning mode
 // Azure Container Apps requires HTTP endpoints to use port 80
 bool isAzureProvisioning = args.Contains("--publisher") ||
                           Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID") != null;
 
-builder.AddAzureContainerAppEnvironment("infra");
+var containerAppEnvironment = builder.AddAzureContainerAppEnvironment(Name);
 
 var postgres = builder.AddPostgres("postgres")
     .WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8");
@@ -54,8 +56,11 @@ var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentser
 // Only add Application Insights and Key Vault in non-development environments
 if (!builder.Environment.IsDevelopment())
 {
+    var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace($"{Name}-logs");
+    containerAppEnvironment.WithAzureLogAnalyticsWorkspace(logAnalyticsWorkspace);
+
     // Add Application Insights - Aspire will manage provisioning
-    var appInsights = builder.AddAzureApplicationInsights("appinsights");
+    var appInsights = builder.AddAzureApplicationInsights($"{Name}-appinsights", logAnalyticsWorkspace);
     augmentService.WithReference(appInsights);
 
     // Add Key Vault - no provisioning, uses existing vault via configuration

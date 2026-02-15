@@ -25,6 +25,7 @@ module infra 'infra/infra.bicep' = {
   params: {
     location: location
     infra_acr_outputs_name: infra_acr.outputs.name
+    infra_logs_outputs_name: infra_logs.outputs.name
     userPrincipalId: principalId
   }
 }
@@ -37,11 +38,20 @@ module messaging 'messaging/messaging.bicep' = {
   }
 }
 
-module appinsights 'appinsights/appinsights.bicep' = {
-  name: 'appinsights'
+module infra_logs 'infra-logs/infra-logs.bicep' = {
+  name: 'infra-logs'
   scope: rg
   params: {
     location: location
+  }
+}
+
+module infra_appinsights 'infra-appinsights/infra-appinsights.bicep' = {
+  name: 'infra-appinsights'
+  scope: rg
+  params: {
+    location: location
+    infra_logs_outputs_loganalyticsworkspaceid: infra_logs.outputs.logAnalyticsWorkspaceId
   }
 }
 
@@ -98,8 +108,6 @@ output augmentservice_identity_id string = augmentservice_identity.outputs.id
 output messaging_serviceBusEndpoint string = messaging.outputs.serviceBusEndpoint
 
 output messaging_serviceBusHostName string = messaging.outputs.serviceBusHostName
-
-output appinsights_appInsightsConnectionString string = appinsights.outputs.appInsightsConnectionString
 
 output keyvault_vaultUri string = keyvault.outputs.vaultUri
 
