@@ -56,11 +56,11 @@ var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentser
 // Only add Application Insights and Key Vault in non-development environments
 if (!builder.Environment.IsDevelopment())
 {
-    var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace($"{Name}-logs");
+    var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace($"logs-{Name}");
     containerAppEnvironment.WithAzureLogAnalyticsWorkspace(logAnalyticsWorkspace);
 
     // Add Application Insights - Aspire will manage provisioning
-    var appInsights = builder.AddAzureApplicationInsights($"{Name}-appinsights", logAnalyticsWorkspace);
+    var appInsights = builder.AddAzureApplicationInsights($"appinsights-{Name}", logAnalyticsWorkspace);
 
     // Add Key Vault - no provisioning, uses existing vault via configuration
     var keyVault = builder.AddAzureKeyVault("keyvault")
