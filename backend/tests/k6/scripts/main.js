@@ -14,25 +14,8 @@ export const options = {
     },
 };
 
-// Setup function runs once at the start to log environment variables
-export function setup() {
-    console.log('=== K6 Environment Variables Diagnostic ===');
-    console.log('services__augmentservice_api__http__0:', __ENV.services__augmentservice_api__http__0 || 'NOT SET');
-    console.log('services__augmentservice__http__0:', __ENV.services__augmentservice__http__0 || 'NOT SET');
-
-    const baseUrl = __ENV.services__augmentservice_api__http__0
-        || __ENV.services__augmentservice__http__0
-        || 'http://localhost:5000';
-
-    console.log('Selected baseUrl:', baseUrl);
-    console.log('===========================================');
-
-    return { baseUrl };
-}
-
-export default function (data) {
-    // Use the baseUrl from setup
-    const baseUrl = data.baseUrl;
+export default function () {
+    const baseUrl = __ENV.services__augmentservice__http__0;
 
     // Test health endpoint
     const healthResponse = http.get(`${baseUrl}/health`);

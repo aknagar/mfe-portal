@@ -17,9 +17,7 @@ export const options = {
 export default function () {
     // Use Aspire-injected environment variables with fallback chain
     // Test AppHost uses 'augmentservice-api', Main AppHost uses 'augmentservice'
-    const baseUrl = __ENV.services__augmentservice_api__http__0
-        || __ENV.services__augmentservice__http__0
-        || 'http://localhost:5000';
+    const baseUrl =__ENV.services__augmentservice__http__0;
 
     // Test user permissions endpoints
     const headers = {

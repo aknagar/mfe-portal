@@ -93,7 +93,7 @@ var diagridDashboard = builder.AddContainer("diagrid-dashboard", "ghcr.io/diagri
 var k6 = builder.AddK6("k6")
             .WithBindMount("../tests/k6/scripts", "/scripts", isReadOnly: true)
             .WithScript("/scripts/main.js")
-            .WithReference(augmentService)
+            .WithReference(augmentService) // Aspire then injects environment variables into the k6 container, one per exported endpoint of myService. convention: services__{resourceName}__{bindingName}__{index}
             .WaitFor(augmentService);
 
 builder.Build().Run();
