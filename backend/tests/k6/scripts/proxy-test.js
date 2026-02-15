@@ -15,7 +15,11 @@ export const options = {
 };
 
 export default function () {
-    const baseUrl = __ENV.BASE_URL || 'http://localhost:5000';
+    // Use Aspire-injected environment variables with fallback chain
+    // Test AppHost uses 'augmentservice-api', Main AppHost uses 'augmentservice'
+    const baseUrl = __ENV.services__augmentservice_api__http__0
+        || __ENV.services__augmentservice__http__0
+        || 'http://localhost:5000';
 
     // Test proxy/augment endpoints
     const headers = {
