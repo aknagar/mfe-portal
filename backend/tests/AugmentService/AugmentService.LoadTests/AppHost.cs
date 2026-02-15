@@ -1,6 +1,5 @@
 using Aspire.Hosting;
 using CommunityToolkit.Aspire.Hosting.k6;
-using Microsoft.Extensions.Configuration;
 
 namespace AugmentService.LoadTests;
 
@@ -10,6 +9,18 @@ namespace AugmentService.LoadTests;
 /// </summary>
 public class AppHost
 {
+    public static async Task Main(string[] args)
+    {
+        var builder = CreateBuilder(args);
+        await builder.Build().RunAsync();
+    }
+
+    public static IDistributedApplicationBuilder CreateBuilder(string[] args)
+    {
+        var options = new DistributedApplicationOptions { Args = args };
+        return CreateBuilder(options);
+    }
+
     public static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOptions options)
     {
         var builder = DistributedApplication.CreateBuilder(options);
@@ -17,8 +28,9 @@ public class AppHost
         // Add the AugmentService API
         var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice-api");
 
-        // Read script name from configuration (set by tests)
-        var scriptName = builder.Configuration["TestScriptName"];
+        // Read script name from environment variable (set by tests)
+        var scriptName = Environment.GetEnvironmentVariable("K6_SCRIPT_NAME")
+                        ?? builder.Configuration["K6_SCRIPT_NAME"];
 
         // Add k6 load testing if script is specified
         if (!string.IsNullOrEmpty(scriptName))

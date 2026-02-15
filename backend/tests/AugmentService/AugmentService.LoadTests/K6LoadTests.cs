@@ -47,58 +47,78 @@ public class K6LoadTests
 
         _output.WriteLine($"Starting Aspire AppHost with K6 script: {scriptName}");
 
-        // Create AppHost builder using the testing infrastructure
-        var appHostBuilder = await DistributedApplicationTestingBuilder.CreateAsync<AppHost>(cts.Token);
-
-        // Add the script name to configuration so AppHost can read it
-        appHostBuilder.Configuration["TestScriptName"] = scriptName;
-
-        // Configure logging
-        appHostBuilder.Services.AddLogging(logging =>
-        {
-            logging.SetMinimumLevel(LogLevel.Warning);
-            logging.AddFilter("Aspire.Hosting.Dcp", LogLevel.Error);
-            logging.AddProvider(new XunitLoggerProvider(_output));
-        });
-
-        appHostBuilder.Services.ConfigureHttpClientDefaults(clientBuilder =>
-            clientBuilder.AddStandardResilienceHandler());
-
-        // Build and start the app
-        await using var app = await appHostBuilder.BuildAsync(cts.Token);
-        await app.StartAsync(cts.Token);
-
-        _output.WriteLine("AppHost started. Waiting for AugmentService to be healthy...");
-
-        // Wait for the service to be healthy
-        await app.ResourceNotifications.WaitForResourceHealthyAsync(
-            "augmentservice-api", cts.Token)
-            .WaitAsync(DefaultTimeout, cts.Token);
-
-        _output.WriteLine("AugmentService is healthy. K6 test should be running in container...");
-
-        // Get the K6 resource name based on script
-        var k6ResourceName = $"k6-{Path.GetFileNameWithoutExtension(scriptName)}";
+        // Set environment variable for the AppHost to read
+        Environment.SetEnvironmentVariable("K6_SCRIPT_NAME", scriptName);
 
         try
         {
-            // Wait for K6 resource to complete
-            // K6 runs as a container and will exit when the test completes
-            await app.ResourceNotifications.WaitForResourceAsync(
-                k6ResourceName,
-                (re) => re.Snapshot.State?.Text == "Exited")
+            // Use the custom AppHost with testing infrastructure
+            var appHostBuilder = await DistributedApplicationTestingBuilder
+                .CreateAsync<AppHost>(cts.Token);
+
+            // Configure logging
+            appHostBuilder.Services.AddLogging(logging =>
+            {
+                logging.SetMinimumLevel(LogLevel.Warning);
+                logging.AddFilter("Aspire.Hosting.Dcp", LogLevel.Error);
+                logging.AddProvider(new XunitLoggerProvider(_output));
+            });
+
+            appHostBuilder.Services.ConfigureHttpClientDefaults(clientBuilder =>
+                clientBuilder.AddStandardResilienceHandler());
+
+            // Build and start the app
+            await using var app = await appHostBuilder.BuildAsync(cts.Token);
+            await app.StartAsync(cts.Token);
+
+            _output.WriteLine("AppHost started. Waiting for AugmentService to be healthy...");
+
+            // Wait for the service to be healthy
+            await app.ResourceNotifications.WaitForResourceHealthyAsync(
+                "augmentservice-api", cts.Token)
                 .WaitAsync(DefaultTimeout, cts.Token);
 
-            _output.WriteLine($"K6 test '{scriptName}' completed.");
+            _output.WriteLine("AugmentService is healthy. K6 test should be running in container...");
+
+            // Get the K6 resource name based on script
+            var k6ResourceName = $"k6-{Path.GetFileNameWithoutExtension(scriptName)}";
+
+            // Wait for K6 resource to complete
+            // K6 runs as a container and will exit when the test completes
+            var k6Completed = false;
+            var timeout = DateTime.UtcNow.Add(DefaultTimeout);
+
+            while (DateTime.UtcNow < timeout && !k6Completed)
+            {
+                try
+                {
+                    await app.ResourceNotifications.WaitForResourceAsync(
+                        k6ResourceName,
+                        (re) => re.Snapshot.State?.Text == "Exited")
+                        .WaitAsync(TimeSpan.FromSeconds(10), cts.Token);
+
+                    k6Completed = true;
+                    _output.WriteLine($"K6 test '{scriptName}' completed.");
+                }
+                catch (TimeoutException)
+                {
+                    _output.WriteLine($"Still waiting for K6 test '{scriptName}' to complete...");
+                }
+            }
+
+            if (!k6Completed)
+            {
+                throw new TimeoutException($"K6 test '{scriptName}' did not complete within the timeout period.");
+            }
 
             // If we got here, the test completed
             // K6 will have logged results to the Aspire dashboard
             true.Should().BeTrue($"K6 test '{scriptName}' completed successfully");
         }
-        catch (Exception ex)
+        finally
         {
-            _output.WriteLine($"Error waiting for K6 test: {ex.Message}");
-            throw;
+            // Clean up environment variable
+            Environment.SetEnvironmentVariable("K6_SCRIPT_NAME", null);
         }
     }
 }
