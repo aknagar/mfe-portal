@@ -37,6 +37,14 @@ module messaging 'messaging/messaging.bicep' = {
   }
 }
 
+module appinsights 'appinsights/appinsights.bicep' = {
+  name: 'appinsights'
+  scope: rg
+  params: {
+    location: location
+  }
+}
+
 module keyvault 'keyvault/keyvault.bicep' = {
   name: 'keyvault'
   scope: rg
@@ -90,6 +98,8 @@ output augmentservice_identity_id string = augmentservice_identity.outputs.id
 output messaging_serviceBusEndpoint string = messaging.outputs.serviceBusEndpoint
 
 output messaging_serviceBusHostName string = messaging.outputs.serviceBusHostName
+
+output appinsights_appInsightsConnectionString string = appinsights.outputs.appInsightsConnectionString
 
 output keyvault_vaultUri string = keyvault.outputs.vaultUri
 
