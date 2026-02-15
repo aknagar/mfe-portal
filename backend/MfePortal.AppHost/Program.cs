@@ -90,4 +90,10 @@ var diagridDashboard = builder.AddContainer("diagrid-dashboard", "ghcr.io/diagri
     .WithHttpEndpoint(port: diagridPort, targetPort: 8080, name: "http")
     .WithExternalHttpEndpoints();
 
+var k6 = builder.AddK6("k6")
+            .WithBindMount("../tests/k6/scripts", "/scripts", isReadOnly: true)
+            .WithScript("/scripts/main.js")
+            .WithReference(augmentService)
+            .WaitFor(augmentService);
+
 builder.Build().Run();

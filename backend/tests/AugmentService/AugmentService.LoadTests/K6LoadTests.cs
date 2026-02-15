@@ -47,6 +47,16 @@ public class K6LoadTests
 
         _output.WriteLine($"Starting Aspire AppHost with K6 script: {scriptName}");
 
+        // Determine the scripts directory path
+        var scriptsPath = Path.Combine(AppContext.BaseDirectory, "scripts");
+        _output.WriteLine($"Scripts directory: {scriptsPath}");
+        _output.WriteLine($"Directory exists: {Directory.Exists(scriptsPath)}");
+
+        if (Directory.Exists(scriptsPath))
+        {
+            _output.WriteLine($"Scripts found: {string.Join(", ", Directory.GetFiles(scriptsPath, "*.js").Select(Path.GetFileName))}");
+        }
+
         // Set environment variable for the AppHost to read
         Environment.SetEnvironmentVariable("K6_SCRIPT_NAME", scriptName);
 
@@ -82,6 +92,7 @@ public class K6LoadTests
 
             // Get the K6 resource name based on script
             var k6ResourceName = $"k6-{Path.GetFileNameWithoutExtension(scriptName)}";
+            _output.WriteLine($"Waiting for K6 resource: {k6ResourceName}");
 
             // Wait for K6 resource to complete
             // K6 runs as a container and will exit when the test completes

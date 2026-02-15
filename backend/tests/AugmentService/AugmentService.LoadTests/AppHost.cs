@@ -29,19 +29,40 @@ public class AppHost
         var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice-api");
 
         // Read script name from environment variable (set by tests)
-        var scriptName = Environment.GetEnvironmentVariable("K6_SCRIPT_NAME")
-                        ?? builder.Configuration["K6_SCRIPT_NAME"];
+        var scriptName = Environment.GetEnvironmentVariable("K6_SCRIPT_NAME") ?? "main.js";
 
-        // Add k6 load testing if script is specified
-        if (!string.IsNullOrEmpty(scriptName))
+        // Get the absolute path to the scripts directory
+        var scriptsPath = Path.Combine(AppContext.BaseDirectory, "scripts");
+
+        if (!Directory.Exists(scriptsPath))
         {
-            var k6ResourceName = $"k6-{Path.GetFileNameWithoutExtension(scriptName)}";
-            var k6 = builder.AddK6(k6ResourceName)
-                .WithBindMount("scripts", "/scripts", isReadOnly: true)
-                .WithScript($"/scripts/{scriptName}")
-                .WithReference(augmentService)
-                .WaitFor(augmentService);
+            // Try to find scripts directory relative to the project
+            var projectDir = Directory.GetCurrentDirectory();
+            scriptsPath = Path.Combine(projectDir, "scripts");
         }
+
+        Console.WriteLine($"[K6 AppHost] Script name: {scriptName}");
+        Console.WriteLine($"[K6 AppHost] Scripts path: {scriptsPath}");
+        Console.WriteLine($"[K6 AppHost] Directory exists: {Directory.Exists(scriptsPath)}");
+        Console.WriteLine($"[K6 AppHost] AppContext.BaseDirectory: {AppContext.BaseDirectory}");
+        Console.WriteLine($"[K6 AppHost] Current directory: {Directory.GetCurrentDirectory()}");
+
+        if (Directory.Exists(scriptsPath))
+        {
+            var scriptFiles = Directory.GetFiles(scriptsPath, "*.js");
+            Console.WriteLine($"[K6 AppHost] Scripts found: {string.Join(", ", scriptFiles.Select(Path.GetFileName))}");
+        }
+
+        // Add k6 load testing
+        var k6ResourceName = $"k6-{Path.GetFileNameWithoutExtension(scriptName)}";
+        Console.WriteLine($"[K6 AppHost] K6 resource name: {k6ResourceName}");
+        Console.WriteLine($"[K6 AppHost] Script path in container: /scripts/{scriptName}");
+
+        var k6 = builder.AddK6(k6ResourceName)
+            .WithBindMount(scriptsPath, "/scripts", isReadOnly: true)
+            .WithScript($"/scripts/{scriptName}")
+            .WithReference(augmentService)
+            .WaitFor(augmentService);
 
         return builder;
     }
