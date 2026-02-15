@@ -7,7 +7,7 @@ param tags object = { }
 
 param infra_acr_outputs_name string
 
-param infra_logs_outputs_name string
+param logs_infra_outputs_name string
 
 resource infra_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: take('infra_mi-${uniqueString(resourceGroup().id)}', 128)
@@ -29,8 +29,8 @@ resource infra_acr_infra_mi_AcrPull 'Microsoft.Authorization/roleAssignments@202
   scope: infra_acr
 }
 
-resource infra_logs 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
-  name: infra_logs_outputs_name
+resource logs_infra 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
+  name: logs_infra_outputs_name
 }
 
 resource infra 'Microsoft.App/managedEnvironments@2025-01-01' = {
@@ -40,8 +40,8 @@ resource infra 'Microsoft.App/managedEnvironments@2025-01-01' = {
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: infra_logs.properties.customerId
-        sharedKey: infra_logs.listKeys().primarySharedKey
+        customerId: logs_infra.properties.customerId
+        sharedKey: logs_infra.listKeys().primarySharedKey
       }
     }
     workloadProfiles: [
@@ -62,9 +62,9 @@ resource aspireDashboard 'Microsoft.App/managedEnvironments/dotNetComponents@202
   parent: infra
 }
 
-output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = infra_logs.name
+output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = logs_infra.name
 
-output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = infra_logs.id
+output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = logs_infra.id
 
 output AZURE_CONTAINER_REGISTRY_NAME string = infra_acr.name
 
