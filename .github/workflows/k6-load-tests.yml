@@ -82,6 +82,23 @@ jobs:
       - name: Install Aspire workload
         run: dotnet workload install aspire
 
+      - name: Install Dapr CLI
+        run: |
+          wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash
+          sudo mv /usr/local/bin/dapr /usr/bin/dapr || true
+
+      - name: Initialize Dapr
+        run: |
+          dapr --version
+          dapr init --slim
+          
+      - name: Start Redis for Dapr
+        run: |
+          docker run -d --name dapr-redis -p 6379:6379 redis:7-alpine
+          echo "Waiting for Redis to be ready..."
+          sleep 5
+          docker exec dapr-redis redis-cli ping
+
       - name: Start Aspire AppHost
         working-directory: ./backend
         run: |
@@ -196,7 +213,9 @@ jobs:
           # Kill any remaining dotnet processes
           pkill -f "dotnet.*MfePortal.AppHost" || true
           
-          # Clean up Docker containers if any
+          # Clean up Docker containers
+          docker stop dapr-redis || true
+          docker rm dapr-redis || true
           docker ps -q | xargs -r docker stop || true
 
   smoke-test:
@@ -222,6 +241,23 @@ jobs:
 
       - name: Install Aspire workload
         run: dotnet workload install aspire
+
+      - name: Install Dapr CLI
+        run: |
+          wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash
+          sudo mv /usr/local/bin/dapr /usr/bin/dapr || true
+
+      - name: Initialize Dapr
+        run: |
+          dapr --version
+          dapr init --slim
+          
+      - name: Start Redis for Dapr
+        run: |
+          docker run -d --name dapr-redis -p 6379:6379 redis:7-alpine
+          echo "Waiting for Redis to be ready..."
+          sleep 5
+          docker exec dapr-redis redis-cli ping
 
       - name: Start services
         working-directory: ./backend
