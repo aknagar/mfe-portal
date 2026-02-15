@@ -11,7 +11,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 bool isAzureProvisioning = args.Contains("--publisher") ||
                           Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID") != null;
 
-builder.AddAzureContainerAppEnvironment("infra");
+var containerAppEnvironment = builder.AddAzureContainerAppEnvironment("infra");
 
 var postgres = builder.AddPostgres("postgres")
     .WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8");
@@ -54,9 +54,11 @@ var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentser
 // Only add Application Insights and Key Vault in non-development environments
 if (!builder.Environment.IsDevelopment())
 {
+    var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace("infra");
+    containerAppEnvironment.WithAzureLogAnalyticsWorkspace(logAnalyticsWorkspace);
+    
     // Add Application Insights - Aspire will manage provisioning
-    var appInsights = builder.AddAzureApplicationInsights("appinsights");
-    augmentService.WithReference(appInsights);
+    var appInsights = builder.AddAzureApplicationInsights("infra", logAnalyticsWorkspace);
 
     // Add Key Vault - no provisioning, uses existing vault via configuration
     var keyVault = builder.AddAzureKeyVault("keyvault")
