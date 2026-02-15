@@ -8,7 +8,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // Detect if we're running in Azure provisioning mode
 // Azure Container Apps requires HTTP endpoints to use port 80
-bool isAzureProvisioning = args.Contains("--publisher") || 
+bool isAzureProvisioning = args.Contains("--publisher") ||
                           Environment.GetEnvironmentVariable("AZURE_SUBSCRIPTION_ID") != null;
 
 builder.AddAzureContainerAppEnvironment("infra");
@@ -51,9 +51,13 @@ var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentser
         ResourcesPaths = ["../dapr/components"]
     });
 
-// Only add Key Vault reference in non-development
+// Only add Application Insights and Key Vault in non-development environments
 if (!builder.Environment.IsDevelopment())
 {
+    // Add Application Insights - Aspire will manage provisioning
+    var appInsights = builder.AddAzureApplicationInsights("appinsights");
+    augmentService.WithReference(appInsights);
+
     // Add Key Vault - no provisioning, uses existing vault via configuration
     var keyVault = builder.AddAzureKeyVault("keyvault")
                     .PublishAsConnectionString();
