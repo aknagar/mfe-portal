@@ -83,7 +83,7 @@ You have full context of the OpenSpec system. Use it naturally, don't force it.
 
 At the start, quickly check what exists:
 ```bash
-npx openspec list --json
+OPENSPEC_TELEMETRY=0 npx openspec list --json
 ```
 
 This tells you:

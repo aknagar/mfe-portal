@@ -35,13 +35,13 @@ When ready to implement, run /opsx-apply
 
 2. **Create the change directory**
    ```bash
-   npx openspec new change "<name>"
+   OPENSPEC_TELEMETRY=0 npx openspec new change "<name>"
    ```
    This creates a scaffolded change at `openspec/changes/<name>/` with `.openspec.yaml`.
 
 3. **Get the artifact build order**
    ```bash
-   npx openspec status --change "<name>" --json
+   OPENSPEC_TELEMETRY=0 npx openspec status --change "<name>" --json
    ```
    Parse the JSON to get:
    - `applyRequires`: array of artifact IDs needed before implementation (e.g., `["tasks"]`)
@@ -56,7 +56,7 @@ When ready to implement, run /opsx-apply
    a. **For each artifact that is `ready` (dependencies satisfied)**:
       - Get instructions:
          ```bash
-         npx openspec instructions <artifact-id> --change "<name>" --json
+         OPENSPEC_TELEMETRY=0 npx openspec instructions <artifact-id> --change "<name>" --json
          ```
       - The instructions JSON includes:
         - `context`: Project background (constraints for you - do NOT include in output)
@@ -71,7 +71,7 @@ When ready to implement, run /opsx-apply
       - Show brief progress: "Created <artifact-id>"
 
    b. **Continue until all `applyRequires` artifacts are complete**
-       - After creating each artifact, re-run `npx openspec status --change "<name>" --json`
+       - After creating each artifact, re-run `OPENSPEC_TELEMETRY=0 npx openspec status --change "<name>" --json`
       - Check if every artifact ID in `applyRequires` has `status: "done"` in the artifacts array
       - Stop when all `applyRequires` artifacts are done
 
@@ -81,7 +81,7 @@ When ready to implement, run /opsx-apply
 
 5. **Show final status**
     ```bash
-    npx openspec status --change "<name>"
+    OPENSPEC_TELEMETRY=0 npx openspec status --change "<name>"
     ```
 
 **Output**

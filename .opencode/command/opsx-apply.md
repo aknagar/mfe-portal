@@ -2,7 +2,7 @@
 description: Implement tasks from an OpenSpec change (Experimental)
 ---
 
-> **Agent requirement**: This command runs `npx openspec` CLI calls via Bash. The default `plan` agent denies all bash. You must be using the `build` agent (or equivalent) for CLI steps to succeed. Switch with: `opencode --agent build` or set `default_agent` in `opencode.json`.
+> **Agent requirement**: This command runs `OPENSPEC_TELEMETRY=0 npx openspec` CLI calls via Bash. The default `plan` agent denies all bash. You must be using the `build` agent (or equivalent) for CLI steps to succeed. Switch with: `opencode --agent build` or set `default_agent` in `opencode.json`.
 
 Implement tasks from an OpenSpec change.
 
@@ -15,13 +15,13 @@ Implement tasks from an OpenSpec change.
    If a name is provided, use it. Otherwise:
    - Infer from conversation context if the user mentioned a change
    - Auto-select if only one active change exists
-   - If ambiguous, run `npx openspec list --json` to get available changes and use the **AskUserQuestion tool** to let the user select
+   - If ambiguous, run `OPENSPEC_TELEMETRY=0 npx openspec list --json` to get available changes and use the **AskUserQuestion tool** to let the user select
 
    Always announce: "Using change: <name>" and how to override (e.g., `/opsx-apply <other>`).
 
 2. **Check status to understand the schema**
    ```bash
-   npx openspec status --change "<name>" --json
+   OPENSPEC_TELEMETRY=0 npx openspec status --change "<name>" --json
    ```
    Parse the JSON to understand:
    - `schemaName`: The workflow being used (e.g., "spec-driven")
@@ -30,7 +30,7 @@ Implement tasks from an OpenSpec change.
 3. **Get apply instructions**
 
     ```bash
-    npx openspec instructions apply --change "<name>" --json
+    OPENSPEC_TELEMETRY=0 npx openspec instructions apply --change "<name>" --json
     ```
 
    This returns:

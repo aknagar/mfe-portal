@@ -2,7 +2,7 @@
 description: Enter explore mode - think through ideas, investigate problems, clarify requirements
 ---
 
-> **Agent requirement**: The `npx openspec list` call in this command requires Bash access. The default `plan` agent denies all bash. You must be using the `build` agent (or equivalent) for the CLI step to succeed; the explore conversation itself works in any agent.
+> **Agent requirement**: The `OPENSPEC_TELEMETRY=0 npx openspec list` call in this command requires Bash access. The default `plan` agent denies all bash. You must be using the `build` agent (or equivalent) for the CLI step to succeed; the explore conversation itself works in any agent.
 
 Enter explore mode. Think deeply. Visualize freely. Follow the conversation wherever it goes.
 
@@ -85,7 +85,7 @@ You have full context of the OpenSpec system. Use it naturally, don't force it.
 
 At the start, quickly check what exists:
 ```bash
-npx openspec list --json
+OPENSPEC_TELEMETRY=0 npx openspec list --json
 ```
 
 This tells you:
