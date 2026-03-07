@@ -2,6 +2,8 @@
 description: Propose a new change - create it and generate all artifacts in one step
 ---
 
+> **Agent requirement**: This command runs `npx openspec` CLI calls via Bash. The default `plan` agent denies all bash. You must be using the `build` agent (or equivalent) for CLI steps to succeed. Switch with: `opencode --agent build` or set `default_agent` in `opencode.json`.
+
 Propose a new change - create the change and generate all artifacts in one step.
 
 I'll create a change with artifacts:
@@ -28,13 +30,13 @@ When ready to implement, run /opsx-apply
 
 2. **Create the change directory**
    ```bash
-   openspec new change "<name>"
+   npx openspec new change "<name>"
    ```
    This creates a scaffolded change at `openspec/changes/<name>/` with `.openspec.yaml`.
 
 3. **Get the artifact build order**
    ```bash
-   openspec status --change "<name>" --json
+   npx openspec status --change "<name>" --json
    ```
    Parse the JSON to get:
    - `applyRequires`: array of artifact IDs needed before implementation (e.g., `["tasks"]`)
@@ -48,9 +50,9 @@ When ready to implement, run /opsx-apply
 
    a. **For each artifact that is `ready` (dependencies satisfied)**:
       - Get instructions:
-        ```bash
-        openspec instructions <artifact-id> --change "<name>" --json
-        ```
+         ```bash
+         npx openspec instructions <artifact-id> --change "<name>" --json
+         ```
       - The instructions JSON includes:
         - `context`: Project background (constraints for you - do NOT include in output)
         - `rules`: Artifact-specific rules (constraints for you - do NOT include in output)
@@ -64,7 +66,7 @@ When ready to implement, run /opsx-apply
       - Show brief progress: "Created <artifact-id>"
 
    b. **Continue until all `applyRequires` artifacts are complete**
-      - After creating each artifact, re-run `openspec status --change "<name>" --json`
+       - After creating each artifact, re-run `npx openspec status --change "<name>" --json`
       - Check if every artifact ID in `applyRequires` has `status: "done"` in the artifacts array
       - Stop when all `applyRequires` artifacts are done
 
@@ -73,9 +75,9 @@ When ready to implement, run /opsx-apply
       - Then continue with creation
 
 5. **Show final status**
-   ```bash
-   openspec status --change "<name>"
-   ```
+    ```bash
+    npx openspec status --change "<name>"
+    ```
 
 **Output**
 
