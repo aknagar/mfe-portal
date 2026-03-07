@@ -1,0 +1,8 @@
+{
+  "name": "mfe-portal",
+  "private": true,
+  "description": "Root workspace tooling for mfe-portal monorepo",
+  "devDependencies": {
+    "@fission-ai/openspec": "^1.2.0"
+  }
+}
