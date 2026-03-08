@@ -1,7 +1,3 @@
-using Aspire.Hosting;
-using Aspire.Hosting.Azure;
-using Aspire.Hosting.Redis;
-using CommunityToolkit.Aspire.Hosting.Dapr;
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -15,14 +11,30 @@ bool isAzureProvisioning = args.Contains("--publisher") ||
 
 var containerAppEnvironment = builder.AddAzureContainerAppEnvironment(Name);
 
+// Use regular Redis for development (runs as container)
+// In production, this will be provisioned as Azure Redis Cache
+var daprRedis = builder.AddRedis("daprRedis");
+
+var redisEndpoint = daprRedis.GetEndpoint("tcp");
+var redisHost = redisEndpoint.Property(EndpointProperty.Host);
+var redisPort = redisEndpoint.Property(EndpointProperty.Port);
+
+// State store using Redis
+var stateStore = builder.AddDaprStateStore("statestore")
+                        .WithMetadata("actorStateStore", "true");
+
+// PubSub component - will be configured via YAML file
+var pubSub = builder.AddDaprPubSub("pubsub")
+                    .WithMetadata("redisHost", ReferenceExpression.Create(
+                            $"{redisHost}:{redisPort}"
+                            ))
+                    .WaitFor(daprRedis);
+
 var postgres = builder.AddPostgres("postgres")
-    .WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8");
+                .WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8");
 
 var productdb = postgres.AddDatabase("productdb", "productdb");
 var weatherdb = postgres.AddDatabase("weatherdb", "weatherdb");
-
-// Add Redis for DAPR components
-var redis = builder.AddRedis("redis");
 
 
 // Add Azure Service Bus - use emulator in development
@@ -34,24 +46,19 @@ if (builder.Environment.IsDevelopment())
 }
 
 // Add queues for Dapr pubsub
-serviceBus.AddServiceBusQueue("orders");
+var serviceBusQueue = serviceBus.AddServiceBusQueue("orders");
 
 // Add AugmentService.Api with references
 var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice")
+    .WithDaprSidecar(sidecar => sidecar.WithReference(stateStore).WithReference(pubSub).WaitFor(stateStore).WaitFor(pubSub))
     .WithReference(productdb)
     .WithReference(weatherdb)
-    .WithReference(serviceBus)
-    .WithReference(redis)
+    .WithReference(serviceBus)    
     .WithExternalHttpEndpoints()
     .WaitFor(productdb)
     .WaitFor(weatherdb)
     .WaitFor(serviceBus)
-    .WaitFor(redis)
-    .WithDaprSidecar(new DaprSidecarOptions
-    {
-        AppId = "augmentservice",  // REQUIRED - unique app ID for Dapr
-        ResourcesPaths = ["../dapr/components"]
-    });
+    .WaitFor(daprRedis);
 
 // Only add Application Insights and Key Vault in non-development environments
 if (!builder.Environment.IsDevelopment())
