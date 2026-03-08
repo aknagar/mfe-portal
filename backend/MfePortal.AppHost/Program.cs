@@ -14,11 +14,10 @@ var containerAppEnvironment = builder.AddAzureContainerAppEnvironment(Name);
 
 // Use regular Redis for development (runs as container)
 // In production, this will be provisioned as Azure Redis Cache
-var daprRedis = builder.AddRedis("daprRedis");
+var daprRedis = builder.AddAzureManagedRedis("daprRedis").RunAsContainer();
 
-var redisEndpoint = daprRedis.GetEndpoint("tcp");
-var redisHost = redisEndpoint.Property(EndpointProperty.Host);
-var redisPort = redisEndpoint.Property(EndpointProperty.Port);
+var redisHost = daprRedis.Resource.HostName;
+var redisPort = daprRedis.Resource.Port;
 
 // PubSub component - will be configured via YAML file
 var pubSub = builder.AddDaprPubSub("pubsub", new DaprComponentOptions
@@ -26,8 +25,8 @@ var pubSub = builder.AddDaprPubSub("pubsub", new DaprComponentOptions
                         LocalPath = "../dapr/components/pubsub.yaml"
                     })
                     .WithMetadata("redisHost", ReferenceExpression.Create(
-                            $"{redisHost}:{redisPort}"
-                            ))
+                        $"{redisHost}:{redisPort}"
+                    ))   
                     .WaitFor(daprRedis);
 
 // State store using Redis - will be configured via YAML file
