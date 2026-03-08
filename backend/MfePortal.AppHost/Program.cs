@@ -1,3 +1,4 @@
+using CommunityToolkit.Aspire.Hosting.Dapr;
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -20,15 +21,20 @@ var redisHost = redisEndpoint.Property(EndpointProperty.Host);
 var redisPort = redisEndpoint.Property(EndpointProperty.Port);
 
 // PubSub component - will be configured via YAML file
-var pubSub = builder.AddDaprPubSub("pubsub")
+var pubSub = builder.AddDaprPubSub("pubsub", new DaprComponentOptions
+                    {
+                        LocalPath = "../dapr/components/pubsub.yaml"
+                    })
                     .WithMetadata("redisHost", ReferenceExpression.Create(
                             $"{redisHost}:{redisPort}"
                             ))
                     .WaitFor(daprRedis);
 
-// State store using Redis
-var stateStore = builder.AddDaprStateStore("statestore")
-                        .WithMetadata("actorStateStore", "true") // needed for dapr workflow
+// State store using Redis - will be configured via YAML file
+var stateStore = builder.AddDaprStateStore("statestore", new DaprComponentOptions
+                            {
+                                LocalPath = "../dapr/components/statestore.yaml"
+                            })
                         .WithMetadata("redisHost", ReferenceExpression.Create(
                             $"{redisHost}:{redisPort}"
                         ))                        
