@@ -19,16 +19,20 @@ var redisEndpoint = daprRedis.GetEndpoint("tcp");
 var redisHost = redisEndpoint.Property(EndpointProperty.Host);
 var redisPort = redisEndpoint.Property(EndpointProperty.Port);
 
-// State store using Redis
-var stateStore = builder.AddDaprStateStore("statestore")
-                        .WithMetadata("actorStateStore", "true");
-
 // PubSub component - will be configured via YAML file
 var pubSub = builder.AddDaprPubSub("pubsub")
                     .WithMetadata("redisHost", ReferenceExpression.Create(
                             $"{redisHost}:{redisPort}"
                             ))
                     .WaitFor(daprRedis);
+
+// State store using Redis
+var stateStore = builder.AddDaprStateStore("statestore")
+                        .WithMetadata("actorStateStore", "true") // needed for dapr workflow
+                        .WithMetadata("redisHost", ReferenceExpression.Create(
+                            $"{redisHost}:{redisPort}"
+                        ))                        
+                        .WaitFor(daprRedis);
 
 var postgres = builder.AddPostgres("postgres")
                 .WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8");
