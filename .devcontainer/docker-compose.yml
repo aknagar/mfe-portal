@@ -21,17 +21,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - DOTNET_USE_POLLING_FILE_WATCHER=true
     
-    # Expose ports for development
-    ports:
-      - "5000:5000"
-      - "5001:5001"
-      - "1234:1234"
-      - "3500:3500"
-      - "8080:8080"
-      - "15000:15000"
-      - "15001:15001"
-      - "21295:21295"
-      - "22028:22028"
+    # No host port mapping needed - VS Code 'forwardPorts' in devcontainer.json handles port forwarding
     
     depends_on:
       postgres:
@@ -44,13 +34,12 @@ services:
     restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - create .devcontainer/.env file}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
-    ports:
-      - "5432:5432"
+    # No host port mapping - accessible via service name 'postgres' within compose network
+    # Use VS Code port forwarding if host access is needed
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
@@ -60,8 +49,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    # No host port mapping - accessible via service name 'redis' within compose network
+    # Use VS Code port forwarding if host access is needed
     volumes:
       - redis-data:/data
     healthcheck:
