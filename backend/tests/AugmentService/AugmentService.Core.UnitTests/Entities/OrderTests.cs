@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using AugmentService.Core.Entities;
 using AutoFixture;
 using Common.Fixtures;
@@ -200,4 +201,119 @@ public class OrderTests
         // Assert
         order.Quantity.Should().Be(0);
     }
+
+    #region Data Annotation Validation Tests
+
+    private static IList<ValidationResult> ValidateOrder(Order order)
+    {
+        var context = new ValidationContext(order);
+        var results = new List<ValidationResult>();
+        Validator.TryValidateObject(order, context, results, validateAllProperties: true);
+        return results;
+    }
+
+    [Fact]
+    public void Should_PassValidation_When_AllPropertiesAreValid()
+    {
+        // Arrange
+        var order = new Order { Name = "Widget", TotalCost = 100, Quantity = 2 };
+
+        // Act
+        var results = ValidateOrder(order);
+
+        // Assert
+        results.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void Should_FailValidation_When_NameIsEmptyOrWhitespace(string name)
+    {
+        // Arrange
+        var order = new Order { Name = name, TotalCost = 100, Quantity = 1 };
+
+        // Act
+        var results = ValidateOrder(order);
+
+        // Assert
+        results.Should().NotBeEmpty();
+        results.Should().Contain(r => r.MemberNames.Contains(nameof(Order.Name)));
+    }
+
+    [Fact]
+    public void Should_FailValidation_When_QuantityIsZero()
+    {
+        // Arrange
+        var order = new Order { Name = "Widget", TotalCost = 100, Quantity = 0 };
+
+        // Act
+        var results = ValidateOrder(order);
+
+        // Assert
+        results.Should().NotBeEmpty();
+        results.Should().Contain(r => r.MemberNames.Contains(nameof(Order.Quantity)));
+    }
+
+    [Fact]
+    public void Should_FailValidation_When_QuantityIsNegative()
+    {
+        // Arrange
+        var order = new Order { Name = "Widget", TotalCost = 100, Quantity = -1 };
+
+        // Act
+        var results = ValidateOrder(order);
+
+        // Assert
+        results.Should().NotBeEmpty();
+        results.Should().Contain(r => r.MemberNames.Contains(nameof(Order.Quantity)));
+    }
+
+    [Fact]
+    public void Should_FailValidation_When_TotalCostIsNegative()
+    {
+        // Arrange
+        var order = new Order { Name = "Widget", TotalCost = -1, Quantity = 1 };
+
+        // Act
+        var results = ValidateOrder(order);
+
+        // Assert
+        results.Should().NotBeEmpty();
+        results.Should().Contain(r => r.MemberNames.Contains(nameof(Order.TotalCost)));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(999999)]
+    public void Should_PassValidation_When_TotalCostIsZeroOrPositive(int totalCost)
+    {
+        // Arrange
+        var order = new Order { Name = "Widget", TotalCost = totalCost, Quantity = 1 };
+
+        // Act
+        var results = ValidateOrder(order);
+
+        // Assert
+        results.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(10)]
+    [InlineData(1000)]
+    public void Should_PassValidation_When_QuantityIsPositive(int quantity)
+    {
+        // Arrange
+        var order = new Order { Name = "Widget", TotalCost = 50, Quantity = quantity };
+
+        // Act
+        var results = ValidateOrder(order);
+
+        // Assert
+        results.Should().BeEmpty();
+    }
+
+    #endregion
 }
