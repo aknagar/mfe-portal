@@ -1,5 +1,4 @@
 using Dapr.Workflow;
-using DurableTask.Core.Exceptions;
 using AugmentService.Api.Activities;
 using AugmentService.Api.Controllers;
 using AugmentService.Api.Models;
@@ -296,7 +295,7 @@ public class OrderProcessingWorkflowTests
                 nameof(UpdateInventoryActivity),
                 Arg.Any<object?>(),
                 Arg.Any<WorkflowTaskOptions?>())
-            .Returns(Task.FromException(new TaskFailedException("Inventory update failed")));
+            .Returns(Task.FromException(new WorkflowTaskFailedException("Inventory update failed", new WorkflowTaskFailureDetails("System.Exception", "Inventory update failed", null))));
 
         // Act
         var result = await _workflow.RunAsync(_context, order);
@@ -322,7 +321,7 @@ public class OrderProcessingWorkflowTests
                 nameof(UpdateInventoryActivity),
                 Arg.Any<object?>(),
                 Arg.Any<WorkflowTaskOptions?>())
-            .Returns(Task.FromException(new TaskFailedException("Inventory update failed")));
+            .Returns(Task.FromException(new WorkflowTaskFailedException("Inventory update failed", new WorkflowTaskFailureDetails("System.Exception", "Inventory update failed", null))));
 
         // Capture notification messages
         var notificationMessages = new List<string>();
