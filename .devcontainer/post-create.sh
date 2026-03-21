@@ -33,6 +33,14 @@ if ! grep -q ".dapr/bin" ~/.bashrc; then
 fi
 export PATH="$HOME/.dapr/bin:$PATH"
 
+# Pre-pull Aspire-managed container images to avoid first-boot download races
+echo "Pre-pulling container images required by Aspire (this may take a few minutes on first run)..."
+docker pull mcr.microsoft.com/azure-messaging/servicebus-emulator:latest || echo "Warning: failed to pull servicebus-emulator:latest"
+docker pull mcr.microsoft.com/azure-messaging/servicebus-emulator:1.1.2 || echo "Warning: failed to pull servicebus-emulator:1.1.2"
+docker pull mcr.microsoft.com/mssql/server:2022-latest || echo "Warning: failed to pull mssql/server:2022-latest"
+docker pull ghcr.io/diagridio/diagrid-dashboard:0.0.1 || echo "Warning: failed to pull diagrid-dashboard:0.0.1"
+echo "Image pre-pull complete."
+
 # Set git safe directory
 git config --global --add safe.directory /workspace
 
