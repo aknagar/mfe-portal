@@ -1,5 +1,3 @@
-using Azure.Messaging.ServiceBus;
-using Dapr.Client;
 using AugmentService.Api.Models;
 using AugmentService.Api.Workflows;
 using AugmentService.Core.Entities;
@@ -13,20 +11,14 @@ namespace AugmentService.Api.Controllers
     [ApiController]
     public class OrdersController : ControllerBase
     {
-        private readonly ServiceBusSender _serviceBusSender;
         private readonly IOrderWorkflowClient _workflowClient;
-        private readonly DaprClient _daprClient;
         private readonly ILogger<OrdersController> _logger;
 
         public OrdersController(
-            ServiceBusClient serviceBusClient,
             IOrderWorkflowClient workflowClient,
-            DaprClient daprClient,
             ILogger<OrdersController> logger)
         {
-            _serviceBusSender = serviceBusClient.CreateSender("orders");
             _workflowClient = workflowClient;
-            _daprClient = daprClient;
             _logger = logger;
         }
         

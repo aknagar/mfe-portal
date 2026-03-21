@@ -25,20 +25,25 @@ fi
 echo "Checking Dapr status..."
 dapr --version || echo "Dapr CLI available"
 
-# Start .NET Aspire orchestrator in the background
-echo "Starting .NET Aspire orchestrator..."
-nohup dotnet run --project /workspace/backend/MfePortal.AppHost \
-    --launch-profile https \
-    > /tmp/aspire.log 2>&1 &
-aspire_pid=$!
+# Start .NET Aspire orchestrator in the background (idempotent — skip if already running)
+if pgrep -f "MfePortal.AppHost" > /dev/null 2>&1; then
+    aspire_pid=$(pgrep -f "MfePortal.AppHost" | head -1)
+    echo "Aspire orchestrator already running (PID $aspire_pid). Skipping start."
+else
+    echo "Starting .NET Aspire orchestrator..."
+    nohup dotnet run --project /workspace/backend/MfePortal.AppHost \
+        --launch-profile https \
+        > /tmp/aspire.log 2>&1 &
+    aspire_pid=$!
 
-# Basic check: ensure the orchestrator process started
-if ! kill -0 "$aspire_pid" 2>/dev/null; then
-    echo "ERROR: Failed to start .NET Aspire orchestrator. See /tmp/aspire.log for details."
-    exit 1
+    # Basic check: ensure the orchestrator process started
+    if ! kill -0 "$aspire_pid" 2>/dev/null; then
+        echo "ERROR: Failed to start .NET Aspire orchestrator. See /tmp/aspire.log for details."
+        exit 1
+    fi
+
+    echo "Aspire starting in background (PID $aspire_pid). Logs: /tmp/aspire.log"
 fi
-
-echo "Aspire starting in background (PID $aspire_pid). Logs: /tmp/aspire.log"
 
 # Optional readiness check for the Aspire dashboard
 dashboard_url="${ASPIRE_DASHBOARD_URL:-http://localhost:15001}"

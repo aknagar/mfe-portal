@@ -1,19 +1,41 @@
-$entries = @(
-  @{ Test='AugmentService.Api.UnitTests'; Xml='coverage-results\9b1952f4-3973-4652-bfc0-081fa4b55ddc\coverage.cobertura.xml' },
-  @{ Test='AugmentService.Core.UnitTests'; Xml='coverage-results\657a74d2-00f2-40ba-9f41-dd40daef9ea2\coverage.cobertura.xml' }
-)
+# Discover coverage XML files dynamically under coverage-results/
+# This avoids hardcoded GUID directory names that change between runs.
+$resultsDir = Join-Path -Path (Get-Location) -ChildPath 'coverage-results'
+if (-not (Test-Path -Path $resultsDir -PathType Container)) {
+  throw "Coverage results directory '$resultsDir' not found. Run tests with --collect:'XPlat Code Coverage' first."
+}
+
+$coverageFiles = Get-ChildItem -Path $resultsDir -Recurse -Filter 'coverage.cobertura.xml' -ErrorAction SilentlyContinue
+if (-not $coverageFiles -or $coverageFiles.Count -eq 0) {
+  throw "No coverage.cobertura.xml files found under '$resultsDir'."
+}
+
+# Build entries from discovered files — derive test project name from parent directory structure
+$entries = $coverageFiles | ForEach-Object {
+  # Path pattern: coverage-results/<guid>/<ProjectName>/coverage.cobertura.xml
+  # or:           coverage-results/<ProjectName>/<guid>/coverage.cobertura.xml
+  # Use the grandparent or nearest named segment that looks like a test project
+  $parts = $_.FullName -split '[\\/]'
+  $testProject = ($parts | Where-Object { $_ -match 'Tests$' } | Select-Object -Last 1)
+  if (-not $testProject) { $testProject = $_.Directory.Parent.Name }
+  @{ Test = $testProject; Xml = $_.FullName }
+}
 
 # Accumulate covered/total per (file, test) pair
 $acc = @{}
 
 foreach ($e in $entries) {
+  if (-not (Test-Path -Path $e.Xml -PathType Leaf)) {
+    Write-Warning "Coverage file '$($e.Xml)' not found, skipping."
+    continue
+  }
   [xml]$xml = Get-Content $e.Xml
   foreach ($cls in $xml.SelectNodes('//class')) {
     $fn = $cls.filename
     # skip test/fixture/migration files and generated code
-    if ($fn -match 'UnitTests' -or $fn -match '[\\\/]obj[\\\/]' -or $fn -match '\.g\.cs' -or
-        $fn -match 'migrations[\\\/]' -or $fn -match 'Fixtures[\\\/]' -or
-        $fn -match 'TestDataBuilders[\\\/]' -or $fn -match 'Builders[\\\/]' -or
+    if ($fn -match 'UnitTests' -or $fn -match '[\\/]obj[\\/]' -or $fn -match '\.g\.cs' -or
+        $fn -match 'migrations[\\/]' -or $fn -match 'Fixtures[\\/]' -or
+        $fn -match 'TestDataBuilders[\\/]' -or $fn -match 'Builders[\\/]' -or
         $fn -match 'TestHelpers') { continue }
 
     $lines = $cls.SelectNodes('.//line')
@@ -22,8 +44,9 @@ foreach ($e in $entries) {
     $total   = $lines.Count
     $covered = ($lines | Where-Object { [int]$_.hits -gt 0 }).Count
 
-    $parts = $fn -split '\\'
-    $short = if ($parts.Count -ge 2) { "$($parts[-2])\$($parts[-1])" } else { $parts[-1] }
+    # Split on both \ and / for cross-platform/report-format compatibility
+    $parts = $fn -split '[\\/]'
+    $short = if ($parts.Count -ge 2) { "$($parts[-2])/$($parts[-1])" } else { $parts[-1] }
 
     $key = "$short|$($e.Test)"
     if ($acc.ContainsKey($key)) {
@@ -40,7 +63,7 @@ foreach ($e in $entries) {
   }
 }
 
-# Build output rows, merging Api+Core test results for same file
+# Build output rows, merging results for same file across test projects
 $merged = @{}
 foreach ($key in $acc.Keys) {
   $r = $acc[$key]

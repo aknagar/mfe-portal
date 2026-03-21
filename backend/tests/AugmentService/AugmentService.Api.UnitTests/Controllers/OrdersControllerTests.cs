@@ -1,5 +1,3 @@
-using Azure.Messaging.ServiceBus;
-using Dapr.Client;
 using Dapr.Workflow;
 using AugmentService.Api.Controllers;
 using AugmentService.Api.Workflows;
@@ -15,26 +13,17 @@ namespace AugmentService.Api.UnitTests.Controllers;
 
 public class OrdersControllerTests
 {
-    private readonly ServiceBusClient _serviceBusClient;
     private readonly IOrderWorkflowClient _workflowClient;
-    private readonly DaprClient _daprClient;
     private readonly ILogger<OrdersController> _logger;
     private readonly OrdersController _controller;
 
     public OrdersControllerTests()
     {
-        _serviceBusClient = Substitute.For<ServiceBusClient>();
-        // ServiceBusClient.CreateSender is virtual — substitute returns a substitute sender
-        _serviceBusClient.CreateSender(Arg.Any<string>()).Returns(Substitute.For<ServiceBusSender>());
-
         _workflowClient = Substitute.For<IOrderWorkflowClient>();
-        _daprClient = Substitute.For<DaprClient>();
         _logger = Substitute.For<ILogger<OrdersController>>();
 
         _controller = new OrdersController(
-            _serviceBusClient,
             _workflowClient,
-            _daprClient,
             _logger);
     }
 

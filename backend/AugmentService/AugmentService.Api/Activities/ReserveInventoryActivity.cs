@@ -35,9 +35,7 @@ namespace AugmentService.Api.Activities
                 req.ItemName);
 
             OrderPayload? orderResponse;
-            string etag;
-
-            (orderResponse, etag) = await client.GetStateAndETagAsync<OrderPayload>(storeName, req.ItemName);
+            (orderResponse, _) = await client.GetStateAndETagAsync<OrderPayload>(storeName, req.ItemName);
 
             if (orderResponse == null)
             {

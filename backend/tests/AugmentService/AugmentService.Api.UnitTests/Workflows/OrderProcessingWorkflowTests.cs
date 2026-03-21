@@ -143,7 +143,7 @@ public class OrderProcessingWorkflowTests
         await _workflow.RunAsync(_context, order);
 
         // Assert — payment must NOT be processed if inventory is insufficient
-        await _context.DidNotReceive().CallActivityAsync<object>(
+        await _context.DidNotReceive().CallActivityAsync(
             nameof(ProcessPaymentActivity),
             Arg.Any<object?>(),
             Arg.Any<WorkflowTaskOptions?>());
@@ -170,11 +170,11 @@ public class OrderProcessingWorkflowTests
 
         // Timer never completes (approval arrives first)
         var neverCompletingTimer = new TaskCompletionSource<object>().Task;
-        _context.CreateTimer(Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        _context.CreateTimer(Arg.Any<TimeSpan>())
             .Returns(neverCompletingTimer);
 
         _context.WaitForExternalEventAsync<ApprovalDecision>(
-                Arg.Any<string>(), Arg.Any<CancellationToken>())
+                Arg.Any<string>())
             .Returns(Task.FromResult(approvalDecision));
 
         // Act
@@ -200,11 +200,11 @@ public class OrderProcessingWorkflowTests
             .Returns(inventoryResult);
 
         var neverCompletingTimer = new TaskCompletionSource<object>().Task;
-        _context.CreateTimer(Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        _context.CreateTimer(Arg.Any<TimeSpan>())
             .Returns(neverCompletingTimer);
 
         _context.WaitForExternalEventAsync<ApprovalDecision>(
-                Arg.Any<string>(), Arg.Any<CancellationToken>())
+                Arg.Any<string>())
             .Returns(Task.FromResult(rejectionDecision));
 
         // Act
@@ -228,13 +228,13 @@ public class OrderProcessingWorkflowTests
             .Returns(inventoryResult);
 
         // Timer completes immediately (simulates timeout)
-        _context.CreateTimer(Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        _context.CreateTimer(Arg.Any<TimeSpan>())
             .Returns(Task.CompletedTask);
 
         // Approval event never arrives
         var neverCompletingApproval = new TaskCompletionSource<ApprovalDecision>().Task;
         _context.WaitForExternalEventAsync<ApprovalDecision>(
-                Arg.Any<string>(), Arg.Any<CancellationToken>())
+                Arg.Any<string>())
             .Returns(neverCompletingApproval);
 
         // Act
@@ -257,11 +257,11 @@ public class OrderProcessingWorkflowTests
                 Arg.Any<WorkflowTaskOptions?>())
             .Returns(inventoryResult);
 
-        _context.CreateTimer(Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        _context.CreateTimer(Arg.Any<TimeSpan>())
             .Returns(Task.CompletedTask);
 
         _context.WaitForExternalEventAsync<ApprovalDecision>(
-                Arg.Any<string>(), Arg.Any<CancellationToken>())
+                Arg.Any<string>())
             .Returns(new TaskCompletionSource<ApprovalDecision>().Task);
 
         // Act
