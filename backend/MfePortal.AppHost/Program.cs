@@ -102,7 +102,7 @@ var frontend = builder.AddDockerfile("frontend", "../../frontend", "Dockerfile")
 // In Azure provisioning, always use port 80 (required by Azure Container Apps)
 var diagridPort = isAzureProvisioning ? 80 : (builder.Environment.IsDevelopment() ? 8080 : 80);
 
-var diagridDashboard = builder.AddContainer("diagrid-dashboard", "ghcr.io/diagridio/diagrid-dashboard:latest")
+var diagridDashboard = builder.AddContainer("diagrid-dashboard", "ghcr.io/diagridio/diagrid-dashboard:0.0.1")
     .WithHttpEndpoint(port: diagridPort, targetPort: 8080, name: "http")
     .WithExternalHttpEndpoints();
 
