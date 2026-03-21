@@ -117,7 +117,7 @@ public class GlobalExceptionHandlerTests
         _httpContext.Response.ContentType.Should().Be("application/json");
     }
 
-    [Fact(Skip = "GlobalExceptionHandler not writing response body correctly - implementation issue")]
+    [Fact]
     public async Task TryHandleAsync_Should_WriteErrorResponse_WithCorrectFormat()
     {
         // Arrange
@@ -129,7 +129,7 @@ public class GlobalExceptionHandlerTests
         // Assert
         _httpContext.Response.Body.Position = 0;
         var responseBody = await new StreamReader(_httpContext.Response.Body).ReadToEndAsync();
-        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody);
+        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         errorResponse.Should().NotBeNull();
         errorResponse!.Error.Should().Be("ValidationError");
@@ -138,7 +138,7 @@ public class GlobalExceptionHandlerTests
         errorResponse.Details.Should().BeNull(); // Production mode
     }
 
-    [Fact(Skip = "GlobalExceptionHandler not writing response body correctly - implementation issue")]
+    [Fact]
     public async Task TryHandleAsync_Should_IncludeExceptionDetails_When_DevelopmentEnvironment()
     {
         // Arrange
@@ -151,7 +151,7 @@ public class GlobalExceptionHandlerTests
         // Assert
         _httpContext.Response.Body.Position = 0;
         var responseBody = await new StreamReader(_httpContext.Response.Body).ReadToEndAsync();
-        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody);
+        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         errorResponse.Should().NotBeNull();
         errorResponse!.Details.Should().NotBeNullOrEmpty();
@@ -177,7 +177,7 @@ public class GlobalExceptionHandlerTests
         errorResponse!.Details.Should().BeNull();
     }
 
-    [Fact(Skip = "GlobalExceptionHandler not writing response body correctly - implementation issue")]
+    [Fact]
     public async Task TryHandleAsync_Should_ReturnUserFriendlyMessage_For_UnauthorizedAccessException()
     {
         // Arrange
@@ -189,14 +189,14 @@ public class GlobalExceptionHandlerTests
         // Assert
         _httpContext.Response.Body.Position = 0;
         var responseBody = await new StreamReader(_httpContext.Response.Body).ReadToEndAsync();
-        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody);
+        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         errorResponse.Should().NotBeNull();
         errorResponse!.Message.Should().Be("You are not authorized to access this resource.");
         errorResponse.Error.Should().Be("Unauthorized");
     }
 
-    [Fact(Skip = "GlobalExceptionHandler not writing response body correctly - implementation issue")]
+    [Fact]
     public async Task TryHandleAsync_Should_ReturnUserFriendlyMessage_For_KeyNotFoundException()
     {
         // Arrange
@@ -208,14 +208,14 @@ public class GlobalExceptionHandlerTests
         // Assert
         _httpContext.Response.Body.Position = 0;
         var responseBody = await new StreamReader(_httpContext.Response.Body).ReadToEndAsync();
-        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody);
+        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         errorResponse.Should().NotBeNull();
         errorResponse!.Message.Should().Be("The requested resource was not found.");
         errorResponse.Error.Should().Be("NotFound");
     }
 
-    [Fact(Skip = "GlobalExceptionHandler not writing response body correctly - implementation issue")]
+    [Fact]
     public async Task TryHandleAsync_Should_ReturnUserFriendlyMessage_For_GenericException()
     {
         // Arrange
@@ -227,14 +227,14 @@ public class GlobalExceptionHandlerTests
         // Assert
         _httpContext.Response.Body.Position = 0;
         var responseBody = await new StreamReader(_httpContext.Response.Body).ReadToEndAsync();
-        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody);
+        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         errorResponse.Should().NotBeNull();
         errorResponse!.Message.Should().Be("An unexpected error occurred. Please try again later.");
         errorResponse.Error.Should().Be("InternalServerError");
     }
 
-    [Fact(Skip = "GlobalExceptionHandler not writing response body correctly - implementation issue")]
+    [Fact]
     public async Task TryHandleAsync_Should_UseArgumentExceptionMessage_For_ValidationError()
     {
         // Arrange
@@ -247,14 +247,14 @@ public class GlobalExceptionHandlerTests
         // Assert
         _httpContext.Response.Body.Position = 0;
         var responseBody = await new StreamReader(_httpContext.Response.Body).ReadToEndAsync();
-        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody);
+        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         errorResponse.Should().NotBeNull();
         errorResponse!.Message.Should().Be(customMessage);
         errorResponse.Error.Should().Be("ValidationError");
     }
 
-    [Fact(Skip = "GlobalExceptionHandler not writing response body correctly - implementation issue")]
+    [Fact]
     public async Task TryHandleAsync_Should_IncludeTraceId_InResponse()
     {
         // Arrange
@@ -268,7 +268,7 @@ public class GlobalExceptionHandlerTests
         // Assert
         _httpContext.Response.Body.Position = 0;
         var responseBody = await new StreamReader(_httpContext.Response.Body).ReadToEndAsync();
-        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody);
+        var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         errorResponse.Should().NotBeNull();
         errorResponse!.TraceId.Should().Be(traceId);
