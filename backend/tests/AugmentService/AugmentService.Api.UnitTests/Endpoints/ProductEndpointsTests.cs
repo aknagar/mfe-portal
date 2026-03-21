@@ -3,10 +3,12 @@ using AugmentService.Core.Entities;
 using AugmentService.Infrastructure;
 using AugmentService.Infrastructure.ProductData;
 using FluentAssertions;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -245,6 +247,21 @@ public class ProductEndpointsTests : IDisposable
         var countAfter = await _context.Product.CountAsync();
         countBefore.Should().Be(1);
         countAfter.Should().Be(0);
+    }
+
+    [Fact]
+    public void MapProductEndpoints_Should_RegisterRoutes_Without_Throwing()
+    {
+        // Arrange
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddRouting();
+        var app = builder.Build();
+
+        // Act - this invokes MapProductEndpoints, covering the static method
+        var act = () => app.MapProductEndpoints();
+
+        // Assert
+        act.Should().NotThrow();
     }
 
     // Helper methods that mirror the actual endpoint handlers from ProductEndpoints.cs
