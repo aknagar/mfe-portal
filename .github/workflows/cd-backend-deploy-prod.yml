@@ -125,6 +125,7 @@ jobs:
   health-check:
     name: Health Check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: deploy
     if: ${{ !inputs.skip_health_check }}
     
