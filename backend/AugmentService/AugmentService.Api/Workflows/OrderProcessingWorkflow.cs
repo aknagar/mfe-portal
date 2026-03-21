@@ -1,5 +1,4 @@
 using Dapr.Workflow;
-using DurableTask.Core.Exceptions;
 using AugmentService.Api.Activities;
 using AugmentService.Api.Models;
 using AugmentService.Api.Controllers;
@@ -103,7 +102,7 @@ namespace AugmentService.Api.Workflows
                     nameof(UpdateInventoryActivity),
                     new PaymentRequest(RequestId: orderId, order.Name, order.Quantity, order.TotalCost));
             }
-            catch (TaskFailedException)
+            catch (WorkflowTaskFailedException)
             {
                 // Let them know their payment was processed
                 await context.CallActivityAsync(
