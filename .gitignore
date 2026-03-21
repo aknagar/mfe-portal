@@ -29,6 +29,9 @@ docker-compose.override.yml
 # Local data volumes
 postgres_data/
 
+# Git worktrees (isolated AI session workspaces)
+.worktrees/
+
 # IDE
 .vscode/*
 !.vscode/settings.json
