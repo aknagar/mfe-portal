@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.1.1">
+<Project Sdk="Aspire.AppHost.Sdk/13.1.2">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -23,7 +23,7 @@
     <PackageReference Include="Aspire.Hosting.Azure.KeyVault" />
     <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
-    <PackageReference Include="Aspire.Hosting.Redis" />
+    <PackageReference Include="Aspire.Hosting.Azure.Redis" />
     <PackageReference Include="CommunityToolkit.Aspire.Hosting.Dapr" />
     <PackageReference Include="CommunityToolkit.Aspire.Hosting.k6" />
   </ItemGroup>

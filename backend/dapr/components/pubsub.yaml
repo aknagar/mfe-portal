@@ -9,4 +9,4 @@ spec:
   - name: redisHost
     value: ${REDIS_HOST:-localhost}:6379
   - name: redisPassword
-    value: ""
+    value: ''
