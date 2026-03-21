@@ -20,26 +20,34 @@ npm install
 # Configure Docker daemon for host.docker.internal resolution on Linux
 # (Docker Desktop handles this automatically on macOS/Windows; Linux needs explicit config)
 echo "Configuring Docker daemon for host.docker.internal resolution on Linux..."
-HOST_IP=$(ip route show default | awk '/default/ { print $3 }' | head -1)
-if [ -n "$HOST_IP" ]; then
+HOST_IP=$(ip route show default 2>/dev/null | awk 'NR==1 && /via/ { print $3 }')
+if [ -n "$HOST_IP" ] && [[ "$HOST_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     mkdir -p /etc/docker
-    cat > /etc/docker/daemon.json <<EOF
-{
-  "host-gateway-ip": "${HOST_IP}"
-}
-EOF
-    # Restart daemon to pick up the new config
+    if [ -f /etc/docker/daemon.json ]; then
+        tmp=$(mktemp)
+        jq --arg ip "${HOST_IP}" '. + {"host-gateway-ip": $ip}' /etc/docker/daemon.json > "$tmp" \
+            && mv "$tmp" /etc/docker/daemon.json \
+            || echo "Warning: could not merge daemon.json; skipping host-gateway-ip config"
+    else
+        printf '{\n  "host-gateway-ip": "%s"\n}\n' "${HOST_IP}" > /etc/docker/daemon.json
+    fi
     echo "Restarting Docker daemon to apply host-gateway-ip=${HOST_IP}..."
-    service docker restart || true
-    # Wait for daemon to be ready
+    if ! service docker restart 2>/dev/null; then
+        echo "Warning: 'service docker restart' failed; daemon.json configuration may not have been applied."
+    fi
+    DOCKER_READY=0
     for i in $(seq 1 15); do
-        docker info >/dev/null 2>&1 && break
+        docker info >/dev/null 2>&1 && DOCKER_READY=1 && break
         echo "Waiting for Docker daemon... ($i/15)"
         sleep 1
     done
-    echo "Docker daemon configured: host.docker.internal will resolve to ${HOST_IP} in all containers."
+    if [ "$DOCKER_READY" -eq 1 ]; then
+        echo "Docker daemon configured: host.docker.internal will resolve to ${HOST_IP} in all containers."
+    else
+        echo "Warning: Docker daemon did not become ready within 15 seconds; subsequent steps may fail."
+    fi
 else
-    echo "Warning: could not determine host gateway IP; host.docker.internal may not resolve in Aspire-managed containers."
+    echo "Warning: could not determine valid host gateway IP (got: '${HOST_IP:-empty}'); host.docker.internal may not resolve in Aspire-managed containers."
 fi
 
 # Build frontend Docker image

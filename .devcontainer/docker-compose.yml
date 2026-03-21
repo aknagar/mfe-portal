@@ -23,7 +23,8 @@ services:
       - DOTNET_USE_POLLING_FILE_WATCHER=true
 
     # Required on Linux: Docker Desktop auto-provides host.docker.internal; Linux needs explicit mapping.
-    # This covers the devcontainer process itself. Aspire-managed containers get it via daemon.json in post-create.sh.
+    # This resolves host.docker.internal inside the devcontainer (.NET processes, terminals, VS Code server).
+    # Aspire-managed child containers get the same resolution via host-gateway-ip set in post-create.sh.
     extra_hosts:
       - "host.docker.internal:host-gateway"
     
