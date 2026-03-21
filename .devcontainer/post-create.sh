@@ -3,11 +3,6 @@ set -e
 
 echo "Running post-create setup..."
 
-# Install .NET Aspire workload (requires elevated privileges)
-echo "Installing .NET Aspire workload..."
-sudo dotnet workload update
-sudo dotnet workload install aspire
-
 # Trust HTTPS development certificate
 echo "Setting up HTTPS development certificates..."
 dotnet dev-certs https --trust 2>/dev/null || true

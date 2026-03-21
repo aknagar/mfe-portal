@@ -28,7 +28,7 @@ dapr --version || echo "Dapr CLI available"
 # Start .NET Aspire orchestrator in the background
 echo "Starting .NET Aspire orchestrator..."
 nohup dotnet run --project /workspace/backend/MfePortal.AppHost \
-    --launch-profile http \
+    --launch-profile https \
     > /tmp/aspire.log 2>&1 &
 aspire_pid=$!
 
