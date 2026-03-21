@@ -17,40 +17,43 @@ namespace AugmentService.Api.Activities
 
         public override async Task<InventoryResult> RunAsync(WorkflowActivityContext context, InventoryRequest req)
         {
-            // Validate required input - ItemName is used as the state store key
+            // Guard: ItemName is the Dapr state store key — null/empty would throw inside the SDK.
+            // This is a programming error (invalid workflow input), not an expected business case.
             if (string.IsNullOrEmpty(req.ItemName))
             {
-                this.logger.LogWarning(
-                    "ReserveInventory failed for order {requestId}: ItemName cannot be null or empty",
+                this.logger.LogError(
+                    "ReserveInventory for order {RequestId}: ItemName is null or empty. " +
+                    "The Order.Name must be validated before scheduling the workflow.",
                     req.RequestId);
                 return new InventoryResult(false, null);
             }
 
             this.logger.LogInformation(
-                "Reserving inventory for order {requestId} of {quantity} {name}",
+                "Reserving inventory for order {RequestId}: {Quantity} x '{ItemName}'",
                 req.RequestId,
                 req.Quantity,
                 req.ItemName);
 
             OrderPayload? orderResponse;
-            string key;
+            (orderResponse, _) = await client.GetStateAndETagAsync<OrderPayload>(storeName, req.ItemName);
 
-            // Ensure that the store has items
-            (orderResponse, key) = await client.GetStateAndETagAsync<OrderPayload>(storeName, req.ItemName);
-
-            // Catch for the case where the statestore isn't setup
             if (orderResponse == null)
             {
-                // Not enough items.
+                this.logger.LogWarning(
+                    "ReserveInventory for order {RequestId}: item '{ItemName}' not found in inventory state store '{StoreName}'.",
+                    req.RequestId,
+                    req.ItemName,
+                    storeName);
                 return new InventoryResult(false, null);
             }
 
             this.logger.LogInformation(
-                "There are: {requestId}, {name} available for purchase",
+                "Inventory check for order {RequestId}: {Available} units of '{ItemName}' available, {Requested} requested.",
+                req.RequestId,
                 orderResponse.Quantity,
-                orderResponse.Name);
+                orderResponse.Name,
+                req.Quantity);
 
-            // See if there're enough items to purchase
             if (orderResponse.Quantity >= req.Quantity)
             {
                 // Simulate slow processing
@@ -59,9 +62,13 @@ namespace AugmentService.Api.Activities
                 return new InventoryResult(true, orderResponse);
             }
 
-            // Not enough items.
+            this.logger.LogWarning(
+                "ReserveInventory for order {RequestId}: insufficient stock for '{ItemName}' — {Available} available, {Requested} requested.",
+                req.RequestId,
+                req.ItemName,
+                orderResponse.Quantity,
+                req.Quantity);
             return new InventoryResult(false, orderResponse);
-
         }
     }
 }

@@ -38,5 +38,6 @@
         "speckit.plan": true,
         "speckit.tasks": true,
         "speckit.implement": true
-    }
+    },
+    "dev.containers.mountWaylandSocket": false
 }

@@ -141,13 +141,14 @@ public class ProductEndpointsTests : IDisposable
         product.Id.Should().BeGreaterThan(0);
     }
 
-    [Fact(Skip = "ExecuteUpdateAsync does not update in-memory SQLite - test implementation issue")]
+    [Fact]
     public async Task UpdateProduct_Should_ReturnOk_When_ProductExists()
     {
         // Arrange
         var product = new Product { Id = 1, Name = "Original", Description = "Desc", Price = 10m, ImageUrl = "img.png" };
         _context.Product.Add(product);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         var updatedProduct = new Product { Id = 1, Name = "Updated", Description = "New Desc", Price = 20m, ImageUrl = "new.png" };
 
@@ -198,7 +199,7 @@ public class ProductEndpointsTests : IDisposable
         savedProduct.Should().BeEquivalentTo(updated);
     }
 
-    [Fact(Skip = "ExecuteDeleteAsync does not delete in-memory SQLite - test implementation issue")]
+    [Fact]
     public async Task DeleteProduct_Should_ReturnOk_When_ProductExists()
     {
         // Arrange
@@ -212,7 +213,8 @@ public class ProductEndpointsTests : IDisposable
         // Assert
         result.Result.Should().BeOfType<Ok>();
 
-        // Verify product was deleted
+        // Verify product was deleted (clear tracker so FindAsync hits the DB, not the cache)
+        _context.ChangeTracker.Clear();
         var deletedProduct = await _context.Product.FindAsync(1);
         deletedProduct.Should().BeNull();
     }

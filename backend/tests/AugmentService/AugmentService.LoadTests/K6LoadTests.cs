@@ -20,21 +20,21 @@ public class K6LoadTests
         _output = output;
     }
 
-    [Fact(Skip = "Temporarily disabled")]
+    [Fact]
     [Trait("Category", "LoadTest")]
     public async Task HealthCheck_SmokeTest_Succeeds()
     {
         await RunK6TestAsync("smoke-test.js", "smoke");
     }
 
-    [Fact(Skip = "Temporarily disabled")]
+    [Fact]
     [Trait("Category", "LoadTest")]
     public async Task UserPermissions_LoadTest_Succeeds()
     {
         await RunK6TestAsync("user-permissions-test.js", "load");
     }
 
-    [Fact(Skip = "Temporarily disabled")]
+    [Fact]
     [Trait("Category", "LoadTest")]
     public async Task Proxy_LoadTest_Succeeds()
     {

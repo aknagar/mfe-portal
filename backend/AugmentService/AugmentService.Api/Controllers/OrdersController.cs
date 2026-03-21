@@ -1,14 +1,9 @@
-using Azure.Messaging.ServiceBus;
-using Dapr.Client;
-using Dapr.Workflow;
+using AugmentService.Api.Models;
 using AugmentService.Api.Workflows;
 using AugmentService.Core.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.ServiceBus;
-using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations;
-using System.Text;
 
 namespace AugmentService.Api.Controllers
 {
@@ -16,30 +11,38 @@ namespace AugmentService.Api.Controllers
     [ApiController]
     public class OrdersController : ControllerBase
     {
-        private readonly ServiceBusSender _serviceBusSender;
-        private readonly DaprWorkflowClient _daprWorkflowClient;
-        private readonly DaprClient _daprClient;
+        private readonly IOrderWorkflowClient _workflowClient;
+        private readonly ILogger<OrdersController> _logger;
 
-        public OrdersController(ServiceBusClient serviceBusClient, DaprWorkflowClient daprWorkflowClient, DaprClient daprClient)
+        public OrdersController(
+            IOrderWorkflowClient workflowClient,
+            ILogger<OrdersController> logger)
         {
-            // Guard.NotNull(queueClient, nameof(queueClient));
-            _serviceBusSender = serviceBusClient.CreateSender("orders");
-            _daprWorkflowClient = daprWorkflowClient;
-            _daprClient = daprClient;
+            _workflowClient = workflowClient;
+            _logger = logger;
         }
         
         [HttpPost(Name = "Order_Create")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status202Accepted)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody, Required] Order order)
         {
-            var rawOrder = JsonConvert.SerializeObject(order);
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            // Map to workflow input type — explicit mapping avoids implicit JSON round-trip
+            // and ensures TotalCost int→double widening is intentional.
+            var orderPayload = new OrderPayload(order.Name, order.TotalCost, order.Quantity);
+
+            _logger.LogInformation(
+                "Starting order workflow: Name={Name}, Quantity={Quantity}, TotalCost={TotalCost}",
+                orderPayload.Name, orderPayload.Quantity, orderPayload.TotalCost);
             
-            // Start the workflow
-            Console.WriteLine("Starting workflow: Name={0}, Quantity={1}, TotalCost={2}", order.Name, order.Quantity, order.TotalCost);
-            
-            var instanceId = await _daprWorkflowClient.ScheduleNewWorkflowAsync(
+            var instanceId = await _workflowClient.ScheduleNewWorkflowAsync(
                 name: nameof(OrderProcessingWorkflow),
-                input: order);
+                input: orderPayload);
 
             var response = new
             {
@@ -51,11 +54,11 @@ namespace AugmentService.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(string id)
         {
-            var workflowState = await _daprWorkflowClient.GetWorkflowStateAsync(id);
+            var runtimeStatus = await _workflowClient.GetWorkflowStatusAsync(id);
             var response = new
             {
                 WorkflowInstanceId = id,
-                WorkflowStatus = workflowState.RuntimeStatus
+                WorkflowStatus = runtimeStatus
             };
 
             return Ok(response);

@@ -182,6 +182,11 @@ builder.Services.AddDaprWorkflow(options =>
     options.RegisterActivity<HandleApprovalTimeoutActivity>();
 });
 
+// Register IOrderWorkflowClient — thin wrapper so OrdersController doesn't depend
+// on the concrete DaprWorkflowClient (which has no virtual methods and can't be mocked).
+builder.Services.AddScoped<IOrderWorkflowClient>(sp =>
+    new DaprOrderWorkflowClient(sp.GetRequiredService<DaprWorkflowClient>()));
+
 // Add global exception handler
 builder.Services.AddExceptionHandler<AugmentService.Api.Middleware.GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
