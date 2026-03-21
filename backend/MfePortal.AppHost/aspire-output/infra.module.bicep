@@ -7,6 +7,8 @@ param tags object = { }
 
 param infra_acr_outputs_name string
 
+param logs_infra_outputs_name string
+
 resource infra_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: take('infra_mi-${uniqueString(resourceGroup().id)}', 128)
   location: location
@@ -27,15 +29,8 @@ resource infra_acr_infra_mi_AcrPull 'Microsoft.Authorization/roleAssignments@202
   scope: infra_acr
 }
 
-resource infra_law 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
-  name: take('infralaw-${uniqueString(resourceGroup().id)}', 63)
-  location: location
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-  }
-  tags: tags
+resource infra_law 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
+  name: logs_infra_outputs_name
 }
 
 resource infra 'Microsoft.App/managedEnvironments@2025-01-01' = {

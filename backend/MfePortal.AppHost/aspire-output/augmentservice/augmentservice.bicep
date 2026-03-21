@@ -73,6 +73,10 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
           name: 'redis-uri'
           value: 'redis://:${uriComponent(redis_password_value)}@redis:6379'
         }
+        {
+          name: 'appinsights-connection-string'
+          value: appinsights_infra_outputs_appinsightsconnectionstring
+        }
       ]
       activeRevisionsMode: 'Single'
       ingress: {
@@ -217,7 +221,7 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
             }
             {
               name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-              value: appinsights_infra_outputs_appinsightsconnectionstring
+              secretRef: 'appinsights-connection-string'
             }
             {
               name: 'ConnectionStrings__keyvault'
@@ -240,6 +244,7 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
       ]
       scale: {
         minReplicas: 1
+        maxReplicas: 10
       }
     }
   }
