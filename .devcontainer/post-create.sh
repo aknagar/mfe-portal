@@ -62,6 +62,7 @@ dapr init --slim || echo "Dapr initialization skipped (may already be initialize
 # Add Dapr to PATH
 echo "Configuring Dapr PATH..."
 if ! grep -q ".dapr/bin" ~/.bashrc; then
+    # shellcheck disable=SC2016 # intentional: $HOME/$PATH must expand at login time, not now
     echo 'export PATH="$HOME/.dapr/bin:$PATH"' >> ~/.bashrc
 fi
 export PATH="$HOME/.dapr/bin:$PATH"
