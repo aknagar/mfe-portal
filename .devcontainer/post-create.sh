@@ -17,6 +17,31 @@ echo "Installing frontend npm packages..."
 cd /workspace/frontend/shell
 npm install
 
+# Configure Docker daemon for host.docker.internal resolution on Linux
+# (Docker Desktop handles this automatically on macOS/Windows; Linux needs explicit config)
+echo "Configuring Docker daemon for host.docker.internal resolution on Linux..."
+HOST_IP=$(ip route show default | awk '/default/ { print $3 }' | head -1)
+if [ -n "$HOST_IP" ]; then
+    mkdir -p /etc/docker
+    cat > /etc/docker/daemon.json <<EOF
+{
+  "host-gateway-ip": "${HOST_IP}"
+}
+EOF
+    # Restart daemon to pick up the new config
+    echo "Restarting Docker daemon to apply host-gateway-ip=${HOST_IP}..."
+    service docker restart || true
+    # Wait for daemon to be ready
+    for i in $(seq 1 15); do
+        docker info >/dev/null 2>&1 && break
+        echo "Waiting for Docker daemon... ($i/15)"
+        sleep 1
+    done
+    echo "Docker daemon configured: host.docker.internal will resolve to ${HOST_IP} in all containers."
+else
+    echo "Warning: could not determine host gateway IP; host.docker.internal may not resolve in Aspire-managed containers."
+fi
+
 # Build frontend Docker image
 echo "Building frontend Docker image..."
 cd /workspace/frontend
