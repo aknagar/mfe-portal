@@ -3,8 +3,6 @@
 ## Overview
 The AugmentService is a reverse proxy microservice that provides HTTP request proxying capabilities with built-in health monitoring and API documentation.
 
-**Base URL:** `https://localhost:7139`
-
 ---
 
 ## Application APIs
