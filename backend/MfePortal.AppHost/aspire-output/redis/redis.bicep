@@ -8,6 +8,8 @@ param infra_outputs_azure_container_apps_environment_id string
 @secure()
 param redis_password_value string
 
+// WARNING: This container has no persistent volume mount. Data will be lost on container restart.
+// For production use, provision an Azure Database for PostgreSQL Flexible Server instead.
 resource redis 'Microsoft.App/containerApps@2025-01-01' = {
   name: 'redis'
   location: location
@@ -49,6 +51,7 @@ resource redis 'Microsoft.App/containerApps@2025-01-01' = {
       ]
       scale: {
         minReplicas: 1
+        maxReplicas: 1
       }
     }
   }

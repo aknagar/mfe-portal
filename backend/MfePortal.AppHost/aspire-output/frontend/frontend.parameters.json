@@ -3,22 +3,22 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "location": {
-      "value": "centralindia"
+      "value": "__AZURE_LOCATION__"
     },
     "infra_outputs_azure_container_apps_environment_default_domain": {
-      "value": "gentlesmoke-c643e3fb.centralindia.azurecontainerapps.io"
+      "value": "__INFRA_CONTAINER_APPS_ENV_DEFAULT_DOMAIN__"
     },
     "infra_outputs_azure_container_apps_environment_id": {
-      "value": "/subscriptions/bc721a0b-4698-4d2d-9b32-bba5872f35b9/resourceGroups/rg-mfe-test/providers/Microsoft.App/managedEnvironments/infraescmmynaae3lk"
+      "value": "__INFRA_CONTAINER_APPS_ENV_ID__"
     },
     "frontend_containerimage": {
-      "value": "infraacrescmmynaae3lk.azurecr.io/frontend:latest"
+      "value": "__AZURE_CONTAINER_REGISTRY_ENDPOINT__/frontend:latest"
     },
     "infra_outputs_azure_container_registry_endpoint": {
-      "value": "infraacrescmmynaae3lk.azurecr.io"
+      "value": "__AZURE_CONTAINER_REGISTRY_ENDPOINT__"
     },
     "infra_outputs_azure_container_registry_managed_identity_id": {
-      "value": "/subscriptions/bc721a0b-4698-4d2d-9b32-bba5872f35b9/resourceGroups/rg-mfe-test/providers/Microsoft.ManagedIdentity/userAssignedIdentities/infra_mi-escmmynaae3lk"
+      "value": "__INFRA_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID__"
     }
   }
 }
