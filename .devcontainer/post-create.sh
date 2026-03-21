@@ -33,11 +33,6 @@ if ! grep -q ".dapr/bin" ~/.bashrc; then
 fi
 export PATH="$HOME/.dapr/bin:$PATH"
 
-# Create local databases
-echo "Setting up local databases..."
-PGPASSWORD="${POSTGRES_PASSWORD}" psql -h postgres -U "${POSTGRES_USER:-postgres}" -c "CREATE DATABASE productdb;" 2>/dev/null || echo "productdb may already exist"
-PGPASSWORD="${POSTGRES_PASSWORD}" psql -h postgres -U "${POSTGRES_USER:-postgres}" -c "CREATE DATABASE weatherdb;" 2>/dev/null || echo "weatherdb may already exist"
-
 # Set git safe directory
 git config --global --add safe.directory /workspace
 
