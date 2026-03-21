@@ -187,6 +187,11 @@ builder.Services.AddDaprWorkflow(options =>
 builder.Services.AddScoped<IOrderWorkflowClient>(sp =>
     new DaprOrderWorkflowClient(sp.GetRequiredService<DaprWorkflowClient>()));
 
+// Register IDaprWorkflowClient — allows ApprovalsController to depend on an interface
+// instead of the sealed DaprWorkflowClient, enabling unit testing with Moq.
+builder.Services.AddScoped<IDaprWorkflowClient>(sp =>
+    sp.GetRequiredService<DaprWorkflowClient>());
+
 // Add global exception handler
 builder.Services.AddExceptionHandler<AugmentService.Api.Middleware.GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();

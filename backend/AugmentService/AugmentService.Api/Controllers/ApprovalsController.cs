@@ -10,7 +10,7 @@ namespace AugmentService.Api.Controllers
     [ApiController]
     public class ApprovalsController : ControllerBase
     {
-        private readonly DaprWorkflowClient _daprWorkflowClient;
+        private readonly IDaprWorkflowClient _daprWorkflowClient;
         private readonly DaprClient _daprClient;
         private readonly ILogger<ApprovalsController> _logger;
         private const string StateStoreName = "statestore";
@@ -18,7 +18,7 @@ namespace AugmentService.Api.Controllers
         private const string ApprovalEventName = "ApprovalReceived";
 
         public ApprovalsController(
-            DaprWorkflowClient daprWorkflowClient, 
+            IDaprWorkflowClient daprWorkflowClient, 
             DaprClient daprClient,
             ILogger<ApprovalsController> logger)
         {
