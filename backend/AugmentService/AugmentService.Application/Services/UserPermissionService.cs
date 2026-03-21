@@ -100,14 +100,14 @@ public class UserPermissionService : IUserPermissionService
         if (string.IsNullOrWhiteSpace(permission))
             throw new ArgumentException("Permission cannot be null or empty.", nameof(permission));
 
-        _logger.LogDebug("Checking if user {UserId} has permission {Permission}", userId, permission);
+        _logger.LogDebug("Checking if user {UserId} has permission {Permission}", userId, SanitizeForLog(permission));
 
         // Leverage cached permissions via GetUserPermissionsAsync
         var userPermissions = await GetUserPermissionsAsync(userId, cancellationToken);
         var hasPermission = userPermissions.Permissions.Contains(permission);
 
         _logger.LogDebug("User {UserId} {HasPermission} permission {Permission}",
-            userId, hasPermission ? "has" : "lacks", permission);
+            userId, hasPermission ? "has" : "lacks", SanitizeForLog(permission));
 
         return hasPermission;
     }
@@ -145,5 +145,17 @@ public class UserPermissionService : IUserPermissionService
     private static string GetCacheKey(Guid userId)
     {
         return $"permissions:{userId}";
+    }
+
+    /// <summary>
+    /// Sanitizes user-supplied input before it is written to log entries by removing
+    /// carriage-return and newline characters that could be used to forge or split log lines
+    /// (log injection / CWE-117).
+    /// </summary>
+    private static string SanitizeForLog(string value)
+    {
+        return value
+            .Replace("\r", string.Empty, StringComparison.Ordinal)
+            .Replace("\n", string.Empty, StringComparison.Ordinal);
     }
 }
