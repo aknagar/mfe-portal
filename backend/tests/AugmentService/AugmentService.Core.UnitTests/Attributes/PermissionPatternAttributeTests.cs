@@ -44,7 +44,11 @@ public class PermissionPatternAttributeTests
     {
         var result = Validate(value);
         result.Should().NotBe(ValidationResult.Success);
-        result!.ErrorMessage.Should().Contain(value);
+        result!.ErrorMessage.Should().NotBeNullOrEmpty();
+        if (!string.IsNullOrEmpty(value))
+        {
+            result.ErrorMessage.Should().Contain(value);
+        }
     }
 
     [Fact]
@@ -77,7 +81,7 @@ public class PermissionPatternAttributeTests
     public void ErrorMessage_Should_ContainPatternExample()
     {
         var attribute = new PermissionPatternAttribute();
-        attribute.ErrorMessage.Should().Contain("Resource.Action");
+        attribute.FormatErrorMessage("test").Should().Contain("Resource.Action");
     }
 
     [Fact]
