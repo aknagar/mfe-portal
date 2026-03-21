@@ -1,6 +1,7 @@
 using AugmentService.Api.Authorization;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Xunit;
 
 namespace AugmentService.Api.UnitTests.Authorization;

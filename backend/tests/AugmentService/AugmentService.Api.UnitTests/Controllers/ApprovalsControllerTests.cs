@@ -38,7 +38,7 @@ public class ApprovalsControllerTests
     public async Task GetPendingApprovals_Should_ReturnOk_When_QuerySucceeds()
     {
         var response = Substitute.For<StateQueryResponse<ApprovalRequest>>();
-        response.Results.Returns(new List<BulkStateItem<ApprovalRequest>>());
+        response.Results.Returns(new List<StateQueryItem<ApprovalRequest>>());
         _daprClient.QueryStateAsync<ApprovalRequest>(StateStoreName, Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, string>?>(), Arg.Any<CancellationToken>()).Returns(response);
         var result = await _controller.GetPendingApprovals();
         result.Should().BeOfType<OkObjectResult>();
@@ -59,7 +59,7 @@ public class ApprovalsControllerTests
     {
         var pending = new ApprovalRequest { OrderId = "ORD-1", OrderName = "A", Status = ApprovalStatus.Pending, ExpiresAt = DateTime.UtcNow.AddHours(24) };
         var approved = new ApprovalRequest { OrderId = "ORD-2", OrderName = "B", Status = ApprovalStatus.Approved, ExpiresAt = DateTime.UtcNow.AddHours(24) };
-        var items = new List<BulkStateItem<ApprovalRequest>> { new("k1", pending, "e1"), new("k2", approved, "e2") };
+        var items = new List<StateQueryItem<ApprovalRequest>> { new("k1", pending, "e1", ""), new("k2", approved, "e2", "") };
         var response = Substitute.For<StateQueryResponse<ApprovalRequest>>();
         response.Results.Returns(items);
         _daprClient.QueryStateAsync<ApprovalRequest>(StateStoreName, Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, string>?>(), Arg.Any<CancellationToken>()).Returns(response);
