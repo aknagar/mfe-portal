@@ -20,7 +20,11 @@
             **/Program.cs,
             <!-- Exclude build artifacts -->
             **/obj/**,
-            **/bin/**
+            **/bin/**,
+            <!-- Exclude infrastructure-only classes: Azure ServiceBus integration and Dapr workflow wrapper -->
+            <!-- These require live external services (Azure Service Bus, Dapr sidecar) to test meaningfully -->
+            **/Routes/Orders/OrderRoute.cs,
+            **/Workflows/IOrderWorkflowClient.cs
           </ExcludeByFile>
           <IncludeDirectory>../</IncludeDirectory>
           <SingleHit>false</SingleHit>

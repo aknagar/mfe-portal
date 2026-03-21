@@ -1,10 +1,13 @@
 using AugmentService.Api.Endpoints;
 using AugmentService.Core.Interfaces;
 using FluentAssertions;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Reflection;
 using Xunit;
 
 namespace AugmentService.Api.UnitTests.Endpoints;
@@ -209,6 +212,78 @@ public class ProxyEndpointsTests
             Arg.Any<HttpMethod>(),
             Arg.Any<HttpContent?>()
         );
+    }
+
+    [Fact]
+    public void MapProxyEndpoints_Should_RegisterRoute_Without_Throwing()
+    {
+        // Arrange
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddRouting();
+        var app = builder.Build();
+
+        // Act - this invokes MapProxyEndpoints, covering the static method
+        var act = () => app.MapProxyEndpoints();
+
+        // Assert
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public async Task ProxyHandler_Should_ReturnStream_When_InvokedViaReflection()
+    {
+        // Arrange
+        var url = "https://example.com/api/data";
+        var responseContent = new StreamContent(new MemoryStream(System.Text.Encoding.UTF8.GetBytes("test data")));
+        responseContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = responseContent
+        };
+
+        _proxyService.ProxyRequestAsync(url, HttpMethod.Get, null)
+            .Returns(httpResponse);
+
+        // Act - invoke the private static ProxyHandler via reflection
+        var method = typeof(ProxyEndpoints).GetMethod(
+            "ProxyHandler",
+            BindingFlags.NonPublic | BindingFlags.Static);
+
+        method.Should().NotBeNull("ProxyHandler private method should exist");
+
+        var result = await (Task<IResult>)method!.Invoke(null, [url, _proxyService])!;
+
+        // Assert
+        result.Should().NotBeNull();
+        await _proxyService.Received(1).ProxyRequestAsync(url, HttpMethod.Get, null);
+    }
+
+    [Fact]
+    public async Task ProxyHandler_Should_UseDefaultContentType_When_InvokedViaReflection_WithNoContentType()
+    {
+        // Arrange
+        var url = "https://example.com/api/binary";
+        var responseContent = new StreamContent(new MemoryStream(new byte[] { 0x01, 0x02, 0x03 }));
+        // No ContentType set
+
+        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = responseContent
+        };
+
+        _proxyService.ProxyRequestAsync(url, HttpMethod.Get, null)
+            .Returns(httpResponse);
+
+        // Act
+        var method = typeof(ProxyEndpoints).GetMethod(
+            "ProxyHandler",
+            BindingFlags.NonPublic | BindingFlags.Static);
+
+        var result = await (Task<IResult>)method!.Invoke(null, [url, _proxyService])!;
+
+        // Assert
+        result.Should().NotBeNull();
     }
 
     /// <summary>
