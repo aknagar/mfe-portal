@@ -21,6 +21,9 @@ services:
       - REDIS_HOST=redis
       - ASPNETCORE_ENVIRONMENT=Development
       - DOTNET_USE_POLLING_FILE_WATCHER=true
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     
     # No host port mapping needed - VS Code 'forwardPorts' in devcontainer.json handles port forwarding
     
