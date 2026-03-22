@@ -90,7 +90,9 @@ public class ReserveInventoryActivityTests
                 Arg.Any<ConsistencyMode?>(),
                 Arg.Any<IReadOnlyDictionary<string, string>?>(),
                 Arg.Any<CancellationToken>())
-            .Returns((null, ""));
+#pragma warning disable CS8620
+            .Returns(Task.FromResult<(OrderPayload?, string)>((null, "")));
+#pragma warning restore CS8620
 
         // Act
         var result = await _activity.RunAsync(MakeContext(), req);

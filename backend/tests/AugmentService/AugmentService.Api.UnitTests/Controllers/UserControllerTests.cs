@@ -119,7 +119,7 @@ public class UserControllerTests
         };
 
         _userService.GetUserPermissionsAsync(userId, Arg.Any<CancellationToken>())
-            .Throws(new Exception("Database error"));
+            .ThrowsAsync(new Exception("Database error"));
 
         // Act
         var result = await _controller.GetMyPermissions(CancellationToken.None);
@@ -275,7 +275,7 @@ public class UserControllerTests
         };
 
         _userService.HasPermissionAsync(userId, "System.Read", Arg.Any<CancellationToken>())
-            .Throws(new Exception("Service error"));
+            .ThrowsAsync(new Exception("Service error"));
 
         // Act
         var result = await _controller.CheckPermission("System.Read", CancellationToken.None);
