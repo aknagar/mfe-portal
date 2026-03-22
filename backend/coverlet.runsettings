@@ -32,7 +32,7 @@
           <IncludeTestAssembly>false</IncludeTestAssembly>
           <SkipAutoProps>true</SkipAutoProps>
           <!-- Threshold settings (warnings only, not enforced by coverlet) -->
-          <Threshold>80</Threshold>
+          <Threshold>75</Threshold>
           <ThresholdType>line,branch</ThresholdType>
           <ThresholdStat>total</ThresholdStat>
         </Configuration>

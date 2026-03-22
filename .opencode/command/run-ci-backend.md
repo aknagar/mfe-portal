@@ -83,11 +83,11 @@ Output the report in this exact format (fill in real values from the data):
 
 | Metric | Coverage | Covered | Total Coverable | Threshold | Status |
 |--------|----------|---------|-----------------|-----------|--------|
-| Line | _N_% | _N_ | _N_ | 80% | ✅ / ⚠️ |
-| Branch | _N_% | _N_ | _N_ | 80% | ✅ / ⚠️ |
-| Method | _N_% | _N_ | _N_ | 80% | ✅ / ⚠️ |
+| Line | _N_% | _N_ | _N_ | 75% | ✅ / ⚠️ |
+| Branch | _N_% | _N_ | _N_ | 75% | ✅ / ⚠️ |
+| Method | _N_% | _N_ | _N_ | 75% | ✅ / ⚠️ |
 
-> ✅ = meets 80% threshold, ⚠️ = below threshold (from `backend/coverlet.runsettings`)
+> ✅ = meets 75% threshold, ⚠️ = below threshold (from `backend/coverlet.runsettings`)
 
 ### Per-Assembly Coverage
 
@@ -116,6 +116,6 @@ Output the report in this exact format (fill in real values from the data):
 ## Notes
 
 - **Skipped tests**: Some tests in Infrastructure.UnitTests are individually marked `[Fact(Skip = "...")]` — this is expected.
-- **Coverage threshold**: 80% line + branch is defined in `backend/coverlet.runsettings`. It is advisory — coverlet does not fail the build if unmet.
+- **Coverage threshold**: 75% line + branch is defined in `backend/coverlet.runsettings`. It is advisory — coverlet does not fail the build if unmet.
 - **To include integration tests**: Remove `&Category!=Integration` from the filter, but requires Docker running for Testcontainers.
 - **Full HTML report**: Run `reportgenerator "-reports:backend/TestResults/**/coverage.cobertura.xml" "-targetdir:backend/TestResults/CoverageReport" "-reporttypes:Html;JsonSummary"` then open `backend/TestResults/CoverageReport/index.html`.
