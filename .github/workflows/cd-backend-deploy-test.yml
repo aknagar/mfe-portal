@@ -43,7 +43,7 @@ jobs:
 
       - name: Install Aspire CLI
         timeout-minutes: 5
-        run: dotnet tool install -g Aspire.Cli --version 13.1.2
+        run: dotnet tool install -g Aspire.Cli --version 13.1.1
 
       - name: Install Dapr CLI
         uses: dapr/setup-dapr@v2
@@ -71,7 +71,7 @@ jobs:
             --environment-name "${{ env.AZURE_ENV_NAME }}" \
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
             --location "${{ env.AZURE_LOCATION }}" \
-            --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}"
+            --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}" \
             --debug
 
       - name: Get deployment outputs
