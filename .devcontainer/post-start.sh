@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+readonly ASPIRE_LOG="/tmp/aspire.log"
+
 echo "Running post-start setup..."
 
 # Extract Aspire dashboard login token from the log
@@ -13,32 +15,39 @@ get_aspire_token() {
     echo "$token"
 }
 
-readonly ASPIRE_LOG="/tmp/aspire.log"
-
 # Print a formatted table of Aspire resource states
 print_resource_table() {
     local response="$1"
     echo ""
-    echo "┌─────────────────────────────────────────────────────┐"
-    echo "│              Aspire Resource Status                  │"
-    echo "├──────────────────────────────┬──────────────────────┤"
-    printf "│ %-28s │ %-20s │\n" "Resource" "State"
-    echo "├──────────────────────────────┼──────────────────────┤"
-    # Parse name+state pairs — works without jq
-    # Requires GNU grep (available on ubuntu-22.04 devcontainer base)
-    local names states
-    names=$(echo "$response" | grep -oP '(?<="name":")[^"]+')
-    states=$(echo "$response" | grep -oP '(?<="state":")[^"]+')
-    paste <(echo "$names") <(echo "$states") | while IFS=$'\t' read -r name state; do
+    echo "+--------------------------------------------------------------+"
+    echo "|              Aspire Resource Status                          |"
+    echo "+------------------------------+----------------------+"
+    printf "| %-28s | %-20s |\n" "Resource" "State"
+    echo "+------------------------------+----------------------+"
+
+    # Extract name+state pairs using python3 (reliable JSON parsing, no jq needed)
+    local pairs
+    pairs=$(echo "$response" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+resources = data.get('resources', [])
+for r in resources:
+    name = r.get('name', '?')
+    state = r.get('state', '?')
+    print(name + '\t' + state)
+" 2>/dev/null)
+
+    echo "$pairs" | while IFS=$'\t' read -r name state; do
+        [ -z "$name" ] && continue
         local icon="  "
         case "$state" in
-            Running|Finished|Exited) icon="✓ " ;;
-            FailedToStart|RuntimeUnhealthy) icon="✗ " ;;
-            Starting|Building|Waiting) icon="⋯ " ;;
+            Running|Finished|Exited) icon="+ " ;;
+            FailedToStart|RuntimeUnhealthy) icon="X " ;;
+            Starting|Building|Waiting) icon=". " ;;
         esac
-        printf "│ %-28s │ %s%-18s │\n" "$name" "$icon" "$state"
+        printf "| %-28s | %s%-18s |\n" "$name" "$icon" "$state"
     done
-    echo "└──────────────────────────────┴──────────────────────┘"
+    echo "+------------------------------+----------------------+"
     echo ""
 }
 
@@ -47,6 +56,7 @@ wait_for_aspire_resources() {
     local dashboard_url="${1:-https://localhost:15001}"
     local token="${2:-}"
     local max_wait="${3:-300}"
+    local pid="${4:-$aspire_pid}"
     local waited=0
     local auth_header=""
 
@@ -61,7 +71,7 @@ wait_for_aspire_resources() {
 
     while [ $waited -lt $max_wait ]; do
         # Check if Aspire process is still alive
-        if ! kill -0 "$aspire_pid" 2>/dev/null; then
+        if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
             echo "ERROR: Aspire orchestrator exited during resource startup. See $ASPIRE_LOG"
             return 1
         fi
@@ -85,10 +95,10 @@ wait_for_aspire_resources() {
         pending=$(echo "$response" | grep -oP '"state"\s*:\s*"(Starting|Building|Waiting|NotStarted)"' | wc -l)
         local failed
         failed=$(echo "$response" | grep -oP '"state"\s*:\s*"(FailedToStart|RuntimeUnhealthy)"' | wc -l)
-        local total
-        total=$(echo "$response" | grep -oP '"name"\s*:\s*"[^"]+"' | wc -l)
         local healthy
         healthy=$(echo "$response" | grep -oP '"state"\s*:\s*"(Running|Finished|Exited)"' | wc -l)
+        local total
+        total=$(( healthy + pending + failed ))
 
         echo "  Resources: ${healthy}/${total} healthy, ${pending} pending, ${failed} failed (${waited}s elapsed)"
 
