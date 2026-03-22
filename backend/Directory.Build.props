@@ -1,0 +1,18 @@
+<Project>
+  <!--
+    When running inside a Docker devcontainer the workspace is a bind-mount from
+    the Windows host.  MSBuild's incremental-build sentinel files (*.Up2Date) need
+    to update file timestamps, which Windows NTFS denies for files owned by a
+    different UID.  Redirecting obj/ and bin/ to the container-local /tmp
+    filesystem avoids the "Access to the path … is denied" error and also makes
+    builds faster (no cross-filesystem I/O).
+
+    The condition checks the env-var that the devcontainer sets via docker-compose
+    (DOTNET_RUNNING_IN_CONTAINER=true).  On a developer's native machine or in CI
+    the standard next-to-project paths are used, so nothing changes there.
+  -->
+  <PropertyGroup Condition="'$(DOTNET_RUNNING_IN_CONTAINER)' == 'true'">
+    <BaseIntermediateOutputPath>/tmp/msbuild/$(MSBuildProjectName)/obj/</BaseIntermediateOutputPath>
+    <BaseOutputPath>/tmp/msbuild/$(MSBuildProjectName)/bin/</BaseOutputPath>
+  </PropertyGroup>
+</Project>
