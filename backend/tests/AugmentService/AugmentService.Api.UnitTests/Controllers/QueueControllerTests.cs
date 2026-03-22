@@ -61,7 +61,7 @@ public class QueueControllerTests
     {
         // Arrange
         _serviceBusAdminClient.GetQueueRuntimePropertiesAsync("orders", default)
-            .Throws(new ServiceBusException("Queue not found", ServiceBusFailureReason.MessagingEntityNotFound));
+            .ThrowsAsync(new ServiceBusException("Queue not found", ServiceBusFailureReason.MessagingEntityNotFound));
 
         // Act
         Func<Task> act = async () => await _controller.Get();
@@ -76,7 +76,7 @@ public class QueueControllerTests
     {
         // Arrange
         _serviceBusAdminClient.GetQueueRuntimePropertiesAsync("orders", default)
-            .Throws(new ServiceBusException("Unauthorized", ServiceBusFailureReason.ServiceBusy));
+            .ThrowsAsync(new ServiceBusException("Unauthorized", ServiceBusFailureReason.ServiceBusy));
 
         // Act
         Func<Task> act = async () => await _controller.Get();
@@ -91,7 +91,7 @@ public class QueueControllerTests
     {
         // Arrange
         _serviceBusAdminClient.GetQueueRuntimePropertiesAsync("orders", default)
-            .Throws(new ServiceBusException("Connection failed", ServiceBusFailureReason.ServiceCommunicationProblem));
+            .ThrowsAsync(new ServiceBusException("Connection failed", ServiceBusFailureReason.ServiceCommunicationProblem));
 
         // Act
         Func<Task> act = async () => await _controller.Get();

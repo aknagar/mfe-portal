@@ -40,7 +40,9 @@ public class ApprovalsControllerTests
     public async Task GetPendingApprovals_Should_ReturnOk_When_QuerySucceeds()
     {
         var response = new StateQueryResponse<ApprovalRequest>(
+#pragma warning disable CS8625
             new List<StateQueryItem<ApprovalRequest>>(), null, null);
+#pragma warning restore CS8625
         _daprClientMock
             .Setup(d => d.QueryStateAsync<ApprovalRequest>(
                 StateStoreName,
@@ -81,7 +83,9 @@ public class ApprovalsControllerTests
             new("k1", pending, "e1", ""),
             new("k2", approved, "e2", "")
         };
+#pragma warning disable CS8625
         var response = new StateQueryResponse<ApprovalRequest>(items, null, null);
+#pragma warning restore CS8625
         _daprClientMock
             .Setup(d => d.QueryStateAsync<ApprovalRequest>(
                 StateStoreName,
@@ -127,7 +131,9 @@ public class ApprovalsControllerTests
                 It.IsAny<ConsistencyMode?>(),
                 It.IsAny<IReadOnlyDictionary<string, string>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ApprovalRequest?)null);
+#pragma warning disable CS8620
+            .Returns(Task.FromResult<ApprovalRequest?>(null));
+#pragma warning restore CS8620
 
         var result = await _controller.GetApproval(orderId);
 
@@ -164,7 +170,9 @@ public class ApprovalsControllerTests
                 It.IsAny<ConsistencyMode?>(),
                 It.IsAny<IReadOnlyDictionary<string, string>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ApprovalRequest?)null);
+#pragma warning disable CS8620
+            .Returns(Task.FromResult<ApprovalRequest?>(null));
+#pragma warning restore CS8620
 
         var result = await _controller.Approve(orderId, new ApprovalDecisionRequest("admin", null));
 
@@ -316,7 +324,9 @@ public class ApprovalsControllerTests
                 It.IsAny<ConsistencyMode?>(),
                 It.IsAny<IReadOnlyDictionary<string, string>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ApprovalRequest?)null);
+#pragma warning disable CS8620
+            .Returns(Task.FromResult<ApprovalRequest?>(null));
+#pragma warning restore CS8620
 
         var result = await _controller.Reject(orderId, new ApprovalDecisionRequest("manager", null));
 
