@@ -114,6 +114,7 @@
   "remoteEnv": {
     "DOTNET_WATCH_RESTART_ON_RUDE_EDIT": "true",
     "ASPNETCORE_ENVIRONMENT": "Development",
-    "DOTNET_RUNNING_IN_CONTAINER": "true"
+    "DOTNET_RUNNING_IN_CONTAINER": "true",
+    "SSL_CERT_DIR": "/home/vscode/.aspnet/dev-certs/trust:/usr/lib/ssl/certs"
   }
 }
