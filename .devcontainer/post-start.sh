@@ -3,6 +3,15 @@ set -e
 
 echo "Running post-start setup..."
 
+# Extract Aspire dashboard login token from the log
+get_aspire_token() {
+    local log_file="/tmp/aspire.log"
+    local token=""
+    # The token appears as: Login to the dashboard at https://...?t=<TOKEN>
+    token=$(grep -oP '(?<=\?t=)[A-Za-z0-9_-]+' "$log_file" 2>/dev/null | tail -1)
+    echo "$token"
+}
+
 # Wait for PostgreSQL to be ready
 echo "Waiting for PostgreSQL..."
 timeout=30
@@ -47,7 +56,7 @@ fi
 
 # Optional readiness check for the Aspire dashboard
 dashboard_url="${ASPIRE_DASHBOARD_URL:-https://localhost:15001}"
-max_wait_seconds=30
+max_wait_seconds=120
 waited=0
 
 if command -v curl >/dev/null 2>&1; then
