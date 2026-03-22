@@ -53,14 +53,14 @@ npm install
 echo "Configuring Docker daemon for host.docker.internal resolution on Linux..."
 HOST_IP=$(ip route show default 2>/dev/null | awk 'NR==1 && /via/ { print $3 }')
 if [ -n "$HOST_IP" ] && [[ "$HOST_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    mkdir -p /etc/docker
+    sudo mkdir -p /etc/docker
     if [ -f /etc/docker/daemon.json ]; then
         tmp=$(mktemp)
         jq --arg ip "${HOST_IP}" '. + {"host-gateway-ip": $ip}' /etc/docker/daemon.json > "$tmp" \
-            && mv "$tmp" /etc/docker/daemon.json \
+            && sudo mv "$tmp" /etc/docker/daemon.json \
             || echo "Warning: could not merge daemon.json; skipping host-gateway-ip config"
     else
-        printf '{\n  "host-gateway-ip": "%s"\n}\n' "${HOST_IP}" > /etc/docker/daemon.json
+        printf '{\n  "host-gateway-ip": "%s"\n}\n' "${HOST_IP}" | sudo tee /etc/docker/daemon.json > /dev/null
     fi
     echo "Restarting Docker daemon to apply host-gateway-ip=${HOST_IP}..."
     if ! service docker restart 2>/dev/null; then
