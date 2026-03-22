@@ -206,21 +206,25 @@ else
     echo "Aspire orchestrator is running with PID $aspire_pid. Check $ASPIRE_LOG for readiness details."
 fi
 
-# Extract login token — retry up to 10s to give Aspire time to flush the token to the log
+# Wait for all Aspire resources to become healthy.
+# Token extraction is done afterwards — the "Login to the dashboard at ...?t=TOKEN"
+# log line is emitted when the dashboard ResourceReadyEvent fires, which happens
+# during startup; by the time all resources are healthy the token is always present.
+if command -v curl >/dev/null 2>&1; then
+    if ! wait_for_aspire_resources "${dashboard_url}" "" 300 "${aspire_pid}"; then
+        echo "WARN: Some Aspire resources failed to start. Check the dashboard for details."
+    fi
+fi
+
+# Extract login token — retry up to 60s (the token log line is emitted when the
+# dashboard resource becomes ready, which should be well before this point)
 aspire_token=""
-for (( _i=1; _i<=10; _i++ )); do
+for (( _i=1; _i<=60; _i++ )); do
     aspire_token=$(get_aspire_token)
     if [ -n "$aspire_token" ]; then break; fi
     sleep 1
 done
 unset _i
-
-# Wait for all Aspire resources to become healthy
-if command -v curl >/dev/null 2>&1; then
-    if ! wait_for_aspire_resources "${dashboard_url}" "${aspire_token}" 300 "${aspire_pid}"; then
-        echo "WARN: Some Aspire resources failed to start. Check the dashboard for details."
-    fi
-fi
 
 # Print the portal access URL for the host user
 echo ""
@@ -230,7 +234,7 @@ if [ -n "$aspire_token" ]; then
     echo "  ${dashboard_url}/login?t=${aspire_token}"
 else
     echo "  ${dashboard_url}"
-    echo "  (No login token found yet — check $ASPIRE_LOG for the token URL)"
+    echo "  (Token not found in $ASPIRE_LOG — run: grep 'Login to the dashboard' $ASPIRE_LOG)"
 fi
 echo ""
 echo "  Port 15001 is forwarded by VS Code Dev Containers."
