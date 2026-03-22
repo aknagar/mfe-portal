@@ -2,26 +2,6 @@ name: CD - Backend Deploy to Test
 
 on:
   workflow_dispatch:
-    inputs:
-      image_tag:
-        description: 'Container image tag to deploy'
-        required: true
-        default: 'latest'
-        type: string
-      run_id:
-        description: 'Build workflow run ID'
-        required: false
-        type: string
-  workflow_call:
-    inputs:
-      image_tag:
-        description: 'Container image tag to deploy'
-        required: true
-        type: string
-      run_id:
-        description: 'Build workflow run ID'
-        required: false
-        type: string
 
 permissions:
   id-token: write

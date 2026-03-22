@@ -10,6 +10,7 @@ permissions:
 jobs:
   provision:
     runs-on: ubuntu-latest
+    environment: test
     timeout-minutes: 100
     env:
       AZURE_ENV_NAME: test
@@ -31,12 +32,10 @@ jobs:
       - name: Install Aspire workload
         timeout-minutes: 10
         run: dotnet workload install aspire
-        shell: pwsh
 
       - name: Install Aspire CLI
         timeout-minutes: 5
-        run: dotnet tool install -g Aspire.Cli --prerelease
-        shell: pwsh
+        run: dotnet tool install -g Aspire.Cli --version 13.1.2
 
       - name: Install Dapr CLI
         uses: dapr/setup-dapr@v2      
@@ -51,8 +50,7 @@ jobs:
       - name: Deploy with Aspire
         timeout-minutes: 90
         working-directory: ./backend/MfePortal.AppHost
-        run: aspire deploy --environment $env:AZURE_ENV_NAME --log-level debug --include-exception-details
-        shell: pwsh
+        run: aspire deploy --environment $AZURE_ENV_NAME --log-level debug --include-exception-details
         env:
           # Note: Colon (:) is not supported in environment variable names
           # Use double underscore (__) instead. For example: Azure__SubscriptionId

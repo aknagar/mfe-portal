@@ -2,11 +2,11 @@
 
 ## Tasks
 
-- [ ] Devcontainers
-- [ ] Fix warnings in backend folder
-- [ ] Fix ReserveInventoryActivity error: "The value cannot be null or empty (Parameter 'key')" - Activity #1 fails with unhandled exception when key is null/empty
+- [ ] Fix CD pipeline
+- [ ] Check Telemetry and Logs
+- [ ] Increase coverage to greater than 90%
 - [ ] Protect Api controllers with role based authorization
-- [ ] Load Test Apis
+- [ ] Availability tests for Apis in Azure
 
 
 
