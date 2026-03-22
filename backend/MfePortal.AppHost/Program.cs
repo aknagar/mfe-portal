@@ -12,9 +12,13 @@ bool isAzureProvisioning = args.Contains("--publisher") ||
 
 var containerAppEnvironment = builder.AddAzureContainerAppEnvironment(Name);
 
-// Use regular Redis for development (runs as container)
-// In production, this will be provisioned as Azure Redis Cache
-var daprRedis = builder.AddAzureManagedRedis("daprRedis").RunAsContainer();
+// Use Redis as local container in development, provision as Azure Redis Cache in Azure
+var daprRedis = builder.AddAzureManagedRedis("daprRedis");
+
+if (builder.Environment.IsDevelopment())
+{
+    daprRedis.RunAsContainer();
+}
 
 var redisHost = daprRedis.Resource.HostName;
 var redisPort = daprRedis.Resource.Port;
