@@ -198,12 +198,40 @@ else
     echo "Aspire orchestrator is running with PID $aspire_pid. Check $ASPIRE_LOG for readiness details."
 fi
 
-echo "Dashboard will be available at ${dashboard_url} once ready."
+# Extract login token — retry up to 10s to give Aspire time to flush the token to the log
+aspire_token=""
+for _i in $(seq 1 10); do
+    aspire_token=$(get_aspire_token)
+    [ -n "$aspire_token" ] && break
+    sleep 1
+done
 
+# Wait for all Aspire resources to become healthy
+if command -v curl >/dev/null 2>&1; then
+    if ! wait_for_aspire_resources "${dashboard_url}" "${aspire_token}" 300 "${aspire_pid}"; then
+        echo "WARN: Some Aspire resources failed to start. Check the dashboard for details."
+    fi
+fi
+
+# Print the portal access URL for the host user
+echo ""
+echo "===================================================================="
+echo "  Aspire Dashboard (accessible from host machine via VS Code):"
+if [ -n "$aspire_token" ]; then
+    echo "  ${dashboard_url}/login?t=${aspire_token}"
+else
+    echo "  ${dashboard_url}"
+    echo "  (No login token found yet — check $ASPIRE_LOG for the token URL)"
+fi
+echo ""
+echo "  Port 15001 is forwarded by VS Code Dev Containers."
+echo "  Open the URL above in your host machine browser."
+echo "===================================================================="
+echo ""
 echo "Post-start setup complete!"
 echo ""
 echo "Ready to develop! Available commands:"
-echo "  tail -f $ASPIRE_LOG                          (Follow Aspire logs)"
+echo "  tail -f $ASPIRE_LOG                              (Follow Aspire logs)"
 echo "  cd frontend/shell && npm start                   (Start frontend dev server)"
 echo "  dapr run --help                                  (Dapr sidecar commands)"
 echo ""
