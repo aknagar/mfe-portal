@@ -77,8 +77,7 @@ jobs:
             --location "${{ env.AZURE_LOCATION }}" \
             --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}" \
             --parameter postgres-password="${{ secrets.POSTGRES_PASSWORD }}" \
-            --parameter redis-password="${{ secrets.REDIS_PASSWORD }}" \
-            --debug
+            --parameter redis-password="${{ secrets.REDIS_PASSWORD }}"
 
       - name: Get deployment outputs
         id: get_url
