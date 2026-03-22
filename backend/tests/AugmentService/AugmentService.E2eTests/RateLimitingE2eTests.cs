@@ -113,7 +113,6 @@ public class RateLimitingE2eTests : IAsyncLifetime
     public async Task E2E_RateLimiter_WorksAcrossMultipleEndpoints()
     {
         // Arrange
-        const int permitLimit = 10;
 
         // Act - Hit different endpoints
         var responses = new List<HttpResponseMessage>
@@ -249,7 +248,6 @@ public class RateLimitingE2eTests : IAsyncLifetime
     public async Task E2E_RateLimiter_WorksWithDifferentHttpMethods()
     {
         // Arrange
-        const int permitLimit = 10;
         var productData = new { name = "Test Product", price = 100 };
         var content = new StringContent(
             JsonSerializer.Serialize(productData), 

@@ -38,7 +38,9 @@ public class HandleApprovalTimeoutActivityTests
                 Arg.Any<ConsistencyMode?>(),
                 Arg.Any<IReadOnlyDictionary<string, string>?>(),
                 Arg.Any<CancellationToken>())
-            .Returns((ApprovalRequest?)null);
+#pragma warning disable CS8620
+            .Returns(Task.FromResult<ApprovalRequest?>(null));
+#pragma warning restore CS8620
 
         // Act
         var result = await _activity.RunAsync(MakeContext(), payload);
@@ -180,7 +182,9 @@ public class HandleApprovalTimeoutActivityTests
                 Arg.Any<ConsistencyMode?>(),
                 Arg.Any<IReadOnlyDictionary<string, string>?>(),
                 Arg.Any<CancellationToken>())
-            .Returns((ApprovalRequest?)null);
+#pragma warning disable CS8620
+            .Returns(Task.FromResult<ApprovalRequest?>(null));
+#pragma warning restore CS8620
 
         // Act
         await _activity.RunAsync(MakeContext(), payload);
@@ -202,7 +206,9 @@ public class HandleApprovalTimeoutActivityTests
                 Arg.Any<ConsistencyMode?>(),
                 Arg.Any<IReadOnlyDictionary<string, string>?>(),
                 Arg.Any<CancellationToken>())
-            .Returns((ApprovalRequest?)null);
+#pragma warning disable CS8620
+            .Returns(Task.FromResult<ApprovalRequest?>(null));
+#pragma warning restore CS8620
 
         // Act
         await _activity.RunAsync(MakeContext(), payload);

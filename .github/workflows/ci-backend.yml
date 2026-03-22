@@ -89,6 +89,7 @@ jobs:
             --no-build \
             --configuration Release \
             --filter "Category!=Integration&Category!=E2E&Category!=LoadTest" \
+            --results-directory ./TestResults \
             --logger "trx;LogFileName=unit-test-results.trx" \
             --logger "console;verbosity=normal"
 
@@ -99,7 +100,7 @@ jobs:
           name: unit-test-results
           path: backend/TestResults/*.trx
           retention-days: 30
-          if-no-files-found: ignore
+          if-no-files-found: warn
 
   integration-tests:
     name: Integration Tests
@@ -143,6 +144,7 @@ jobs:
             --no-build \
             --configuration Release \
             --filter "Category=Integration" \
+            --results-directory ./TestResults \
             --logger "trx;LogFileName=integration-test-results.trx" \
             --logger "console;verbosity=normal"
 
@@ -153,7 +155,7 @@ jobs:
           name: integration-test-results
           path: backend/TestResults/*.trx
           retention-days: 30
-          if-no-files-found: ignore
+          if-no-files-found: warn
 
   e2e-tests:
     name: E2E Tests
@@ -197,6 +199,7 @@ jobs:
             --no-build \
             --configuration Release \
             --filter "Category=E2E" \
+            --results-directory ./TestResults \
             --logger "trx;LogFileName=e2e-test-results.trx" \
             --logger "console;verbosity=normal"
 
@@ -207,7 +210,7 @@ jobs:
           name: e2e-test-results
           path: backend/TestResults/*.trx
           retention-days: 30
-          if-no-files-found: ignore
+          if-no-files-found: warn
 
   coverage:
     name: Code Coverage

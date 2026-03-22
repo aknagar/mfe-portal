@@ -231,7 +231,6 @@ public class RateLimitingIntegrationTests : IClassFixture<WebApplicationFactory<
     {
         // Arrange
         var client = _factory.CreateClient();
-        const int permitLimit = 5;
 
         // Act - Hit different endpoints (global limiter applies to all)
         var responses = new List<HttpResponseMessage>

@@ -41,7 +41,8 @@ internal sealed class DaprOrderWorkflowClient(DaprWorkflowClient inner) : IOrder
         string instanceId,
         CancellationToken cancellationToken = default)
     {
-        var state = await inner.GetWorkflowStateAsync(instanceId);
+        var state = await inner.GetWorkflowStateAsync(instanceId)
+            ?? throw new InvalidOperationException($"Workflow instance '{instanceId}' was not found.");
         return state.RuntimeStatus;
     }
 }

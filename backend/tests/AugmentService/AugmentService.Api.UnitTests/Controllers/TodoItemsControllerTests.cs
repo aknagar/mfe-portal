@@ -77,7 +77,7 @@ public class TodoItemsControllerTests
     {
         // Arrange
         _secretClient.GetSecretAsync("AspireTestSecret", null, default)
-            .Throws(new RequestFailedException(404, "Secret not found"));
+            .ThrowsAsync(new RequestFailedException(404, "Secret not found"));
 
         // Act
         Func<Task> act = async () => await _controller.GetTodoItems();
@@ -92,7 +92,7 @@ public class TodoItemsControllerTests
     {
         // Arrange
         _secretClient.GetSecretAsync("AspireTestSecret", null, default)
-            .Throws(new RequestFailedException(401, "Unauthorized"));
+            .ThrowsAsync(new RequestFailedException(401, "Unauthorized"));
 
         // Act
         Func<Task> act = async () => await _controller.GetTodoItems();
