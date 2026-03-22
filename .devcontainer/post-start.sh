@@ -19,8 +19,8 @@ get_aspire_token() {
 print_resource_table() {
     local response="$1"
     echo ""
-    echo "+--------------------------------------------------------------+"
-    echo "|              Aspire Resource Status                          |"
+    echo "+------------------------------+----------------------+"
+    echo "|       Aspire Resource Status                        |"
     echo "+------------------------------+----------------------+"
     printf "| %-28s | %-20s |\n" "Resource" "State"
     echo "+------------------------------+----------------------+"
@@ -98,7 +98,15 @@ wait_for_aspire_resources() {
         local healthy
         healthy=$(echo "$response" | grep -oP '"state"\s*:\s*"(Running|Finished|Exited)"' | wc -l)
         local total
-        total=$(( healthy + pending + failed ))
+        total=$(echo "$response" | grep -oP '"state"\s*:\s*"[^"]+"' | wc -l)
+
+        # Still waiting for resources to be registered (very early startup)
+        if [ "$total" -eq 0 ]; then
+            echo "  Waiting for Aspire to register resources... (${waited}s elapsed)"
+            waited=$((waited + 5))
+            sleep 5
+            continue
+        fi
 
         echo "  Resources: ${healthy}/${total} healthy, ${pending} pending, ${failed} failed (${waited}s elapsed)"
 
@@ -108,7 +116,7 @@ wait_for_aspire_resources() {
             return 1
         fi
 
-        if [ "$pending" -eq 0 ] && [ "$total" -gt 0 ]; then
+        if [ "$pending" -eq 0 ] && [ "$failed" -eq 0 ] && [ "$total" -gt 0 ]; then
             echo "All $total Aspire resources are healthy!"
             print_resource_table "$response"
             return 0
