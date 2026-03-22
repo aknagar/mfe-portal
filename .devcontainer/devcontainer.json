@@ -88,7 +88,8 @@
     15000,
     15001,
     21295,
-    22028
+    22028,
+    18889
   ],
 
   "portsAttributes": {
@@ -101,7 +102,8 @@
     "15000": { "label": "Aspire Dashboard HTTP", "onAutoForward": "openBrowser" },
     "15001": { "label": "Aspire Dashboard HTTPS", "onAutoForward": "openBrowser" },
     "21295": { "label": "Aspire OTLP", "onAutoForward": "silent" },
-    "22028": { "label": "Aspire Resource Service", "onAutoForward": "silent" }
+    "22028": { "label": "Aspire Internal", "onAutoForward": "silent" },
+    "18889": { "label": "Aspire Resource Service gRPC", "onAutoForward": "silent" }
   },
 
   "postCreateCommand": "bash .devcontainer/post-create.sh",
