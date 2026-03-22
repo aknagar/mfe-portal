@@ -1,7 +1,7 @@
 using Application.Proxy;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
+using Moq;
 using System.Net;
 using Xunit;
 
@@ -11,22 +11,22 @@ public class ProxyApplicationServiceTests
 {
     private readonly TestHttpMessageHandler _messageHandler;
     private readonly HttpClient _httpClient;
-    private readonly ILogger<ProxyApplicationService> _logger;
+    private readonly Mock<ILogger<ProxyApplicationService>> _loggerMock;
     private readonly ProxyApplicationService _sut;
 
     public ProxyApplicationServiceTests()
     {
         _messageHandler = new TestHttpMessageHandler();
         _httpClient = new HttpClient(_messageHandler);
-        _logger = Substitute.For<ILogger<ProxyApplicationService>>();
-        _sut = new ProxyApplicationService(_httpClient, _logger);
+        _loggerMock = new Mock<ILogger<ProxyApplicationService>>();
+        _sut = new ProxyApplicationService(_httpClient, _loggerMock.Object);
     }
 
     [Fact]
     public void Should_ThrowArgumentNullException_When_HttpClientIsNull()
     {
         // Act
-        var act = () => new ProxyApplicationService(null!, _logger);
+        var act = () => new ProxyApplicationService(null!, _loggerMock.Object);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -150,7 +150,7 @@ public class ProxyApplicationServiceTests
         _messageHandler.LastRequest!.Method.Should().Be(method);
     }
 
-    [Fact(Skip = "NSubstitute argument matching issue with logger - needs fix")]
+    [Fact]
     public async Task Should_LogInformationBeforeRequest_When_ProxyRequestCalled()
     {
         // Arrange
@@ -161,13 +161,17 @@ public class ProxyApplicationServiceTests
         await _sut.ProxyRequestAsync(targetUrl, HttpMethod.Get, null);
 
         // Assert
-        _logger.Received(1).LogInformation(
-            "Proxying {Method} request to {TargetUrl}",
-            "GET",
-            targetUrl);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Proxying") && v.ToString()!.Contains("GET") && v.ToString()!.Contains(targetUrl)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
-    [Fact(Skip = "NSubstitute argument matching issue with logger - needs fix")]
+    [Fact]
     public async Task Should_LogInformationAfterSuccessfulRequest_When_ProxyRequestCompletes()
     {
         // Arrange
@@ -178,13 +182,17 @@ public class ProxyApplicationServiceTests
         await _sut.ProxyRequestAsync(targetUrl, HttpMethod.Get, null);
 
         // Assert
-        _logger.Received(1).LogInformation(
-            "Proxy request to {TargetUrl} completed with status {StatusCode}",
-            targetUrl,
-            HttpStatusCode.OK);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("completed") && v.ToString()!.Contains(targetUrl)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
-    [Fact(Skip = "NSubstitute argument matching issue with logger - needs fix")]
+    [Fact]
     public async Task Should_LogErrorAndRethrow_When_HttpClientThrowsException()
     {
         // Arrange
@@ -199,10 +207,14 @@ public class ProxyApplicationServiceTests
         await act.Should().ThrowAsync<HttpRequestException>()
             .WithMessage("Network error");
 
-        _logger.Received(1).LogError(
-            expectedException,
-            "Error proxying request to {TargetUrl}",
-            targetUrl);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Error") && v.ToString()!.Contains(targetUrl)),
+                It.Is<Exception>(ex => ex == expectedException),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

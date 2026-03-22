@@ -9,12 +9,12 @@ internal class DeleteForecastCommandHandler(IWeatherRepository weatherRepository
 {
     public async Task<Result> Handle(DeleteForecastCommand request, CancellationToken cancellationToken)
     {
-        var forecast = await weatherRepository.GetForecastAsync(request.Date);
-        if (forecast is null)
-            return Result.Ok();
-
         try
         {
+            var forecast = await weatherRepository.GetForecastAsync(request.Date);
+            if (forecast is null)
+                return Result.Ok();
+
             forecast.Delete();
             await unitOfWork.SaveChangesAsync(cancellationToken);
             return Result.Ok();

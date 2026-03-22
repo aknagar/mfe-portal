@@ -33,15 +33,19 @@ public class UserRoleRepository : IUserRoleRepository
     /// <inheritdoc />
     public async Task<IEnumerable<string>> GetUserPermissionsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var permissions = await _context.UserRoles
+        // Load roles first, then aggregate permissions in-memory to avoid SQL APPLY
+        // (SelectMany+Distinct on a JSONB list column is not portable across DB providers).
+        var roles = await _context.UserRoles
             .Where(ur => ur.UserId == userId)
             .Include(ur => ur.Role)
             .Where(ur => ur.Role.IsActive)
-            .SelectMany(ur => ur.Role.Permissions)
-            .Distinct()
+            .Select(ur => ur.Role)
             .ToListAsync(cancellationToken);
 
-        return permissions;
+        return roles
+            .SelectMany(r => r.Permissions)
+            .Distinct()
+            .ToList();
     }
 
     /// <inheritdoc />

@@ -63,7 +63,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        if (builder.Environment.IsDevelopment())
+        if (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Test")
         {
             // Development: Allow requests without valid tokens for testing
             // This is a simplified setup for development - replace with Azure AD in production
@@ -197,6 +197,10 @@ builder.Services.AddExceptionHandler<AugmentService.Api.Middleware.GlobalExcepti
 builder.Services.AddProblemDetails();
 
 // Configure Rate Limiting
+// Bind options into DI so that WebApplicationFactory overrides via ConfigureAppConfiguration take effect.
+builder.Services.Configure<RateLimitingOptions>(
+    builder.Configuration.GetSection(RateLimitingOptions.SectionName));
+
 var rateLimitingOptions = builder.Configuration
     .GetSection(RateLimitingOptions.SectionName)
     .Get<RateLimitingOptions>() ?? new RateLimitingOptions();
@@ -207,6 +211,12 @@ if (rateLimitingOptions.Enabled)
     {
         options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
         {
+            // Read options lazily from DI (IOptionsMonitor is singleton-safe) so that
+            // WebApplicationFactory overrides via ConfigureAppConfiguration take effect.
+            var opts = context.RequestServices
+                .GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<RateLimitingOptions>>()
+                .CurrentValue;
+
             // Partition by authenticated user name, or fall back to IP address
             var partitionKey = context.User.Identity?.Name 
                 ?? context.Connection.RemoteIpAddress?.ToString() 
@@ -216,10 +226,10 @@ if (rateLimitingOptions.Enabled)
                 partitionKey: partitionKey,
                 factory: _ => new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = rateLimitingOptions.PermitLimit,
-                    Window = TimeSpan.FromSeconds(rateLimitingOptions.WindowSeconds),
+                    PermitLimit = opts.PermitLimit,
+                    Window = TimeSpan.FromSeconds(opts.WindowSeconds),
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = rateLimitingOptions.QueueLimit
+                    QueueLimit = opts.QueueLimit
                 });
         });
 

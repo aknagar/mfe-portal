@@ -4,6 +4,7 @@ using AugmentService.Core;
 using AugmentService.Core.Interfaces;
 using FluentAssertions;
 using FluentResults;
+using Moq;
 using NSubstitute;
 using Xunit;
 
@@ -144,7 +145,7 @@ public class DeleteForecastCommandHandlerTests
         result.Errors[0].Reasons.Should().Contain(r => r.Message.Contains("Database error"));
     }
 
-    [Fact(Skip = "NSubstitute When/Do exception setup issue - needs fix")]
+    [Fact]
     public async Task Should_ReturnFailure_When_GetForecastThrowsException()
     {
         // Arrange
@@ -152,11 +153,15 @@ public class DeleteForecastCommandHandlerTests
         var command = new DeleteForecastCommand(date);
         var exception = new InvalidOperationException("Repository error");
 
-        _weatherRepository.When(x => x.GetForecastAsync(date))
-            .Do(_ => throw exception);
+        // Use Moq to set up ThrowsAsync - NSubstitute When/Do has issues with async methods
+        var repoMock = new Mock<IWeatherRepository>();
+        repoMock
+            .Setup(x => x.GetForecastAsync(date))
+            .ThrowsAsync(exception);
+        var sut = new DeleteForecastCommandHandler(repoMock.Object, _unitOfWork);
 
         // Act
-        var result = await _sut.Handle(command, CancellationToken.None);
+        var result = await sut.Handle(command, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
