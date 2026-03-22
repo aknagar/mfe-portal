@@ -3,6 +3,7 @@ using FluentAssertions;
 using FluentResults;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Moq;
 using NSubstitute;
 using Xunit;
 
@@ -10,18 +11,18 @@ namespace AugmentService.Application.UnitTests;
 
 public class LoggingBehaviorTests
 {
-    private readonly ILogger<LoggingBehavior<TestRequest, Result>> _logger;
+    private readonly Mock<ILogger<LoggingBehavior<TestRequest, Result>>> _loggerMock;
     private readonly RequestHandlerDelegate<Result> _next;
     private readonly LoggingBehavior<TestRequest, Result> _sut;
 
     public LoggingBehaviorTests()
     {
-        _logger = Substitute.For<ILogger<LoggingBehavior<TestRequest, Result>>>();
+        _loggerMock = new Mock<ILogger<LoggingBehavior<TestRequest, Result>>>();
         _next = Substitute.For<RequestHandlerDelegate<Result>>();
-        _sut = new LoggingBehavior<TestRequest, Result>(_logger);
+        _sut = new LoggingBehavior<TestRequest, Result>(_loggerMock.Object);
     }
 
-    [Fact(Skip = "NSubstitute argument matching issue with logger - needs fix")]
+    [Fact]
     public async Task Should_LogInformationBeforeRequest_When_HandleCalled()
     {
         // Arrange
@@ -32,12 +33,17 @@ public class LoggingBehaviorTests
         await _sut.Handle(request, _next, CancellationToken.None);
 
         // Assert
-        _logger.Received(1).LogInformation(
-            "Start request {RequestName}",
-            "TestRequest");
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Start request") && v.ToString()!.Contains("TestRequest")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
-    [Fact(Skip = "NSubstitute argument matching issue with logger - needs fix")]
+    [Fact]
     public async Task Should_LogInformationAfterSuccess_When_RequestSucceeds()
     {
         // Arrange
@@ -48,12 +54,17 @@ public class LoggingBehaviorTests
         await _sut.Handle(request, _next, CancellationToken.None);
 
         // Assert
-        _logger.Received(1).LogInformation(
-            "Completed request {RequestName}",
-            "TestRequest");
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Completed request") && v.ToString()!.Contains("TestRequest")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
-    [Fact(Skip = "NSubstitute argument matching issue with logger - needs fix")]
+    [Fact]
     public async Task Should_LogErrorAfterFailure_When_RequestFails()
     {
         // Arrange
@@ -66,10 +77,14 @@ public class LoggingBehaviorTests
         await _sut.Handle(request, _next, CancellationToken.None);
 
         // Assert
-        _logger.Received(1).LogError(
-            "Request {RequestName} failed with error with {@Error}",
-            "TestRequest",
-            Arg.Is<List<IError>>(errors => errors.Count == 1 && errors[0].Message == "Something went wrong"));
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("TestRequest") && v.ToString()!.Contains("failed")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]
@@ -134,12 +149,14 @@ public class LoggingBehaviorTests
         await _sut.Handle(request, _next, CancellationToken.None);
 
         // Assert
-        _logger.Received(2).Log(
-            Arg.Any<LogLevel>(),
-            Arg.Any<EventId>(),
-            Arg.Any<object>(),
-            Arg.Any<Exception>(),
-            Arg.Any<Func<object, Exception?, string>>());
+        _loggerMock.Verify(
+            x => x.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Exactly(2));
     }
 
     [Fact]
@@ -153,15 +170,17 @@ public class LoggingBehaviorTests
         await _sut.Handle(request, _next, CancellationToken.None);
 
         // Assert
-        _logger.Received(2).Log(
-            Arg.Any<LogLevel>(),
-            Arg.Any<EventId>(),
-            Arg.Any<object>(),
-            Arg.Any<Exception>(),
-            Arg.Any<Func<object, Exception?, string>>());
+        _loggerMock.Verify(
+            x => x.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Exactly(2));
     }
 
-    [Fact(Skip = "NSubstitute argument matching issue with logger - needs fix")]
+    [Fact]
     public async Task Should_NotLogCompletedMessage_When_RequestFails()
     {
         // Arrange
@@ -172,12 +191,17 @@ public class LoggingBehaviorTests
         await _sut.Handle(request, _next, CancellationToken.None);
 
         // Assert
-        _logger.DidNotReceive().LogInformation(
-            "Completed request {RequestName}",
-            Arg.Any<string>());
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Completed request")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
     }
 
-    [Fact(Skip = "NSubstitute redundant argument matcher exception - test implementation issue")]
+    [Fact]
     public async Task Should_NotLogErrorMessage_When_RequestSucceeds()
     {
         // Arrange
@@ -188,13 +212,17 @@ public class LoggingBehaviorTests
         await _sut.Handle(request, _next, CancellationToken.None);
 
         // Assert
-        _logger.DidNotReceive().LogError(
-            "Request {RequestName} failed with error with {@Error}",
-            Arg.Any<string>(),
-            Arg.Any<object>());
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
     }
 
-    [Fact(Skip = "NSubstitute argument matching issue with logger - needs fix")]
+    [Fact]
     public async Task Should_HandleMultipleErrors_When_RequestFailsWithMultipleErrors()
     {
         // Arrange
@@ -207,10 +235,14 @@ public class LoggingBehaviorTests
 
         // Assert
         result.Errors.Should().HaveCount(3);
-        _logger.Received(1).LogError(
-            "Request {RequestName} failed with error with {@Error}",
-            "TestRequest",
-            Arg.Is<List<IError>>(errors => errors.Count == 3));
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("TestRequest") && v.ToString()!.Contains("failed")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]
@@ -229,13 +261,13 @@ public class LoggingBehaviorTests
         result.Successes[0].Message.Should().Be("Operation completed");
     }
 
-    [Fact(Skip = "NSubstitute argument matching issue with logger - needs fix")]
+    [Fact]
     public async Task Should_UseCorrectRequestName_When_DifferentRequestTypes()
     {
         // Arrange
-        var logger = Substitute.For<ILogger<LoggingBehavior<AnotherTestRequest, Result>>>();
+        var logger = new Mock<ILogger<LoggingBehavior<AnotherTestRequest, Result>>>();
         var next = Substitute.For<RequestHandlerDelegate<Result>>();
-        var behavior = new LoggingBehavior<AnotherTestRequest, Result>(logger);
+        var behavior = new LoggingBehavior<AnotherTestRequest, Result>(logger.Object);
         var request = new AnotherTestRequest();
         next().Returns(Result.Ok());
 
@@ -243,9 +275,14 @@ public class LoggingBehaviorTests
         await behavior.Handle(request, next, CancellationToken.None);
 
         // Assert
-        logger.Received(1).LogInformation(
-            "Start request {RequestName}",
-            "AnotherTestRequest");
+        logger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Start request") && v.ToString()!.Contains("AnotherTestRequest")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

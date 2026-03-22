@@ -2,120 +2,40 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using AugmentService.Infrastructure.ProductData;
 using AugmentService.Infrastructure.WeatherData;
 using AugmentService.Infrastructure.Data;
+using AugmentService.Api.Workflows;
+using Dapr.Client;
+using Dapr.Workflow;
+using Moq;
 using Xunit;
 
 namespace AugmentService.IntegrationTests;
 
-public class RateLimitingIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+/// <summary>
+/// Rate-limiting integration tests.
+/// Each test creates its own factory instance so that the rate-limit window
+/// is always fresh at the start of every test (no shared server state).
+/// </summary>
+public class RateLimitingIntegrationTests
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    /// <summary>
+    /// Creates a fresh <see cref="RateLimitingWebFactory"/> for a single test.
+    /// Disposing it tears down the server and releases the SQLite connections.
+    /// </summary>
+    private static RateLimitingWebFactory CreateFactory() => new();
 
-    public RateLimitingIntegrationTests(WebApplicationFactory<Program> factory)
-    {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.UseEnvironment("Test");
-            
-            builder.ConfigureAppConfiguration((context, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["RateLimiting:Enabled"] = "true",
-                    ["RateLimiting:PermitLimit"] = "5",
-                    ["RateLimiting:WindowSeconds"] = "60",
-                    ["RateLimiting:QueueLimit"] = "0",
-                    // Use in-memory SQLite for testing
-                    ["ConnectionStrings:productdb"] = "Data Source=InMemoryProductDb;Mode=Memory;Cache=Shared",
-                    ["ConnectionStrings:weatherdb"] = "Data Source=InMemoryWeatherDb;Mode=Memory;Cache=Shared",
-                    ["TestContainers:Enabled"] = "false",
-                    // Disable Aspire connection string validation
-                    ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableHealthChecks"] = "true",
-                    ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableTracing"] = "true",
-                    ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableMetrics"] = "true"
-                });
-            });
-
-            builder.ConfigureServices(services =>
-            {
-                // Remove all existing DbContext-related registrations including pools
-                var descriptorsToRemove = services.Where(d =>
-                    d.ServiceType.IsGenericType && (
-                        d.ServiceType.GetGenericTypeDefinition() == typeof(DbContextOptions<>) ||
-                        d.ServiceType.Name.Contains("IDbContextPool") ||
-                        d.ServiceType.Name.Contains("IScopedDbContextLease")
-                    ) && (
-                        d.ServiceType.GetGenericArguments().Any(t => 
-                            t == typeof(ProductDataContext) ||
-                            t == typeof(WeatherDatabaseContext) ||
-                            t == typeof(UserDbContext))
-                    )).ToList();
-
-                // Also remove the DbContext registrations themselves
-                descriptorsToRemove.AddRange(services.Where(d =>
-                    d.ServiceType == typeof(ProductDataContext) ||
-                    d.ServiceType == typeof(WeatherDatabaseContext) ||
-                    d.ServiceType == typeof(UserDbContext)).ToList());
-
-                foreach (var descriptor in descriptorsToRemove)
-                {
-                    services.Remove(descriptor);
-                }
-
-                // Register InfrastructureConfig for contexts that need it
-                services.Configure<AugmentService.Infrastructure.InfrastructureConfig>(config =>
-                {
-                    config.ConnectionString = "Data Source=InMemoryTestDb;Mode=Memory;Cache=Shared";
-                    config.EnableSensitiveDataLogging = false;
-                });
-
-                // Add in-memory database contexts using SQLite with pooling (matching Aspire's behavior)
-                services.AddDbContextPool<ProductDataContext>(options =>
-                    options.UseSqlite("Data Source=InMemoryProductDb;Mode=Memory;Cache=Shared"));
-                
-                services.AddDbContextPool<WeatherDatabaseContext>(options =>
-                    options.UseSqlite("Data Source=InMemoryWeatherDb;Mode=Memory;Cache=Shared"));
-                
-                services.AddDbContextPool<UserDbContext>(options =>
-                    options.UseSqlite("Data Source=InMemoryUserDb;Mode=Memory;Cache=Shared"));
-
-                // Initialize databases with schema
-                var sp = services.BuildServiceProvider();
-                using var scope = sp.CreateScope();
-                var scopedServices = scope.ServiceProvider;
-                
-                try
-                {
-                    var productDb = scopedServices.GetRequiredService<ProductDataContext>();
-                    productDb.Database.OpenConnection();
-                    productDb.Database.EnsureCreated();
-                    
-                    var weatherDb = scopedServices.GetRequiredService<WeatherDatabaseContext>();
-                    weatherDb.Database.OpenConnection();
-                    weatherDb.Database.EnsureCreated();
-                    
-                    var userDb = scopedServices.GetRequiredService<UserDbContext>();
-                    userDb.Database.OpenConnection();
-                    userDb.Database.EnsureCreated();
-                }
-                catch
-                {
-                    // Ignore initialization errors - tests may not need all databases
-                }
-            });
-        });
-    }
-
-    [Fact(Skip = "Returns InternalServerError instead of TooManyRequests - rate limiting configuration issue")]
+    [Fact]
     public async Task RateLimiter_EnforcesLimit_Returns429AfterLimitExceeded()
     {
         // Arrange
-        var client = _factory.CreateClient();
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
         const int permitLimit = 5;
 
         // Act - Make requests up to the limit
@@ -140,19 +60,20 @@ public class RateLimitingIntegrationTests : IClassFixture<WebApplicationFactory<
         Assert.True(responses[permitLimit].Headers.Contains("Retry-After"));
     }
 
-    [Fact(Skip = "Returns InternalServerError instead of TooManyRequests - rate limiting configuration issue")]
+    [Fact]
     public async Task RateLimiter_Returns429WithCorrectJsonResponse()
     {
         // Arrange
-        var client = _factory.CreateClient();
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
         const int permitLimit = 5;
 
-        // Act - Exceed the limit
+        // Act - Exhaust the permit limit then make one more request
         for (int i = 0; i < permitLimit; i++)
         {
             await client.GetAsync("/api/Product");
         }
-        
+
         var response = await client.GetAsync("/api/Product");
         var content = await response.Content.ReadAsStringAsync();
         var json = JsonSerializer.Deserialize<JsonElement>(content);
@@ -165,11 +86,12 @@ public class RateLimitingIntegrationTests : IClassFixture<WebApplicationFactory<
         Assert.Contains("Rate limit exceeded", json.GetProperty("message").GetString());
     }
 
-    [Fact(Skip = "Dapr Workflow concurrent collections error - infrastructure issue")]
+    [Fact]
     public async Task RateLimiter_DoesNotApplyToHealthChecks()
     {
         // Arrange
-        var client = _factory.CreateClient();
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
         const int attemptCount = 20; // Well over the limit
 
         // Act - Make many requests to health check
@@ -183,11 +105,12 @@ public class RateLimitingIntegrationTests : IClassFixture<WebApplicationFactory<
         Assert.All(responses, r => Assert.Equal(HttpStatusCode.OK, r.StatusCode));
     }
 
-    [Fact(Skip = "Dapr Workflow concurrent collections error - infrastructure issue")]
+    [Fact]
     public async Task RateLimiter_DoesNotApplyToAliveEndpoint()
     {
         // Arrange
-        var client = _factory.CreateClient();
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
         const int attemptCount = 20; // Well over the limit
 
         // Act - Make many requests to alive endpoint
@@ -201,36 +124,38 @@ public class RateLimitingIntegrationTests : IClassFixture<WebApplicationFactory<
         Assert.All(responses, r => Assert.Equal(HttpStatusCode.OK, r.StatusCode));
     }
 
-    [Fact(Skip = "Dapr Workflow concurrent collections error - infrastructure issue")]
+    [Fact]
     public async Task RateLimiter_IncludesRetryAfterHeader()
     {
         // Arrange
-        var client = _factory.CreateClient();
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
         const int permitLimit = 5;
 
-        // Act - Exceed the limit
+        // Act - Exhaust the limit then check the rejection response
         for (int i = 0; i < permitLimit; i++)
         {
             await client.GetAsync("/api/Product");
         }
-        
+
         var response = await client.GetAsync("/api/Product");
 
         // Assert
         Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
         Assert.True(response.Headers.Contains("Retry-After"));
-        
+
         var retryAfter = response.Headers.GetValues("Retry-After").FirstOrDefault();
         Assert.NotNull(retryAfter);
         Assert.True(int.TryParse(retryAfter, out var seconds));
         Assert.True(seconds > 0 && seconds <= 60);
     }
 
-    [Fact(Skip = "Dapr Workflow concurrent collections error - infrastructure issue")]
+    [Fact]
     public async Task RateLimiter_AppliesAcrossMultipleEndpoints()
     {
         // Arrange
-        var client = _factory.CreateClient();
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
 
         // Act - Hit different endpoints (global limiter applies to all)
         var responses = new List<HttpResponseMessage>
@@ -247,5 +172,92 @@ public class RateLimitingIntegrationTests : IClassFixture<WebApplicationFactory<
         // Assert
         var lastResponse = responses.Last();
         Assert.Equal(HttpStatusCode.TooManyRequests, lastResponse.StatusCode);
+    }
+}
+
+/// <summary>
+/// Custom WebApplicationFactory that keeps SQLite in-memory connections alive
+/// for the duration of the test class. Each DB gets its own SqliteConnection
+/// that is opened before EnsureCreated() and only disposed at teardown.
+/// </summary>
+public class RateLimitingWebFactory : WebApplicationFactory<Program>, IDisposable
+{
+    private readonly SqliteConnection _productConn;
+    private readonly SqliteConnection _weatherConn;
+    private readonly SqliteConnection _userConn;
+
+    public RateLimitingWebFactory()
+    {
+        _productConn = new SqliteConnection("Data Source=:memory:");
+        _weatherConn = new SqliteConnection("Data Source=:memory:");
+        _userConn = new SqliteConnection("Data Source=:memory:");
+
+        _productConn.Open();
+        _weatherConn.Open();
+        _userConn.Open();
+    }
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Test");
+
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["RateLimiting:Enabled"] = "true",
+                ["RateLimiting:PermitLimit"] = "5",
+                ["RateLimiting:WindowSeconds"] = "60",
+                ["RateLimiting:QueueLimit"] = "0",
+                ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableHealthChecks"] = "true",
+                ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableTracing"] = "true",
+                ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableMetrics"] = "true"
+            });
+        });
+
+        builder.ConfigureServices(services =>
+        {
+            // Replace DbContext registrations with SQLite backed by persistent connections
+            IntegrationTestHelpers.RemoveDbContextDescriptors(services,
+                typeof(ProductDataContext),
+                typeof(WeatherDatabaseContext),
+                typeof(UserDbContext));
+
+            services.Configure<AugmentService.Infrastructure.InfrastructureConfig>(cfg =>
+            {
+                cfg.ConnectionString = "Data Source=:memory:";
+                cfg.EnableSensitiveDataLogging = false;
+            });
+
+            // Use the same open connection for each DbContext so the schema persists
+            services.AddDbContext<ProductDataContext>(options =>
+                options.UseSqlite(_productConn));
+            services.AddDbContext<WeatherDatabaseContext>(options =>
+                options.UseSqlite(_weatherConn));
+            services.AddDbContext<UserDbContext>(options =>
+                options.UseSqlite(_userConn));
+
+            // Replace Dapr with no-op mocks
+            IntegrationTestHelpers.ReplaceDaprServices(services);
+
+            // Create schemas
+            var sp = services.BuildServiceProvider();
+            using var scope = sp.CreateScope();
+            var svc = scope.ServiceProvider;
+            IntegrationTestHelpers.InitDb<ProductDataContext>(svc);
+            IntegrationTestHelpers.InitDb<WeatherDatabaseContext>(svc);
+            IntegrationTestHelpers.InitDb<UserDbContext>(svc);
+        });
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _productConn.Dispose();
+            _weatherConn.Dispose();
+            _userConn.Dispose();
+        }
+        base.Dispose(disposing);
     }
 }

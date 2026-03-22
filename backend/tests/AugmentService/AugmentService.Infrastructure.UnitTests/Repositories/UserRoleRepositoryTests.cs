@@ -209,18 +209,20 @@ public class UserRoleRepositoryTests : IDisposable
 
     #region GetUserPermissionsAsync Tests
 
-    [Fact(Skip = "SQLite doesn't support SelectMany with Distinct (requires SQL APPLY). See integration tests for coverage.")]
+    [Fact]
     public async Task GetUserPermissionsAsync_Should_ReturnDistinctPermissions_When_UserHasMultipleRoles()
     {
         // Arrange
         using var context = CreateContext();
+        // Use WithPermissions to set exact permissions (replaces default "System.Read")
+        // Both roles share "perm:shared" — verify it appears only once in the result
         var role1 = RoleBuilder.CreateDefault()
-            .WithName("Role1")
-            .AddPermissions("read:data", "write:data")
+            .WithName("Role1Distinct")
+            .WithPermissions("perm:shared", "perm:only1")
             .Build();
         var role2 = RoleBuilder.CreateDefault()
-            .WithName("Role2")
-            .AddPermissions("read:data", "delete:data") // read:data is duplicate
+            .WithName("Role2Distinct")
+            .WithPermissions("perm:shared", "perm:only2") // perm:shared is duplicate
             .Build();
         var user = await CreateUserWithRoles(context, role1, role2);
 
@@ -229,18 +231,19 @@ public class UserRoleRepositoryTests : IDisposable
         // Act
         var result = await repository.GetUserPermissionsAsync(user.UserId);
 
-        // Assert
+        // Assert — 3 distinct permissions (shared appears only once)
         result.Should().HaveCount(3);
-        result.Should().Contain("read:data");
-        result.Should().Contain("write:data");
-        result.Should().Contain("delete:data");
+        result.Should().Contain("perm:shared");
+        result.Should().Contain("perm:only1");
+        result.Should().Contain("perm:only2");
     }
 
-    [Fact(Skip = "SQLite doesn't support SelectMany with Distinct (requires SQL APPLY). See integration tests for coverage.")]
+    [Fact]
     public async Task GetUserPermissionsAsync_Should_ReturnEmptyList_When_UserHasNoRoles()
     {
         // Arrange
         using var context = CreateContext();
+        await ClearSeedData(context);
         var user = UserBuilder.CreateDefault().Build();
         await context.Users.AddAsync(user);
         await context.SaveChangesAsync();
@@ -254,7 +257,7 @@ public class UserRoleRepositoryTests : IDisposable
         result.Should().BeEmpty();
     }
 
-    [Fact(Skip = "SQLite doesn't support SelectMany with Distinct (requires SQL APPLY). See integration tests for coverage.")]
+    [Fact]
     public async Task GetUserPermissionsAsync_Should_AggregatePermissionsFromAllRoles()
     {
         // Arrange
@@ -270,11 +273,11 @@ public class UserRoleRepositoryTests : IDisposable
 
         // Assert
         result.Should().NotBeEmpty();
-        // Admin has all permissions, Writer has subset, should get all unique permissions
+        // Admin has all permissions; result should contain all admin permissions
         result.Should().Contain(adminRole.Permissions);
     }
 
-    [Fact(Skip = "SQLite doesn't support SelectMany with Distinct (requires SQL APPLY). See integration tests for coverage.")]
+    [Fact]
     public async Task GetUserPermissionsAsync_Should_SupportCancellationToken()
     {
         // Arrange
