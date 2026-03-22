@@ -5,17 +5,12 @@ readonly ASPIRE_LOG="/tmp/aspire.log"
 
 echo "Running post-start setup..."
 
-# Extract Aspire dashboard login token from the log
-get_aspire_token() {
-    local log_file="$ASPIRE_LOG"
-    local token=""
-    # The token appears as: Login to the dashboard at https://...?t=<TOKEN>
-    # Requires GNU grep (available on ubuntu-22.04 devcontainer base)
-    token=$(grep -oP '(?<=\?t=)[A-Za-z0-9_-]+' "$log_file" 2>/dev/null | tail -1)
-    echo "$token"
-}
+# Ensure dotnet global tools (aspire, etc.) are on PATH
+export PATH="$HOME/.dotnet/tools:$HOME/.dapr/bin:$PATH"
 
+# ---------------------------------------------------------------------------
 # Print a formatted table of Aspire resource states
+# ---------------------------------------------------------------------------
 print_resource_table() {
     local response="$1"
     echo ""
@@ -38,7 +33,7 @@ for r in resources:
 " 2>/dev/null)
 
     echo "$pairs" | while IFS=$'\t' read -r name state; do
-        [ -z "$name" ] && continue
+        if [ -z "$name" ]; then continue; fi
         local icon="  "
         case "$state" in
             Running|Finished|Exited) icon="+ " ;;
@@ -51,37 +46,27 @@ for r in resources:
     echo ""
 }
 
+# ---------------------------------------------------------------------------
 # Poll Aspire Resource Service API until all resources are healthy
+# ---------------------------------------------------------------------------
 wait_for_aspire_resources() {
     local dashboard_url="${1:-https://localhost:15001}"
-    local token="${2:-}"
-    local max_wait="${3:-300}"
-    local pid="${4:-$aspire_pid}"
+    local max_wait="${2:-300}"
+    local pid="${3:-}"
     local waited=0
-    local auth_header=""
-
-    if [ -n "$token" ]; then
-        auth_header="Authorization: Bearer $token"
-    fi
+    local response=""
 
     echo ""
     echo "Waiting for all Aspire resources to become healthy (up to ${max_wait}s)..."
 
-    local response=""
-
     while [ $waited -lt $max_wait ]; do
-        # Check if Aspire process is still alive
+        # Check if AppHost process is still alive
         if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
-            echo "ERROR: Aspire orchestrator exited during resource startup. See $ASPIRE_LOG"
+            echo "ERROR: Aspire AppHost process exited during resource startup. See $ASPIRE_LOG"
             return 1
         fi
 
-        # Query resource list
-        if [ -n "$auth_header" ]; then
-            response=$(curl -fsSk -H "$auth_header" "${dashboard_url}/api/v1/resources" 2>/dev/null)
-        else
-            response=$(curl -fsSk "${dashboard_url}/api/v1/resources" 2>/dev/null)
-        fi
+        response=$(curl -fsSk "${dashboard_url}/api/v1/resources" 2>/dev/null)
 
         if [ -z "$response" ]; then
             waited=$((waited + 5))
@@ -89,18 +74,12 @@ wait_for_aspire_resources() {
             continue
         fi
 
-        # Count resources still in transitional states
-        # Requires GNU grep (available on ubuntu-22.04 devcontainer base)
-        local pending
+        local pending healthy failed total
         pending=$(echo "$response" | grep -oP '"state"\s*:\s*"(Starting|Building|Waiting|NotStarted)"' | wc -l)
-        local failed
-        failed=$(echo "$response" | grep -oP '"state"\s*:\s*"(FailedToStart|RuntimeUnhealthy)"' | wc -l)
-        local healthy
-        healthy=$(echo "$response" | grep -oP '"state"\s*:\s*"(Running|Finished|Exited)"' | wc -l)
-        local total
-        total=$(echo "$response" | grep -oP '"state"\s*:\s*"[^"]+"' | wc -l)
+        failed=$(echo "$response"  | grep -oP '"state"\s*:\s*"(FailedToStart|RuntimeUnhealthy)"'       | wc -l)
+        healthy=$(echo "$response" | grep -oP '"state"\s*:\s*"(Running|Finished|Exited)"'              | wc -l)
+        total=$(echo "$response"   | grep -oP '"state"\s*:\s*"[^"]+"'                                  | wc -l)
 
-        # Still waiting for resources to be registered (very early startup)
         if [ "$total" -eq 0 ]; then
             echo "  Waiting for Aspire to register resources... (${waited}s elapsed)"
             waited=$((waited + 5))
@@ -116,7 +95,7 @@ wait_for_aspire_resources() {
             return 1
         fi
 
-        if [ "$pending" -eq 0 ] && [ "$failed" -eq 0 ] && [ "$total" -gt 0 ]; then
+        if [ "$pending" -eq 0 ] && [ "$total" -gt 0 ]; then
             echo "All $total Aspire resources are healthy!"
             print_resource_table "$response"
             return 0
@@ -133,104 +112,139 @@ wait_for_aspire_resources() {
     return 0  # Non-fatal: container keeps starting even if resources are slow
 }
 
+# ---------------------------------------------------------------------------
 # Wait for PostgreSQL to be ready
+# ---------------------------------------------------------------------------
 echo "Waiting for PostgreSQL..."
-timeout=30
-counter=0
+pg_timeout=30
+pg_counter=0
 until PGPASSWORD="${POSTGRES_PASSWORD}" psql -h postgres -U "${POSTGRES_USER:-postgres}" -c '\q' 2>/dev/null; do
-    counter=$((counter + 1))
-    if [ $counter -gt $timeout ]; then
-        echo "PostgreSQL not available after ${timeout}s, continuing anyway..."
+    pg_counter=$((pg_counter + 1))
+    if [ $pg_counter -gt $pg_timeout ]; then
+        echo "PostgreSQL not available after ${pg_timeout}s, continuing anyway..."
         break
     fi
-    echo "Waiting for PostgreSQL... ($counter/$timeout)"
+    echo "Waiting for PostgreSQL... ($pg_counter/$pg_timeout)"
     sleep 1
 done
-
-if [ $counter -le $timeout ]; then
+if [ $pg_counter -le $pg_timeout ]; then
     echo "PostgreSQL is ready!"
 fi
 
-# Ensure Dapr is running
+# ---------------------------------------------------------------------------
+# Ensure Dapr is available
+# ---------------------------------------------------------------------------
 echo "Checking Dapr status..."
-dapr --version || echo "Dapr CLI available"
+dapr --version || echo "Dapr CLI not found; skipping Dapr check"
 
-# Start .NET Aspire orchestrator in the background (idempotent — skip if already running)
+# ---------------------------------------------------------------------------
+# Start .NET Aspire via 'aspire run --detach'
+#
+# --detach  : parent process exits immediately after printing a JSON summary;
+#             the AppHost continues running as a background child process.
+# --format json : machine-readable output including dashboardUrl with ?t=TOKEN
+# --non-interactive : suppress all prompts and spinners
+#
+# If already running (idempotent re-start), skip and recover PID + URL from
+# the existing log file.
+# ---------------------------------------------------------------------------
+aspire_pid=""
+dashboard_login_url=""
+dashboard_base_url="https://localhost:15001"
+
 if pgrep -f "MfePortal.AppHost" > /dev/null 2>&1; then
     aspire_pid=$(pgrep -f "MfePortal.AppHost" | head -1)
-    echo "Aspire orchestrator already running (PID $aspire_pid). Skipping start."
+    echo "Aspire AppHost already running (PID $aspire_pid). Skipping start."
+    # Best-effort: recover login URL from previous detach log
+    if [ -f "$ASPIRE_LOG" ]; then
+        dashboard_login_url=$(python3 -c "
+import json, sys
+try:
+    data = json.load(open('$ASPIRE_LOG'))
+    print(data.get('dashboardUrl', ''))
+except Exception:
+    pass
+" 2>/dev/null)
+    fi
 else
-    echo "Starting .NET Aspire orchestrator..."
-    nohup dotnet run --project /workspace/backend/MfePortal.AppHost \
-        --launch-profile https \
-        > "$ASPIRE_LOG" 2>&1 &
-    aspire_pid=$!
+    echo "Starting .NET Aspire AppHost (detached)..."
 
-    # Basic check: ensure the orchestrator process started
-    if ! kill -0 "$aspire_pid" 2>/dev/null; then
-        echo "ERROR: Failed to start .NET Aspire orchestrator. See $ASPIRE_LOG for details."
+    if ! command -v aspire >/dev/null 2>&1; then
+        echo "ERROR: 'aspire' CLI not found. Run: dotnet tool install --global Aspire.Cli"
+        echo "  Then re-run this script."
         exit 1
     fi
 
-    echo "Aspire starting in background (PID $aspire_pid). Logs: $ASPIRE_LOG"
-fi
+    # Run detached; capture JSON output to log file and stdout
+    aspire_json=$(aspire run \
+        --non-interactive \
+        --detach \
+        --format json \
+        --apphost /workspace/backend/MfePortal.AppHost \
+        2>/dev/null) || true
 
-# Optional readiness check for the Aspire dashboard
-dashboard_url="${ASPIRE_DASHBOARD_URL:-https://localhost:15001}"
-max_wait_seconds=120
-waited=0
+    # Persist the JSON for idempotent re-starts
+    echo "$aspire_json" > "$ASPIRE_LOG"
 
-if command -v curl >/dev/null 2>&1; then
-    echo "Waiting for Aspire dashboard to become available at ${dashboard_url} (up to ${max_wait_seconds}s)..."
-    while [ $waited -lt $max_wait_seconds ]; do
-        # Fail fast if the process died during startup
-        if ! kill -0 "$aspire_pid" 2>/dev/null; then
-            echo "ERROR: Aspire orchestrator process (PID $aspire_pid) exited during startup. See $ASPIRE_LOG for details."
-            exit 1
-        fi
+    # Parse PID and dashboard URL from JSON output
+    aspire_pid=$(echo "$aspire_json" | python3 -c "
+import json, sys
+try:
+    data = json.loads(sys.stdin.read())
+    print(data.get('appHostPid', ''))
+except Exception:
+    pass
+" 2>/dev/null)
 
-        if curl -fsSk "${dashboard_url}" >/dev/null 2>&1; then
-            echo "Aspire dashboard is ready at ${dashboard_url}."
-            break
-        fi
+    dashboard_login_url=$(echo "$aspire_json" | python3 -c "
+import json, sys
+try:
+    data = json.loads(sys.stdin.read())
+    print(data.get('dashboardUrl', ''))
+except Exception:
+    pass
+" 2>/dev/null)
 
-        waited=$((waited + 1))
-        sleep 1
-    done
-
-    if [ $waited -ge $max_wait_seconds ]; then
-        echo "Aspire dashboard did not become reachable within ${max_wait_seconds}s. It may still be starting."
+    if [ -z "$aspire_pid" ]; then
+        echo "WARN: Could not determine AppHost PID from aspire run output."
+        echo "  aspire output: $aspire_json"
+    else
+        echo "Aspire AppHost started (PID $aspire_pid)."
     fi
-else
-    echo "curl not found; skipping HTTP health check for Aspire dashboard."
-    echo "Aspire orchestrator is running with PID $aspire_pid. Check $ASPIRE_LOG for readiness details."
 fi
 
-# Extract login token — retry up to 10s to give Aspire time to flush the token to the log
-aspire_token=""
-for (( _i=1; _i<=10; _i++ )); do
-    aspire_token=$(get_aspire_token)
-    [ -n "$aspire_token" ] && break
-    sleep 1
-done
-unset _i
+# Derive base URL (strip /login?t=...) for the resource health poll endpoint
+if [ -n "$dashboard_login_url" ]; then
+    dashboard_base_url=$(echo "$dashboard_login_url" | python3 -c "
+import sys
+from urllib.parse import urlparse
+u = urlparse(sys.stdin.read().strip())
+print(u.scheme + '://' + u.netloc)
+" 2>/dev/null)
+fi
 
+# ---------------------------------------------------------------------------
 # Wait for all Aspire resources to become healthy
+# ---------------------------------------------------------------------------
 if command -v curl >/dev/null 2>&1; then
-    if ! wait_for_aspire_resources "${dashboard_url}" "${aspire_token}" 300 "${aspire_pid}"; then
+    if ! wait_for_aspire_resources "${dashboard_base_url}" 300 "${aspire_pid}"; then
         echo "WARN: Some Aspire resources failed to start. Check the dashboard for details."
     fi
+else
+    echo "curl not found; skipping resource health check."
 fi
 
+# ---------------------------------------------------------------------------
 # Print the portal access URL for the host user
+# ---------------------------------------------------------------------------
 echo ""
 echo "===================================================================="
 echo "  Aspire Dashboard (accessible from host machine via VS Code):"
-if [ -n "$aspire_token" ]; then
-    echo "  ${dashboard_url}/login?t=${aspire_token}"
+if [ -n "$dashboard_login_url" ]; then
+    echo "  $dashboard_login_url"
 else
-    echo "  ${dashboard_url}"
-    echo "  (No login token found yet — check $ASPIRE_LOG for the token URL)"
+    echo "  $dashboard_base_url"
+    echo "  (Login URL not available — check $ASPIRE_LOG)"
 fi
 echo ""
 echo "  Port 15001 is forwarded by VS Code Dev Containers."
@@ -240,7 +254,7 @@ echo ""
 echo "Post-start setup complete!"
 echo ""
 echo "Ready to develop! Available commands:"
-echo "  tail -f $ASPIRE_LOG                              (Follow Aspire logs)"
+echo "  cat $ASPIRE_LOG                                  (Aspire startup JSON / logs)"
 echo "  cd frontend/shell && npm start                   (Start frontend dev server)"
 echo "  dapr run --help                                  (Dapr sidecar commands)"
 echo ""
