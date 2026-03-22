@@ -10,7 +10,7 @@ permissions:
 jobs:
   provision:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 100
     env:
       AZURE_ENV_NAME: test
       AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
@@ -49,9 +49,9 @@ jobs:
           subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy with Aspire
-        timeout-minutes: 30
+        timeout-minutes: 90
         working-directory: ./backend/MfePortal.AppHost
-        run: aspire deploy --environment $env:AZURE_ENV_NAME
+        run: aspire deploy --environment $env:AZURE_ENV_NAME --log-level debug --include-exception-details
         shell: pwsh
         env:
           # Note: Colon (:) is not supported in environment variable names
