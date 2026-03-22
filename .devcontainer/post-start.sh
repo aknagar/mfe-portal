@@ -38,7 +38,7 @@ for r in resources:
 " 2>/dev/null)
 
     echo "$pairs" | while IFS=$'\t' read -r name state; do
-        [ -z "$name" ] && continue
+        if [ -z "$name" ]; then continue; fi
         local icon="  "
         case "$state" in
             Running|Finished|Exited) icon="+ " ;;
@@ -210,7 +210,7 @@ fi
 aspire_token=""
 for (( _i=1; _i<=10; _i++ )); do
     aspire_token=$(get_aspire_token)
-    [ -n "$aspire_token" ] && break
+    if [ -n "$aspire_token" ]; then break; fi
     sleep 1
 done
 unset _i
