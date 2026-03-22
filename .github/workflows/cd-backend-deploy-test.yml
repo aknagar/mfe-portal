@@ -15,6 +15,8 @@ env:
   AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
   AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
   AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+  # Aspire CLI non-interactive mode: prevents process-parameters step from blocking on stdin
+  DOTNET_ASPIRE_NONINTERACTIVE: "true"
 
 jobs:
   deploy:
@@ -67,12 +69,15 @@ jobs:
           echo "- **Image Tag:** ${{ inputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
+          # --parameter flags supply secret values for the process-parameters pipeline step.
+          # Without these, the step blocks waiting for interactive TTY input in CI.
           aspire deploy \
             --environment-name "${{ env.AZURE_ENV_NAME }}" \
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
             --location "${{ env.AZURE_LOCATION }}" \
             --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}" \
-            --debug
+            --parameter postgres-password="${{ secrets.POSTGRES_PASSWORD }}" \
+            --parameter redis-password="${{ secrets.REDIS_PASSWORD }}"
 
       - name: Get deployment outputs
         id: get_url
