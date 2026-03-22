@@ -5,11 +5,113 @@ echo "Running post-start setup..."
 
 # Extract Aspire dashboard login token from the log
 get_aspire_token() {
-    local log_file="/tmp/aspire.log"
+    local log_file="$ASPIRE_LOG"
     local token=""
     # The token appears as: Login to the dashboard at https://...?t=<TOKEN>
+    # Requires GNU grep (available on ubuntu-22.04 devcontainer base)
     token=$(grep -oP '(?<=\?t=)[A-Za-z0-9_-]+' "$log_file" 2>/dev/null | tail -1)
     echo "$token"
+}
+
+readonly ASPIRE_LOG="/tmp/aspire.log"
+
+# Print a formatted table of Aspire resource states
+print_resource_table() {
+    local response="$1"
+    echo ""
+    echo "┌─────────────────────────────────────────────────────┐"
+    echo "│              Aspire Resource Status                  │"
+    echo "├──────────────────────────────┬──────────────────────┤"
+    printf "│ %-28s │ %-20s │\n" "Resource" "State"
+    echo "├──────────────────────────────┼──────────────────────┤"
+    # Parse name+state pairs — works without jq
+    # Requires GNU grep (available on ubuntu-22.04 devcontainer base)
+    local names states
+    names=$(echo "$response" | grep -oP '(?<="name":")[^"]+')
+    states=$(echo "$response" | grep -oP '(?<="state":")[^"]+')
+    paste <(echo "$names") <(echo "$states") | while IFS=$'\t' read -r name state; do
+        local icon="  "
+        case "$state" in
+            Running|Finished|Exited) icon="✓ " ;;
+            FailedToStart|RuntimeUnhealthy) icon="✗ " ;;
+            Starting|Building|Waiting) icon="⋯ " ;;
+        esac
+        printf "│ %-28s │ %s%-18s │\n" "$name" "$icon" "$state"
+    done
+    echo "└──────────────────────────────┴──────────────────────┘"
+    echo ""
+}
+
+# Poll Aspire Resource Service API until all resources are healthy
+wait_for_aspire_resources() {
+    local dashboard_url="${1:-https://localhost:15001}"
+    local token="${2:-}"
+    local max_wait="${3:-300}"
+    local waited=0
+    local auth_header=""
+
+    if [ -n "$token" ]; then
+        auth_header="Authorization: Bearer $token"
+    fi
+
+    echo ""
+    echo "Waiting for all Aspire resources to become healthy (up to ${max_wait}s)..."
+
+    while [ $waited -lt $max_wait ]; do
+        # Check if Aspire process is still alive
+        if ! kill -0 "$aspire_pid" 2>/dev/null; then
+            echo "ERROR: Aspire orchestrator exited during resource startup. See $ASPIRE_LOG"
+            return 1
+        fi
+
+        # Query resource list
+        local response
+        if [ -n "$auth_header" ]; then
+            response=$(curl -fsSk -H "$auth_header" "${dashboard_url}/api/v1/resources" 2>/dev/null)
+        else
+            response=$(curl -fsSk "${dashboard_url}/api/v1/resources" 2>/dev/null)
+        fi
+
+        if [ -z "$response" ]; then
+            waited=$((waited + 5))
+            sleep 5
+            continue
+        fi
+
+        # Count resources still in transitional states
+        # Requires GNU grep (available on ubuntu-22.04 devcontainer base)
+        local pending
+        pending=$(echo "$response" | grep -oP '"state"\s*:\s*"(Starting|Building|Waiting|NotStarted)"' | wc -l)
+        local failed
+        failed=$(echo "$response" | grep -oP '"state"\s*:\s*"(FailedToStart|RuntimeUnhealthy)"' | wc -l)
+        local total
+        total=$(echo "$response" | grep -oP '"name"\s*:\s*"[^"]+"' | wc -l)
+        local healthy
+        healthy=$(echo "$response" | grep -oP '"state"\s*:\s*"(Running|Finished|Exited)"' | wc -l)
+
+        echo "  Resources: ${healthy}/${total} healthy, ${pending} pending, ${failed} failed (${waited}s elapsed)"
+
+        if [ "$failed" -gt 0 ]; then
+            echo "ERROR: $failed resource(s) failed to start. Check Aspire dashboard for details."
+            print_resource_table "$response"
+            return 1
+        fi
+
+        if [ "$pending" -eq 0 ] && [ "$total" -gt 0 ]; then
+            echo "All $total Aspire resources are healthy!"
+            print_resource_table "$response"
+            return 0
+        fi
+
+        waited=$((waited + 5))
+        sleep 5
+    done
+
+    echo "WARN: Timed out after ${max_wait}s waiting for resources. Some may still be starting."
+    if [ -n "$response" ]; then
+        print_resource_table "$response"
+    fi
+    return 0  # Non-fatal: container keeps starting even if resources are slow
 }
 
 # Wait for PostgreSQL to be ready
@@ -42,16 +144,16 @@ else
     echo "Starting .NET Aspire orchestrator..."
     nohup dotnet run --project /workspace/backend/MfePortal.AppHost \
         --launch-profile https \
-        > /tmp/aspire.log 2>&1 &
+        > "$ASPIRE_LOG" 2>&1 &
     aspire_pid=$!
 
     # Basic check: ensure the orchestrator process started
     if ! kill -0 "$aspire_pid" 2>/dev/null; then
-        echo "ERROR: Failed to start .NET Aspire orchestrator. See /tmp/aspire.log for details."
+        echo "ERROR: Failed to start .NET Aspire orchestrator. See $ASPIRE_LOG for details."
         exit 1
     fi
 
-    echo "Aspire starting in background (PID $aspire_pid). Logs: /tmp/aspire.log"
+    echo "Aspire starting in background (PID $aspire_pid). Logs: $ASPIRE_LOG"
 fi
 
 # Optional readiness check for the Aspire dashboard
@@ -64,7 +166,7 @@ if command -v curl >/dev/null 2>&1; then
     while [ $waited -lt $max_wait_seconds ]; do
         # Fail fast if the process died during startup
         if ! kill -0 "$aspire_pid" 2>/dev/null; then
-            echo "ERROR: Aspire orchestrator process (PID $aspire_pid) exited during startup. See /tmp/aspire.log for details."
+            echo "ERROR: Aspire orchestrator process (PID $aspire_pid) exited during startup. See $ASPIRE_LOG for details."
             exit 1
         fi
 
@@ -82,7 +184,7 @@ if command -v curl >/dev/null 2>&1; then
     fi
 else
     echo "curl not found; skipping HTTP health check for Aspire dashboard."
-    echo "Aspire orchestrator is running with PID $aspire_pid. Check /tmp/aspire.log for readiness details."
+    echo "Aspire orchestrator is running with PID $aspire_pid. Check $ASPIRE_LOG for readiness details."
 fi
 
 echo "Dashboard will be available at ${dashboard_url} once ready."
@@ -90,7 +192,7 @@ echo "Dashboard will be available at ${dashboard_url} once ready."
 echo "Post-start setup complete!"
 echo ""
 echo "Ready to develop! Available commands:"
-echo "  tail -f /tmp/aspire.log                          (Follow Aspire logs)"
+echo "  tail -f $ASPIRE_LOG                          (Follow Aspire logs)"
 echo "  cd frontend/shell && npm start                   (Start frontend dev server)"
 echo "  dapr run --help                                  (Dapr sidecar commands)"
 echo ""
