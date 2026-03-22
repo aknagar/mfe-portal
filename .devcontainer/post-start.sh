@@ -200,11 +200,12 @@ fi
 
 # Extract login token — retry up to 10s to give Aspire time to flush the token to the log
 aspire_token=""
-for _i in $(seq 1 10); do
+for (( _i=1; _i<=10; _i++ )); do
     aspire_token=$(get_aspire_token)
     [ -n "$aspire_token" ] && break
     sleep 1
 done
+unset _i
 
 # Wait for all Aspire resources to become healthy
 if command -v curl >/dev/null 2>&1; then
