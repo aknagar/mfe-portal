@@ -57,6 +57,8 @@ wait_for_aspire_resources() {
     echo ""
     echo "Waiting for all Aspire resources to become healthy (up to ${max_wait}s)..."
 
+    local response=""
+
     while [ $waited -lt $max_wait ]; do
         # Check if Aspire process is still alive
         if ! kill -0 "$aspire_pid" 2>/dev/null; then
@@ -65,7 +67,6 @@ wait_for_aspire_resources() {
         fi
 
         # Query resource list
-        local response
         if [ -n "$auth_header" ]; then
             response=$(curl -fsSk -H "$auth_header" "${dashboard_url}/api/v1/resources" 2>/dev/null)
         else
