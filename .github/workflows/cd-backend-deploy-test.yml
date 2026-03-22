@@ -43,7 +43,7 @@ jobs:
 
       - name: Install Aspire CLI
         timeout-minutes: 5
-        run: dotnet tool install -g Aspire.Cli --version 13.1.1
+        run: dotnet tool install --global Aspire.Cli --version 13.1.3
 
       - name: Install Dapr CLI
         uses: dapr/setup-dapr@v2
