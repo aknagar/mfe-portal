@@ -69,6 +69,7 @@ jobs:
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
             --location "${{ env.AZURE_LOCATION }}" \
             --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}"
+            --debug
 
       - name: Get deployment outputs
         id: get_url
