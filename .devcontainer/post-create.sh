@@ -7,6 +7,32 @@ echo "Running post-create setup..."
 echo "Setting up HTTPS development certificates..."
 dotnet dev-certs https --trust 2>/dev/null || true
 
+# On Linux, dotnet dev-certs places the PEM cert in $HOME/.aspnet/dev-certs/trust/
+# but OpenSSL does NOT pick it up unless that directory is in SSL_CERT_DIR.
+# We persist the setting in every shell profile so all processes see it,
+# and also write it to /etc/environment so non-interactive processes inherit it.
+ASPNET_CERT_DIR="$HOME/.aspnet/dev-certs/trust"
+SYSTEM_SSL_CERTS="/usr/lib/ssl/certs"
+COMBINED_SSL_CERT_DIR="${ASPNET_CERT_DIR}:${SYSTEM_SSL_CERTS}"
+export SSL_CERT_DIR="${COMBINED_SSL_CERT_DIR}"
+
+for profile in ~/.bashrc ~/.zshrc; do
+    if [ -f "$profile" ] && ! grep -q "aspnet/dev-certs/trust" "$profile"; then
+        # shellcheck disable=SC2016 # intentional: $HOME must expand at login time
+        printf '\n# ASP.NET Core dev-cert OpenSSL trust (https://aka.ms/dev-certs-trust)\nexport SSL_CERT_DIR="$HOME/.aspnet/dev-certs/trust:%s"\n' "${SYSTEM_SSL_CERTS}" >> "$profile"
+    fi
+done
+
+# /etc/environment is sourced by PAM for non-interactive sessions (e.g. the VS Code
+# server process that runs post-create).  We expand $HOME here because that file
+# does not support shell variable substitution.
+ETC_ENV=/etc/environment
+if [ -f "$ETC_ENV" ] && ! grep -q "aspnet/dev-certs/trust" "$ETC_ENV"; then
+    printf '\nSSL_CERT_DIR="%s"\n' "${COMBINED_SSL_CERT_DIR}" | sudo tee -a "$ETC_ENV" > /dev/null \
+        || echo "Warning: could not update $ETC_ENV (SSL_CERT_DIR may not be set for non-interactive processes)"
+fi
+echo "SSL_CERT_DIR set to: ${COMBINED_SSL_CERT_DIR}"
+
 # Install the Aspire CLI global tool
 echo "Installing Aspire CLI..."
 dotnet tool install --global Aspire.Cli || dotnet tool update --global Aspire.Cli || true
