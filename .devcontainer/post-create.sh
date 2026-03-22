@@ -7,6 +7,11 @@ echo "Running post-create setup..."
 echo "Setting up HTTPS development certificates..."
 dotnet dev-certs https --trust 2>/dev/null || true
 
+# Install the Aspire CLI global tool
+echo "Installing Aspire CLI..."
+dotnet tool install --global Aspire.Cli || dotnet tool update --global Aspire.Cli || true
+export PATH="$HOME/.dotnet/tools:$PATH"
+
 # Restore backend packages
 echo "Restoring backend NuGet packages..."
 cd /workspace/backend
@@ -66,6 +71,12 @@ if ! grep -q ".dapr/bin" ~/.bashrc; then
     echo 'export PATH="$HOME/.dapr/bin:$PATH"' >> ~/.bashrc
 fi
 export PATH="$HOME/.dapr/bin:$PATH"
+
+# Add .NET tools (aspire, etc.) to PATH
+if ! grep -q ".dotnet/tools" ~/.bashrc; then
+    echo 'export PATH="$HOME/.dotnet/tools:$PATH"' >> ~/.bashrc
+fi
+export PATH="$HOME/.dotnet/tools:$PATH"
 
 # Pre-pull Aspire-managed container images to avoid first-boot download races
 echo "Pre-pulling container images required by Aspire (first run may take several minutes)..."
