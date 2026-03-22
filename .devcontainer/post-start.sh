@@ -46,7 +46,7 @@ else
 fi
 
 # Optional readiness check for the Aspire dashboard
-dashboard_url="${ASPIRE_DASHBOARD_URL:-http://localhost:15001}"
+dashboard_url="${ASPIRE_DASHBOARD_URL:-https://localhost:15001}"
 max_wait_seconds=30
 waited=0
 
@@ -59,7 +59,7 @@ if command -v curl >/dev/null 2>&1; then
             exit 1
         fi
 
-        if curl -fsS "${dashboard_url}" >/dev/null 2>&1; then
+        if curl -fsSk "${dashboard_url}" >/dev/null 2>&1; then
             echo "Aspire dashboard is ready at ${dashboard_url}."
             break
         fi

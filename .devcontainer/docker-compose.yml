@@ -21,6 +21,12 @@ services:
       - REDIS_HOST=redis
       - ASPNETCORE_ENVIRONMENT=Development
       - DOTNET_USE_POLLING_FILE_WATCHER=true
+
+    # Required on Linux: Docker Desktop auto-provides host.docker.internal; Linux needs explicit mapping.
+    # This resolves host.docker.internal inside the devcontainer (.NET processes, terminals, VS Code server).
+    # Aspire-managed child containers get the same resolution via host-gateway-ip set in post-create.sh.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     
     # No host port mapping needed - VS Code 'forwardPorts' in devcontainer.json handles port forwarding
     
@@ -35,6 +41,7 @@ services:
     restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - create .devcontainer/.env file}
