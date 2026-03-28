@@ -2,19 +2,26 @@
 
 ## Git Worktree Policy
 
-**MANDATORY: Before making ANY code changes (features, bug fixes, refactors, experiments):**
+**MANDATORY FIRST STEP of every session — before any file edit, scaffold, or command:**
 
-1. Create a new git worktree branched from `main`
-2. Place it at `.worktrees/<branch-name>` (relative to repo root)
-3. Branch naming: `feature/<desc>` for features, `fix/<desc>` for bug fixes
-4. All changes must be made inside the worktree — never directly on `main`
+1. **Invoke the `using-git-worktrees` skill.**
+2. **Guard check** — run `git branch --show-current`.
+   If the result is `main`, halt immediately and complete step 3 before doing anything else.
+3. **Create the worktree:**
+   ```bash
+   git worktree add .worktrees/<branch-name> -b <branch-name> main
+   ```
+   - Features → `feature/<short-desc>`
+   - Bug fixes → `fix/<short-desc>`
+4. **Work exclusively inside `.worktrees/<branch-name>`** — never commit to the repo root
+   while it points to `main`.
+5. **Session end:** push the branch and open a PR:
+   ```bash
+   git push -u origin <branch-name>
+   gh pr create --base main --head <branch-name>
+   ```
 
-```bash
-git worktree add .worktrees/<branch-name> -b <branch-name> main
-cd .worktrees/<branch-name>
-```
-
-`.worktrees/` is gitignored. Use the `worktree-manager-skill` for automated setup.
+`.worktrees/` is gitignored.
 
 ## Architecture
 
