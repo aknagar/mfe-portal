@@ -97,16 +97,23 @@ jobs:
           echo "Querying deployment outputs from Azure..."
           
           # Query deployment outputs from Azure
-          az deployment group show \
+          OUTPUTS=$(az deployment group show \
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
             --name "${{ env.AZURE_ENV_NAME }}" \
             --query properties.outputs \
-            --output json | tee deployment-outputs.log || echo "No deployment outputs found"
+            --output json 2>/dev/null || echo '{}')
           
-          # Try to extract app URL if available
-          if [ -f "deployment-outputs.log" ] && grep -q "url\|URL\|endpoint" deployment-outputs.log; then
-            echo "Deployment outputs available"
-            # This would need to be adjusted based on actual output structure
+          echo "$OUTPUTS" | tee deployment-outputs.log
+          
+          # Try to extract app URL from common output key names
+          APP_URL=$(echo "$OUTPUTS" | \
+            python3 -c "import sys, json; d = json.load(sys.stdin); \
+              keys = [k for k in d if 'url' in k.lower() or 'endpoint' in k.lower()]; \
+              print(d[keys[0]]['value'] if keys else '')" 2>/dev/null || echo "")
+          
+          if [ -n "$APP_URL" ]; then
+            echo "Found deployment URL: $APP_URL"
+            echo "url=$APP_URL" >> $GITHUB_OUTPUT
           else
             echo "No URL found in deployment outputs"
           fi

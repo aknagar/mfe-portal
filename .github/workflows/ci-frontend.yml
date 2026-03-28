@@ -5,12 +5,12 @@ on:
     branches: [ main, dev ]
     paths:
       - 'frontend/**'
-      - '.github/workflows/ci-frontend-e2e.yml'
+      - '.github/workflows/ci-frontend.yml'
   push:
     branches: [ main ]
     paths:
       - 'frontend/**'
-      - '.github/workflows/ci-frontend-e2e.yml'
+      - '.github/workflows/ci-frontend.yml'
   workflow_dispatch:
 
 permissions:
