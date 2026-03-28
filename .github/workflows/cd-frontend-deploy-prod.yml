@@ -125,9 +125,7 @@ jobs:
 
       - name: Log in to ACR
         run: |
-          # az acr login --name expects just the registry name, not the full FQDN
-          REGISTRY_NAME=$(echo "${{ env.REGISTRY }}" | cut -d'.' -f1)
-          az acr login --name "$REGISTRY_NAME"
+          az acr login --name ${{ env.REGISTRY }}
 
       - name: Build and push container image
         working-directory: ./frontend
