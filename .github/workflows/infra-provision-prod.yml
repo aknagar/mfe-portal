@@ -20,6 +20,8 @@ jobs:
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP_PROD }}
       AZURE_CONTAINER_REGISTRY_ENDPOINT: ${{ vars.AZURE_CONTAINER_REGISTRY_ENDPOINT }}
+      # Aspire CLI non-interactive mode: prevents process-parameters step from blocking on stdin
+      DOTNET_ASPIRE_NONINTERACTIVE: "true"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,7 +38,7 @@ jobs:
 
       - name: Install Aspire CLI
         timeout-minutes: 5
-        run: dotnet tool install -g Aspire.Cli --prerelease
+        run: dotnet tool install -g Aspire.Cli --version 13.1.3
         shell: pwsh
 
       - name: Install Dapr CLI
@@ -52,7 +54,13 @@ jobs:
       - name: Deploy with Aspire
         timeout-minutes: 90
         working-directory: ./backend/MfePortal.AppHost
-        run: aspire deploy --environment $env:AZURE_ENV_NAME --log-level debug --include-exception-details
+        run: |
+          aspire deploy `
+            --environment-name "$env:AZURE_ENV_NAME" `
+            --log-level debug `
+            --include-exception-details `
+            --parameter "postgres-password=${{ secrets.POSTGRES_PASSWORD_PROD }}" `
+            --parameter "redis-password=${{ secrets.REDIS_PASSWORD_PROD }}"
         shell: pwsh
         env:
           # Note: Colon (:) is not supported in environment variable names
