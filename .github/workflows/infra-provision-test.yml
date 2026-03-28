@@ -20,6 +20,8 @@ jobs:
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}      
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       AZURE_CONTAINER_REGISTRY_ENDPOINT: ${{ vars.AZURE_CONTAINER_REGISTRY_ENDPOINT }}
+      # Aspire CLI non-interactive mode: prevents process-parameters step from blocking on stdin
+      DOTNET_ASPIRE_NONINTERACTIVE: "true"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -50,7 +52,13 @@ jobs:
       - name: Deploy with Aspire
         timeout-minutes: 90
         working-directory: ./backend/MfePortal.AppHost
-        run: aspire deploy --environment $AZURE_ENV_NAME --log-level debug --include-exception-details
+        run: |
+          aspire deploy \
+            --environment $AZURE_ENV_NAME \
+            --log-level debug \
+            --include-exception-details \
+            --parameter postgres-password="${{ secrets.POSTGRES_PASSWORD }}" \
+            --parameter redis-password="${{ secrets.REDIS_PASSWORD }}"
         env:
           # Note: Colon (:) is not supported in environment variable names
           # Use double underscore (__) instead. For example: Azure__SubscriptionId
