@@ -34,7 +34,6 @@ jobs:
       - name: Install Aspire workload
         timeout-minutes: 10
         run: dotnet workload install aspire
-        shell: pwsh
 
       - name: Install Aspire CLI
         timeout-minutes: 5
@@ -55,13 +54,12 @@ jobs:
         timeout-minutes: 90
         working-directory: ./backend/MfePortal.AppHost
         run: |
-          aspire deploy `
-            --environment-name "$env:AZURE_ENV_NAME" `
-            --log-level debug `
-            --include-exception-details `
-            --parameter "postgres-password=${{ secrets.POSTGRES_PASSWORD_PROD }}" `
-            --parameter "redis-password=${{ secrets.REDIS_PASSWORD_PROD }}"
-        shell: pwsh
+          aspire deploy \
+            --environment-name "${{ env.AZURE_ENV_NAME }}" \
+            --log-level debug \
+            --include-exception-details \
+            --parameter postgres-password="${{ secrets.POSTGRES_PASSWORD_PROD }}" \
+            --parameter redis-password="${{ secrets.REDIS_PASSWORD_PROD }}"
         env:
           # Note: Colon (:) is not supported in environment variable names
           # Use double underscore (__) instead. For example: Azure__SubscriptionId
