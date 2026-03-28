@@ -263,7 +263,27 @@ jobs:
         working-directory: ./backend
         run: |
           dotnet run --project MfePortal.AppHost/MfePortal.AppHost.csproj --configuration Release &
+          
+          echo "Waiting for services to be ready..."
           sleep 30
+          
+          # Health check retry logic (mirrors load-test job)
+          max_attempts=12
+          attempt=0
+          while [ $attempt -lt $max_attempts ]; do
+            if curl -f -s http://localhost:5139/health > /dev/null 2>&1; then
+              echo "✓ AugmentService is ready"
+              break
+            fi
+            attempt=$((attempt + 1))
+            echo "Waiting for services... ($attempt/$max_attempts)"
+            sleep 5
+          done
+          
+          if [ $attempt -eq $max_attempts ]; then
+            echo "Error: Services failed to start within timeout"
+            exit 1
+          fi
 
       - name: Setup k6
         run: |
