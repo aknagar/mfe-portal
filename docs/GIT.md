@@ -33,3 +33,43 @@ git pull
 git branch -D <branch-name>
 git worktree remove .worktrees/<branch-name>
 ```
+
+---
+
+## AI Agent Workflow
+
+AI agents (OpenCode, Copilot, etc.) follow this workflow automatically via `AGENTS.md`.
+This section documents it for reference.
+
+### 1. Session start guard
+
+```bash
+git branch --show-current   # must NOT be "main"
+```
+
+If on `main`, the agent creates a worktree first (step 2). Never skip this check.
+
+### 2. Create worktree
+
+```bash
+git worktree add .worktrees/<branch-name> -b <branch-name> main
+```
+
+### 3. Do all work inside the worktree
+
+The agent operates in `.worktrees/<branch-name>` for the entire session.
+
+### 4. Push and open a PR
+
+```bash
+git push -u origin <branch-name>
+gh pr create --base main --head <branch-name>
+```
+
+### 5. After merge (same as human workflow)
+
+```bash
+git pull
+git branch -D <branch-name>
+git worktree remove .worktrees/<branch-name>
+```
