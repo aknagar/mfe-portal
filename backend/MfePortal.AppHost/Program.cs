@@ -22,26 +22,44 @@ if (builder.Environment.IsDevelopment())
 
 var redisHost = daprRedis.Resource.HostName;
 var redisPort = daprRedis.Resource.Port;
+// Password is non-null in container mode; null when using Entra ID in Azure mode
+var redisPassword = daprRedis.Resource.Password;
 
 // PubSub component - will be configured via YAML file
-var pubSub = builder.AddDaprPubSub("pubsub", new DaprComponentOptions
+// enableTLS is set in the YAML; redisHost points at the TLS port (6379), password is injected dynamically
+var pubSubBuilder = builder.AddDaprPubSub("pubsub", new DaprComponentOptions
                     {
                         LocalPath = "../dapr/components/pubsub.yaml"
                     })
                     .WithMetadata("redisHost", ReferenceExpression.Create(
                         $"{redisHost}:{redisPort}"
-                    ))   
+                    ))
                     .WaitFor(daprRedis);
 
+if (redisPassword is not null)
+{
+    pubSubBuilder.WithMetadata("redisPassword", redisPassword);
+}
+
+var pubSub = pubSubBuilder;
+
 // State store using Redis - will be configured via YAML file
-var stateStore = builder.AddDaprStateStore("statestore", new DaprComponentOptions
+// enableTLS is set in the YAML; redisHost points at the TLS port (6379), password is injected dynamically
+var stateStoreBuilder = builder.AddDaprStateStore("statestore", new DaprComponentOptions
                             {
                                 LocalPath = "../dapr/components/statestore.yaml"
                             })
                         .WithMetadata("redisHost", ReferenceExpression.Create(
                             $"{redisHost}:{redisPort}"
-                        ))                        
+                        ))
                         .WaitFor(daprRedis);
+
+if (redisPassword is not null)
+{
+    stateStoreBuilder.WithMetadata("redisPassword", redisPassword);
+}
+
+var stateStore = stateStoreBuilder;
 
 var postgres = builder.AddPostgres("postgres")
                 .WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8");

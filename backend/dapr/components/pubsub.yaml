@@ -10,3 +10,5 @@ spec:
       value: ${REDIS_HOST}:6379
     - name: redisPassword
       value: ''
+    - name: enableTLS
+      value: 'true'
