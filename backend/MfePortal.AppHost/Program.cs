@@ -23,24 +23,23 @@ if (builder.Environment.IsDevelopment())
 var redisHost = daprRedis.Resource.HostName;
 var redisPort = daprRedis.Resource.Port;
 
-// PubSub component - will be configured via YAML file
-var pubSub = builder.AddDaprPubSub("pubsub", new DaprComponentOptions
-                    {
-                        LocalPath = "../dapr/components/pubsub.yaml"
-                    })
+// PubSub component - Aspire generates the YAML in-memory so that WithMetadata()
+// can inject the dynamic Redis host/port resolved at runtime.
+// NOTE: LocalPath must NOT be set here — when LocalPath is provided the Aspire
+// lifecycle hook passes the file to the Dapr CLI verbatim (no transformation),
+// so WithMetadata() annotations are never applied and ${REDIS_HOST} is never
+// substituted, causing a fatal "connecting to redis at :" error at startup.
+var pubSub = builder.AddDaprPubSub("pubsub")
                     .WithMetadata("redisHost", ReferenceExpression.Create(
                         $"{redisHost}:{redisPort}"
-                    ))   
+                    ))
                     .WaitFor(daprRedis);
 
-// State store using Redis - will be configured via YAML file
-var stateStore = builder.AddDaprStateStore("statestore", new DaprComponentOptions
-                            {
-                                LocalPath = "../dapr/components/statestore.yaml"
-                            })
+// State store using Redis - same reasoning as pubSub above.
+var stateStore = builder.AddDaprStateStore("statestore")
                         .WithMetadata("redisHost", ReferenceExpression.Create(
                             $"{redisHost}:{redisPort}"
-                        ))                        
+                        ))
                         .WaitFor(daprRedis);
 
 var postgres = builder.AddPostgres("postgres")
