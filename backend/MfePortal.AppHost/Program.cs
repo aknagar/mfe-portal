@@ -23,23 +23,33 @@ if (builder.Environment.IsDevelopment())
 var redisHost = daprRedis.Resource.HostName;
 var redisPort = daprRedis.Resource.Port;
 
-// PubSub component - Aspire generates the YAML in-memory so that WithMetadata()
-// can inject the dynamic Redis host/port resolved at runtime.
-// NOTE: LocalPath must NOT be set here — when LocalPath is provided the Aspire
-// lifecycle hook passes the file to the Dapr CLI verbatim (no transformation),
-// so WithMetadata() annotations are never applied and ${REDIS_HOST} is never
-// substituted, causing a fatal "connecting to redis at :" error at startup.
+// PubSub component backed by Redis.
+//
+// How dynamic host injection works:
+//   1. WithMetadata("redisHost", ReferenceExpression) adds a DaprComponentValueProviderAnnotation,
+//      which causes Aspire to inject PUBSUB_REDISHOST=<host>:<port> into the Dapr CLI process env.
+//   2. The Dapr sidecar loads the secretstores.local.env secret store, which reads from env vars,
+//      so PUBSUB_REDISHOST is available as a secret at runtime.
+//   3. The pubsub YAML (read from .dapr/components/pubsub.yaml in the AppHost directory) references
+//      PUBSUB_REDISHOST via secretKeyRef and declares auth.secretStore: secretstore.
+//
+// NOTE: LocalPath must NOT be set — when LocalPath is provided the Aspire lifecycle hook passes
+// the YAML file to the Dapr CLI verbatim and skips ALL WithMetadata() transformations, so the
+// PUBSUB_REDISHOST env var is never injected, causing a fatal "connecting to redis at :" error.
+//
+// NOTE: The CommunityToolkit Aspire Dapr package only auto-adds auth.secretStore to the generated
+// YAML when WithMetadata(ParameterResource) is used, not when WithMetadata(IValueProvider) is used.
+// We work around this bug by providing our own pubsub.yaml in .dapr/components/ (in the AppHost
+// directory), which the toolkit reads as a base template and preserves the auth block from.
 var pubSub = builder.AddDaprPubSub("pubsub")
                     .WithMetadata("redisHost", ReferenceExpression.Create(
                         $"{redisHost}:{redisPort}"
                     ))
                     .WaitFor(daprRedis);
 
-// State store using Redis - same reasoning as pubSub above.
+// State store - uses in-memory provider for local development (no Redis needed).
+// For production, configure a persistent state store (e.g. state.redis or state.azure.cosmosdb).
 var stateStore = builder.AddDaprStateStore("statestore")
-                        .WithMetadata("redisHost", ReferenceExpression.Create(
-                            $"{redisHost}:{redisPort}"
-                        ))
                         .WaitFor(daprRedis);
 
 var postgres = builder.AddPostgres("postgres")
