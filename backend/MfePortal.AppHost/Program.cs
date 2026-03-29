@@ -130,8 +130,10 @@ var diagridDashboard = builder.AddContainer("diagrid-dashboard", "ghcr.io/diagri
     .WithHttpEndpoint(port: diagridPort, targetPort: 8080, name: "http")
     .WithExternalHttpEndpoints();
 
-// Add k6 load testing only in development
-if (builder.Environment.IsDevelopment())
+// Add k6 load testing only in development (and not during publish/manifest generation).
+// k6's WithScript() passes virtualUsers as a raw int to WithArgs(), which is unsupported
+// by the Azure Container Apps manifest publisher (ProcessValue only handles string types).
+if (builder.Environment.IsDevelopment() && !builder.ExecutionContext.IsPublishMode)
 {
     var k6 = builder.AddK6("k6")
                 .WithBindMount("../tests/k6/scripts", "/scripts", isReadOnly: true)
