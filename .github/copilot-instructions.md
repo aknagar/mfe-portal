@@ -13,13 +13,10 @@
    ```
    - Features → `feature/<short-desc>`
    - Bug fixes → `fix/<short-desc>`
-4. **Work exclusively inside `.worktrees/<branch-name>`** — never commit to the repo root
+ 4. **Work exclusively inside `.worktrees/<branch-name>`** — never commit to the repo root
    while it points to `main`.
-5. **Session end:** push the branch and open a PR:
-   ```bash
-   git push -u origin <branch-name>
-   gh pr create --base main --head <branch-name>
-   ```
+5. **Session end:** report the branch name to the user. Do NOT push and do NOT open a PR —
+   the user will do this manually.
 
 `.worktrees/` is gitignored.
 

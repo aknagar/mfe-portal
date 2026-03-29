@@ -67,3 +67,7 @@ backend/tests/k6/results/*.json
 backend/tests/k6/results/*.txt
 backend/tests/k6/results/*.html
 
+# Aspire manifest publisher output (generated artifacts, not source)
+aspire-manifest.json
+*.module.bicep
+

@@ -20,19 +20,12 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for full 
 4. **Make all edits inside `.worktrees/<branch-name>`** — never commit to the repo root
    while it is checked out to `main`.
 
-## Mandatory Session End — PR Workflow
+## Mandatory Session End — Handoff
 
 After all changes are committed inside the worktree:
 
-1. **Push the branch:**
-   ```bash
-   git push -u origin <branch-name>
-   ```
-2. **Open a PR targeting `main`:**
-   ```bash
-   gh pr create --base main --head <branch-name> --title "<title>" --body "<summary>"
-   ```
-3. **Report the PR URL** to the user before ending the session.
+1. **Report the branch name** to the user.
+2. **Do NOT push** and **do NOT open a PR** — the user will do this manually.
 
 ## Quick Reference
 
