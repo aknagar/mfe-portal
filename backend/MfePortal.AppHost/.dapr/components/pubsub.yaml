@@ -13,4 +13,6 @@ spec:
       name: PUBSUB_REDISHOST
       key: PUBSUB_REDISHOST
   - name: redisPassword
-    value: ""
+    secretKeyRef:
+      name: PUBSUB_REDISPASSWORD
+      key: PUBSUB_REDISPASSWORD

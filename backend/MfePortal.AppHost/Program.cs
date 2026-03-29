@@ -22,16 +22,18 @@ if (builder.Environment.IsDevelopment())
 
 var redisHost = daprRedis.Resource.HostName;
 var redisPort = daprRedis.Resource.Port;
+var redisPassword = daprRedis.Resource.Password;
 
 // PubSub component backed by Redis.
 //
-// How dynamic host injection works:
+// How dynamic host/password injection works:
 //   1. WithMetadata("redisHost", ReferenceExpression) adds a DaprComponentValueProviderAnnotation,
 //      which causes Aspire to inject PUBSUB_REDISHOST=<host>:<port> into the Dapr CLI process env.
-//   2. The Dapr sidecar loads the secretstores.local.env secret store, which reads from env vars,
-//      so PUBSUB_REDISHOST is available as a secret at runtime.
-//   3. The pubsub YAML (read from .dapr/components/pubsub.yaml in the AppHost directory) references
-//      PUBSUB_REDISHOST via secretKeyRef and declares auth.secretStore: secretstore.
+//   2. WithMetadata("redisPassword", ReferenceExpression) similarly injects PUBSUB_REDISPASSWORD.
+//   3. The Dapr sidecar loads the secretstores.local.env secret store, which reads from env vars,
+//      so PUBSUB_REDISHOST and PUBSUB_REDISPASSWORD are available as secrets at runtime.
+//   4. The pubsub YAML (read from .dapr/components/pubsub.yaml in the AppHost directory) references
+//      both values via secretKeyRef and declares auth.secretStore: secretstore.
 //
 // NOTE: LocalPath must NOT be set — when LocalPath is provided the Aspire lifecycle hook passes
 // the YAML file to the Dapr CLI verbatim and skips ALL WithMetadata() transformations, so the
@@ -41,11 +43,21 @@ var redisPort = daprRedis.Resource.Port;
 // YAML when WithMetadata(ParameterResource) is used, not when WithMetadata(IValueProvider) is used.
 // We work around this bug by providing our own pubsub.yaml in .dapr/components/ (in the AppHost
 // directory), which the toolkit reads as a base template and preserves the auth block from.
-var pubSub = builder.AddDaprPubSub("pubsub")
+//
+// NOTE: AddRedis() (used by RunAsContainer) always generates a random password for the Redis container.
+// We must inject it so Dapr can authenticate. In Azure mode with Entra ID, Password is null (no auth needed).
+var pubSubBuilder = builder.AddDaprPubSub("pubsub")
                     .WithMetadata("redisHost", ReferenceExpression.Create(
                         $"{redisHost}:{redisPort}"
                     ))
                     .WaitFor(daprRedis);
+
+if (redisPassword is not null)
+{
+    pubSubBuilder.WithMetadata("redisPassword", redisPassword);
+}
+
+var pubSub = pubSubBuilder;
 
 // State store - uses in-memory provider for local development (no Redis needed).
 // For production, configure a persistent state store (e.g. state.redis or state.azure.cosmosdb).
