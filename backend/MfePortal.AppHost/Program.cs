@@ -50,7 +50,7 @@ var pubSubBuilder = builder.AddDaprPubSub("pubsub")
                     .WithMetadata("redisHost", ReferenceExpression.Create(
                         $"{redisHost}:{redisPort}"
                     ))
-                    .WaitFor(daprRedis);
+                    .WithMetadata("enableTLS", "true");
 
 if (redisPassword is not null)
 {
@@ -61,8 +61,7 @@ var pubSub = pubSubBuilder;
 
 // State store - uses in-memory provider for local development (no Redis needed).
 // For production, configure a persistent state store (e.g. state.redis or state.azure.cosmosdb).
-var stateStore = builder.AddDaprStateStore("statestore")
-                        .WaitFor(daprRedis);
+var stateStore = builder.AddDaprStateStore("statestore");
 
 var postgres = builder.AddPostgres("postgres")
                 .WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8");
@@ -84,7 +83,7 @@ var serviceBusQueue = serviceBus.AddServiceBusQueue("orders");
 
 // Add AugmentService.Api with references
 var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice")
-    .WithDaprSidecar(sidecar => sidecar.WithReference(stateStore).WithReference(pubSub).WaitFor(stateStore).WaitFor(pubSub))
+    .WithDaprSidecar(sidecar => sidecar.WithReference(stateStore).WithReference(pubSub))
     .WithReference(productdb)
     .WithReference(weatherdb)
     .WithReference(serviceBus)    
