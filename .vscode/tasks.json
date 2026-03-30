@@ -27,6 +27,19 @@
       "problemMatcher": []
     },
     {
+      "label": "aspire publish",
+      "type": "shell",
+      "command": "aspire",
+      "args": [
+        "publish",
+        "--non-interactive"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/backend/MfePortal.AppHost"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "build backend",
       "command": "dotnet",
       "type": "process",
