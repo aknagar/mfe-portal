@@ -71,11 +71,14 @@ jobs:
           
           # --parameter flags supply secret values for the process-parameters pipeline step.
           # Without these, the step blocks waiting for interactive TTY input in CI.
+          # --log-level trace and --include-exception-details added to diagnose pipeline hang.
           aspire deploy \
             --environment-name "${{ env.AZURE_ENV_NAME }}" \
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
             --location "${{ env.AZURE_LOCATION }}" \
             --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}" \
+            --log-level trace \
+            --include-exception-details \
             --parameter postgres-password="${{ secrets.POSTGRES_PASSWORD }}" \
             --parameter redis-password="${{ secrets.REDIS_PASSWORD }}"
 
