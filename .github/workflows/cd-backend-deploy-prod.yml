@@ -15,7 +15,7 @@ env:
   AZURE_LOCATION: ${{ vars.AZURE_LOCATION_PROD }}
   AZURE_ENV_NAME: prod
   AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP_PROD }}
-  # Aspire CLI non-interactive mode: prevents process-parameters step from blocking on stdin
+  # Aspire CLI non-interactive mode: suppresses interactive prompts and spinners in CI
   DOTNET_ASPIRE_NONINTERACTIVE: "true"
 
 jobs:
@@ -75,22 +75,24 @@ jobs:
 
       - name: Deploy application
         id: deploy
+        timeout-minutes: 30
         working-directory: ./backend/MfePortal.AppHost
         run: |
           echo "Deploying to production environment..."
           
-          # --non-interactive prevents any prompts from blocking the pipeline.
-          # DOTNET_ASPIRE_NONINTERACTIVE env var is also set as a belt-and-suspenders guard.
-          # --parameter flags supply secret values for the process-parameters pipeline step.
-          # Without these, the step blocks waiting for interactive TTY input in CI.
+          # --non-interactive prevents interactive prompts and spinners in CI.
+          # DOTNET_ASPIRE_NONINTERACTIVE env var provides the same signal to the AppHost.
+          # No --parameter flags: postgres uses Aspire-managed credentials and
+          # daprRedis uses Azure Managed Redis with Entra ID (no password).
+          # Passing unknown --parameter names causes process-parameters to hang indefinitely.
           aspire deploy \
             --environment-name "${{ env.AZURE_ENV_NAME }}" \
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
             --location "${{ env.AZURE_LOCATION }}" \
             --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}" \
             --non-interactive \
-            --parameter postgres-password="${{ secrets.POSTGRES_PASSWORD_PROD }}" \
-            --parameter redis-password="${{ secrets.REDIS_PASSWORD_PROD }}"
+            --log-level debug \
+            --include-exception-details
           
           echo "✅ Deployment command completed" >> $GITHUB_STEP_SUMMARY
         env:
