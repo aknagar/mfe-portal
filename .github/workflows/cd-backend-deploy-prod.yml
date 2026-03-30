@@ -96,6 +96,11 @@ jobs:
           
           echo "✅ Deployment command completed" >> $GITHUB_STEP_SUMMARY
         env:
+          # Disable Aspire AppHost interactivity so the process-parameters pipeline step
+          # never waits for user input in CI (would hang indefinitely without a TTY).
+          # DOTNET_ASPIRE_NONINTERACTIVE only controls CLI spinners; this env var is what
+          # the AppHost's InteractionService checks (KnownConfigNames.InteractivityEnabled).
+          ASPIRE_INTERACTIVITY_ENABLED: "false"
           # Note: Colon (:) is not supported in environment variable names
           # Use double underscore (__) instead. For example: Azure__SubscriptionId
           Azure__SubscriptionId: ${{ env.AZURE_SUBSCRIPTION_ID }}
