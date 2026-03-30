@@ -82,6 +82,12 @@ jobs:
             --include-exception-details \
             --parameter postgres-password="${{ secrets.POSTGRES_PASSWORD }}" \
             --parameter redis-password="${{ secrets.REDIS_PASSWORD }}"
+        env:
+          # Note: Colon (:) is not supported in environment variable names
+          # Use double underscore (__) instead. For example: Azure__SubscriptionId
+          Azure__SubscriptionId: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          Azure__ResourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
+          Azure__Location: ${{ env.AZURE_LOCATION }}
 
       - name: Get deployment outputs
         id: get_url

@@ -79,6 +79,8 @@ jobs:
         run: |
           echo "Deploying to production environment..."
           
+          # --non-interactive prevents any prompts from blocking the pipeline.
+          # DOTNET_ASPIRE_NONINTERACTIVE env var is also set as a belt-and-suspenders guard.
           # --parameter flags supply secret values for the process-parameters pipeline step.
           # Without these, the step blocks waiting for interactive TTY input in CI.
           aspire deploy \
@@ -86,10 +88,17 @@ jobs:
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
             --location "${{ env.AZURE_LOCATION }}" \
             --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}" \
+            --non-interactive \
             --parameter postgres-password="${{ secrets.POSTGRES_PASSWORD_PROD }}" \
             --parameter redis-password="${{ secrets.REDIS_PASSWORD_PROD }}"
           
           echo "✅ Deployment command completed" >> $GITHUB_STEP_SUMMARY
+        env:
+          # Note: Colon (:) is not supported in environment variable names
+          # Use double underscore (__) instead. For example: Azure__SubscriptionId
+          Azure__SubscriptionId: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          Azure__ResourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
+          Azure__Location: ${{ env.AZURE_LOCATION }}
 
       - name: Get deployment outputs
         id: get_url
