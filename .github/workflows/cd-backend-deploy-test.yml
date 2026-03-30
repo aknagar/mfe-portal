@@ -69,13 +69,17 @@ jobs:
           echo "- **Image Tag:** ${{ inputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # --parameter flags supply secret values for the process-parameters pipeline step.
-          # Without these, the step blocks waiting for interactive TTY input in CI.
+          # --non-interactive prevents any prompts from blocking the pipeline.
+          # DOTNET_ASPIRE_NONINTERACTIVE env var is also set as a belt-and-suspenders guard.
+          # --log-level trace and --include-exception-details added to diagnose pipeline hang.
           aspire deploy \
             --environment-name "${{ env.AZURE_ENV_NAME }}" \
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
             --location "${{ env.AZURE_LOCATION }}" \
             --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}" \
+            --non-interactive \
+            --log-level trace \
+            --include-exception-details \
             --parameter postgres-password="${{ secrets.POSTGRES_PASSWORD }}" \
             --parameter redis-password="${{ secrets.REDIS_PASSWORD }}"
 
