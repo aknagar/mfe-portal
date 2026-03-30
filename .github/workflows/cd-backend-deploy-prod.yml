@@ -45,7 +45,7 @@ jobs:
 
       - name: Install Aspire CLI
         timeout-minutes: 5
-        run: dotnet tool install -g Aspire.Cli --version 13.1.3
+        run: dotnet tool install -g Aspire.Cli --version 13.2.0
 
       - name: Install Dapr CLI
         uses: dapr/setup-dapr@v2
@@ -79,6 +79,8 @@ jobs:
         run: |
           echo "Deploying to production environment..."
           
+          # --non-interactive prevents any prompts from blocking the pipeline.
+          # DOTNET_ASPIRE_NONINTERACTIVE env var is also set as a belt-and-suspenders guard.
           # --parameter flags supply secret values for the process-parameters pipeline step.
           # Without these, the step blocks waiting for interactive TTY input in CI.
           aspire deploy \
@@ -86,6 +88,7 @@ jobs:
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
             --location "${{ env.AZURE_LOCATION }}" \
             --subscription-id "${{ env.AZURE_SUBSCRIPTION_ID }}" \
+            --non-interactive \
             --parameter postgres-password="${{ secrets.POSTGRES_PASSWORD_PROD }}" \
             --parameter redis-password="${{ secrets.REDIS_PASSWORD_PROD }}"
           
