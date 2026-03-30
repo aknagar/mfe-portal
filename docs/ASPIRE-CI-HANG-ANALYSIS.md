@@ -13,91 +13,135 @@
 
 ---
 
-## Root Cause
+## Root Cause (Confirmed)
 
 ### The hang chain — step by step
 
 ```
 aspire deploy
-  └─ launches AppHost with --operation publish --step deploy
+  └─ launches AppHost with --publisher AzureContainerAppEnvironmentPublisher
        └─ DistributedApplicationPipeline runs "process-parameters" step
-            └─ ParameterProcessor.InitializeParametersAsync(waitForResolution: true)
-                 └─ postgres resource has auto-generated "postgres-password" parameter
-                      └─ In CI: no stored value in IConfiguration["Parameters:postgres-password"]
-                           └─ ParameterProcessor calls HandleUnresolvedParametersAsync
-                                └─ InteractionService.IsAvailable == true  ← ROOT CAUSE
-                                     └─ PromptInputsAsync waits on CompletionTcs forever
-                                          └─ HANG (nobody to complete it — no TTY in CI)
+            └─ ParameterProcessor.InitializeParametersAsync
+                 └─ CollectDependentParameterResourcesAsync
+                      └─ iterates every resource, calls GetResourceDependenciesAsync
+                           └─ GatherRawEnvironmentAndArgumentValuesAsync
+                                └─ invokes every EnvironmentCallbackAnnotation on DaprSidecarResource
+                                     └─ DaprDistributedApplicationLifecycleHook added EnvironmentCallbackAnnotation
+                                          └─ calls valueProvider.GetValueAsync(cancellationToken)
+                                               └─ valueProvider = ReferenceExpression wrapping
+                                                  BicepOutputReference("hostName", daprRedis.Resource)
+                                                    └─ BicepOutputReference.GetValueAsync:
+                                                         await Resource.ProvisioningTaskCompletionSource.Task
+                                                              └─ HANG — TCS only completed by "provision-daprRedis"
+                                                                         step which runs AFTER process-parameters
 ```
 
-### Why `IsAvailable` is `true` in CI
+### The Dapr `WithMetadata(IValueProvider)` callback — exact mechanics
 
-`InteractionService.IsAvailable` in the Aspire AppHost reads a specific environment variable:
+`DaprMetadataResourceBuilderExtensions.WithMetadata(IValueProvider)` adds a
+`DaprComponentValueProviderAnnotation` to the `DaprComponentResource` (pubsub).
+
+`DaprDistributedApplicationLifecycleHook.OnBeforeStartAsync` then reads those annotations from each
+component referenced by a sidecar, and adds a single **unconditional**
+`EnvironmentCallbackAnnotation` to the `DaprSidecarResource`:
 
 ```csharp
-// src/Aspire.Hosting/InteractionService.cs
-public bool IsAvailable {
-    get {
-        if (_distributedApplicationOptions.DisableDashboard) return false;
-        var interactivityEnabled = _configuration[KnownConfigNames.InteractivityEnabled];
-        // KnownConfigNames.InteractivityEnabled = "ASPIRE_INTERACTIVITY_ENABLED"
-        if (!string.IsNullOrEmpty(interactivityEnabled)
-            && bool.TryParse(interactivityEnabled, out var enabled) && !enabled)
-            return false;
-        return true;  // ← default when env var is absent
+// No publish-mode guard here:
+daprSidecar.Annotations.Add(new EnvironmentCallbackAnnotation(async context =>
+{
+    foreach (var (envVarName, valueProvider) in endpointEnvironmentVars)
+    {
+        var value = await valueProvider.GetValueAsync(context.CancellationToken); // ← BLOCKS
+        context.EnvironmentVariables.TryAdd(envVarName, value ?? string.Empty);
     }
+}));
+```
+
+### Why `BicepOutputReference.GetValueAsync` blocks in publish mode
+
+```csharp
+// Aspire.Hosting.Azure — BicepOutputReference.cs
+public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+{
+    TaskCompletionSource provisioningTaskCompletionSource = Resource.ProvisioningTaskCompletionSource;
+    if (provisioningTaskCompletionSource != null)
+    {
+        // Waits for the "provision-daprRedis" pipeline step to complete.
+        // In publish mode, that step runs AFTER "process-parameters".
+        // → Deadlock.
+        await provisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
+    return Value;
 }
 ```
 
-`ASPIRE_INTERACTIVITY_ENABLED` was never set on the "Deploy application" step's subprocess. Therefore `IsAvailable` always returned `true`, causing the interactive prompt loop to activate even in a headless CI environment.
+The `ProvisioningTaskCompletionSource` is set for every Azure Bicep resource during pipeline
+configuration. It is resolved when its `provision-<name>` step runs. That step is tagged
+`provision-azure-bicep-resources` which runs **after** `process-parameters`. So inside
+`process-parameters`, calling `GetValueAsync` on any `BicepOutputReference` deadlocks.
 
-### Why `postgres-password` has no stored value
+### The affected resources in `Program.cs`
 
-`AddPostgres` in `Program.cs` calls `CreateDefaultPasswordParameter`, which creates a `GenerateParameterDefault` (random, minLength 22). In **publish mode** (`IsRunMode = false`), the parameter value is not persisted to user secrets, so `IConfiguration["Parameters:postgres-password"]` is empty in a fresh CI runner.
+```csharp
+var daprRedis = builder.AddAzureManagedRedis("daprRedis");
+var redisHost = daprRedis.Resource.HostName;    // ReferenceExpression → BicepOutputReference("hostName")
+var redisPort = daprRedis.Resource.Port;         // ReferenceExpression → BicepOutputReference (hardcoded 10000)
+var redisPassword = daprRedis.Resource.Password; // null in Azure Entra mode; ParameterResource in container mode
 
-When `ParameterProcessor.ProcessParameterAsync` cannot find the value in configuration, the parameter is added to `_unresolvedParameters`. With `IsAvailable = true`, `HandleUnresolvedParametersAsync` then enters the interactive resolution loop.
+builder.AddDaprPubSub("pubsub")
+    .WithMetadata("redisHost", ReferenceExpression.Create($"{redisHost}:{redisPort}"))  // ← IValueProvider path
+    .WithMetadata("redisPassword", redisPassword);                                       // ← IValueProvider path
+```
+
+Both `redisHost` and `redisPort` are `ReferenceExpression`s whose `GetValueAsync` delegates to
+`BicepOutputReference.GetValueAsync` → waits on provisioning TCS → **hang**.
 
 ---
 
-## Why Previous Mitigations Did Not Work
+## Why Earlier Mitigations Did Not Work
 
 | Attempted fix | Why it failed |
 |---|---|
-| `DOTNET_ASPIRE_NONINTERACTIVE=true` | Controls CLI output/spinners only. **Not read** by the AppHost's `InteractionService`. |
-| `--non-interactive` flag on `aspire deploy` | Controls CLI behavior. Does **not** set `ASPIRE_INTERACTIVITY_ENABLED` on the AppHost subprocess. |
-| `--parameter postgres-password=X` | The `--parameter` CLI flag is not forwarded to the AppHost as `IConfiguration["Parameters:postgres-password"]`. The AppHost reads configuration, not CLI args passed through the parent process. Passing unknown parameter names can itself cause the hang to manifest differently. |
-| `timeout-minutes: 30` on the step | Fails fast instead of running indefinitely — a safety net, not a fix. |
+| `DOTNET_ASPIRE_NONINTERACTIVE=true` | Controls CLI output/spinners only. Not read by the AppHost. |
+| `--non-interactive` flag on `aspire deploy` | CLI-only. Does not set `ASPIRE_INTERACTIVITY_ENABLED` on the AppHost subprocess. |
+| `ASPIRE_INTERACTIVITY_ENABLED=false` on deploy step | **Addresses a different bug** (interactive parameter prompts). Does NOT prevent the Dapr `WithMetadata` callback from blocking on `BicepOutputReference.GetValueAsync`. |
+| `--parameter postgres-password=X` | The `--parameter` flag is not forwarded to the AppHost. |
+| `timeout-minutes: 30` | A safety net, not a fix. |
 
 ---
 
 ## The Fix
 
-Set `ASPIRE_INTERACTIVITY_ENABLED: "false"` in the `env:` block of the "Deploy application" step in both workflow files. This variable is inherited by the AppHost subprocess launched by `aspire deploy`.
+**`backend/MfePortal.AppHost/Program.cs`** — skip `WithMetadata(IValueProvider)` calls in publish mode:
 
-```yaml
-- name: Deploy application
-  id: deploy
-  timeout-minutes: 30
-  working-directory: ./backend/MfePortal.AppHost
-  run: |
-    aspire deploy \
-      --environment-name "${{ env.AZURE_ENV_NAME }}" \
-      --non-interactive \
-      ...
-  env:
-    ASPIRE_INTERACTIVITY_ENABLED: "false"   # ← THE FIX
-    Azure__SubscriptionId: ${{ env.AZURE_SUBSCRIPTION_ID }}
-    Azure__ResourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
-    Azure__Location: ${{ env.AZURE_LOCATION }}
+```csharp
+var pubSubBuilder = builder.AddDaprPubSub("pubsub")
+                    .WithMetadata("enableTLS", "true");
+
+if (!builder.ExecutionContext.IsPublishMode)
+{
+    // Only inject BicepOutputReference-backed values at runtime.
+    // In publish mode, GetValueAsync() on these would deadlock (see analysis above).
+    // The Dapr sidecar CLI does not run in publish mode so these env vars are not needed.
+    pubSubBuilder
+        .WithMetadata("redisHost", ReferenceExpression.Create($"{redisHost}:{redisPort}"));
+
+    if (redisPassword is not null)
+    {
+        pubSubBuilder.WithMetadata("redisPassword", redisPassword);
+    }
+}
 ```
 
-### What changes with the fix
+### Why this is correct
 
-When `IsAvailable = false`:
-
-- `ParameterProcessor` does **not** enter the interactive resolution loop.
-- Parameters with `GenerateParameterDefault` (like `postgres-password`) have their value generated automatically and the pipeline proceeds.
-- Parameters with no value and no default fail fast with a logged `MissingParameterValueException` — much better than a silent hang.
+- In **publish mode**, the Dapr sidecar CLI is excluded from the manifest
+  (`ManifestPublishingCallbackAnnotation.Ignore` is on `daprCli`). The `EnvironmentCallbackAnnotation`
+  that calls `GetValueAsync` is only needed for the live runtime sidecar process — not for
+  manifest generation.
+- In **run mode** (local development / `aspire run`), the guard is false, so the metadata
+  is injected as before. Local Redis container values resolve synchronously (no TCS wait).
+- `"enableTLS"` uses the `WithMetadata(string, string)` overload which never calls `GetValueAsync`.
 
 ---
 
@@ -105,16 +149,14 @@ When `IsAvailable = false`:
 
 | File | Purpose |
 |---|---|
-| `src/Aspire.Hosting/Pipelines/DistributedApplicationPipeline.cs` | Defines the `process-parameters` step; calls `ParameterProcessor.InitializeParametersAsync` |
-| `src/Aspire.Hosting/Pipelines/WellKnownPipelineSteps.cs` | Defines `ProcessParameters = "process-parameters"` |
-| `src/Aspire.Hosting/Orchestrator/ParameterProcessor.cs` | `HandleUnresolvedParametersAsync` loops on `PromptInputsAsync` when `IsAvailable = true` |
-| `src/Aspire.Hosting/InteractionService.cs` | `IsAvailable` property; reads `ASPIRE_INTERACTIVITY_ENABLED` |
-| `src/Shared/KnownConfigNames.cs` | `InteractivityEnabled = "ASPIRE_INTERACTIVITY_ENABLED"` |
-| `src/Aspire.Hosting/ParameterResourceBuilderExtensions.cs` | `CreateDefaultPasswordParameter`, `GetParameterValue` logic |
-| `src/Aspire.Hosting/ApplicationModel/ParameterResource.cs` | `ValueInternal`, `WaitForValueTcs` |
-| `src/Aspire.Hosting.PostgreSQL/PostgresBuilderExtensions.cs` | `AddPostgres` creates `postgres-password` via `CreateDefaultPasswordParameter` |
-
-All files read from `https://raw.githubusercontent.com/microsoft/aspire/main/`.
+| `src/Aspire.Hosting/Pipelines/DistributedApplicationPipeline.cs` | `process-parameters` step definition |
+| `src/Aspire.Hosting/Orchestrator/ParameterProcessor.cs` | `CollectDependentParameterResourcesAsync` |
+| `src/Aspire.Hosting/ApplicationModel/ResourceExtensions.cs` | `GetResourceDependenciesAsync`, `GatherRawEnvironmentAndArgumentValuesAsync` |
+| `src/Aspire.Hosting.Azure/Aspire.Hosting.Azure.dll` (decompiled) | `BicepOutputReference.GetValueAsync` — the blocking call |
+| `src/Aspire.Hosting.Azure.Redis/Aspire.Hosting.Azure.Redis.dll` (decompiled) | `AzureManagedRedisResource.HostName/Port/Password` → `BicepOutputReference` |
+| `CommunityToolkit.Aspire.Hosting.Dapr/DaprDistributedApplicationLifecycleHook.cs` | Unconditional `EnvironmentCallbackAnnotation` on sidecar |
+| `CommunityToolkit.Aspire.Hosting.Dapr/DaprMetadataResourceBuilderExtensions.cs` | `WithMetadata(IValueProvider)` — adds `DaprComponentValueProviderAnnotation` |
+| `CommunityToolkit.Aspire.Hosting.Dapr/DaprComponentValueProviderAnnotation.cs` | Annotation record |
 
 ---
 
@@ -126,4 +168,6 @@ All files read from `https://raw.githubusercontent.com/microsoft/aspire/main/`.
 | `9dc9dcb` | Upgrade Aspire CLI to 13.2.0, add `--non-interactive` to prod deploy |
 | `fb44be6` | Add trace logging and exception details to CD test deploy |
 | `f76e173` | Remove `--parameter` flags, add `timeout-minutes: 30`, enable debug logging |
-| `d774e0b` | **Set `ASPIRE_INTERACTIVITY_ENABLED=false` — the actual fix** |
+| `d774e0b` | Set `ASPIRE_INTERACTIVITY_ENABLED=false` (addresses interactive-prompts bug, not this one) |
+| `5102a75` | Add `docs/ASPIRE-CI-HANG-ANALYSIS.md` (initial draft — incorrect root cause) |
+| *(next)* | **Skip `WithMetadata(IValueProvider)` in publish mode — the actual fix** |
