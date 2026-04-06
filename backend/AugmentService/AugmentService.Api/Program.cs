@@ -12,18 +12,18 @@ using Azure.Identity;
 using AugmentService.Infrastructure.WeatherData;
 using Microsoft.OpenApi.Any;
 using AugmentService.Core.Entities;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using AugmentService.Api.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var isTest = builder.Environment.EnvironmentName == "Test";
+
 // Create shared Azure credential for Key Vault and Database authentication
-var credential = new DefaultAzureCredential();
+// (not needed — and causes IMDS probe hangs — in the Test environment)
+DefaultAzureCredential? credential = isTest ? null : new DefaultAzureCredential();
 
 builder.AddServiceDefaults();
 
@@ -58,55 +58,11 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Authentication setup:
-//   Development / Test  — lenient JWT scheme; accepts any token or no token (test user auto-created)
-//   Production          — Microsoft.Identity.Web validates tokens against Azure Entra ID (Azure AD)
-//                         Reads TenantId, ClientId, and Audience from the "AzureAd" config section.
-if (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Test")
-{
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
-        {
-            // Development: Allow requests without valid tokens for testing
-            options.RequireHttpsMetadata = false;
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateLifetime = false,
-                ValidateIssuerSigningKey = false,
-                SignatureValidator = (token, parameters) => new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(token)
-            };
-
-            // For development: accept any token or no token
-            options.Events = new JwtBearerEvents
-            {
-                OnMessageReceived = context =>
-                {
-                    // If no token is provided, create a test user for development
-                    if (string.IsNullOrEmpty(context.Token))
-                    {
-                        var claims = new[]
-                        {
-                            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-                            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, "[email protected]"),
-                            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, "Dev User")
-                        };
-                        var identity = new System.Security.Claims.ClaimsIdentity(claims, "DevAuth");
-                        context.Principal = new System.Security.Claims.ClaimsPrincipal(identity);
-                        context.Success();
-                    }
-                    return Task.CompletedTask;
-                }
-            };
-        });
-}
-else
-{
-    // Production: validate Bearer tokens against Azure Entra ID (Azure AD).
-    // Reads Instance, TenantId, ClientId, and Audience from the "AzureAd" appsettings section.
-    builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
-}
+// Authentication: Microsoft.Identity.Web validates Bearer tokens against Azure Entra ID.
+// Reads Instance, TenantId, ClientId, and Audience from the "AzureAd" config section.
+// Integration tests override this via WebApplicationFactory, replacing the
+// JwtBearer handler with a lightweight test handler (see JwtTestAuthHandler).
+builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
 
 builder.Services.AddAuthorization();
 
@@ -117,13 +73,17 @@ builder.AddInfrastructure();
 // Add Aspire Key Vault client integration
 // Connects to the Key Vault resource defined in AppHost ("keyvault")
 // Configuration comes from appsettings with key "Keyvault:Uri"
-builder.AddAzureKeyVaultClient("keyvault", settings => 
+// Skipped in Test environment to avoid Azure IMDS probe hangs.
+if (!isTest)
 {
-    settings.DisableHealthChecks = true; // Optional: disable health checks if not needed
-});
+    builder.AddAzureKeyVaultClient("keyvault", settings => 
+    {
+        settings.DisableHealthChecks = true; // Optional: disable health checks if not needed
+    });
 
-// Add Service Bus client
-builder.AddAzureServiceBusClient("messaging");
+    // Add Service Bus client
+    builder.AddAzureServiceBusClient("messaging");
+}
 
 // Log all environment variables injected by Aspire (Development only)
 if (builder.Environment.IsDevelopment())
