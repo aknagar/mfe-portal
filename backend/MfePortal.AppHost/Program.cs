@@ -27,17 +27,29 @@ var redisPassword = daprRedis.Resource.Password;
 // NOTE: LocalPath must NOT be set — it bypasses WithMetadata() and the env vars are never injected.
 // NOTE: auth.secretStore is declared in .dapr/components/pubsub.yaml because the toolkit only
 //       auto-adds it when WithMetadata(ParameterResource) is used, not IValueProvider.
+//
+// IMPORTANT: WithMetadata(IValueProvider) is skipped in publish mode because resolving
+// BicepOutputReference values (redisHost, redisPort, redisPassword) requires awaiting
+// ProvisioningTaskCompletionSource, which only completes in the 'provision-*' pipeline step —
+// AFTER 'process-parameters'. Calling GetValueAsync() during process-parameters causes a
+// silent deadlock and the publish pipeline hangs indefinitely. The Dapr sidecar CLI does not
+// run in publish mode so these metadata values are not needed in the manifest.
 var pubSubBuilder = builder.AddDaprPubSub("pubsub")
-                    .WithMetadata("redisHost", ReferenceExpression.Create(
-                        $"{redisHost}:{redisPort}"
-                    ))
                     .WithMetadata("enableTLS", "true");
 
-if (redisPassword is not null)
+if (!builder.ExecutionContext.IsPublishMode)
 {
-    // RunAsContainer() generates a random Redis password; inject it for Dapr auth.
-    // In Azure (Entra ID mode) Password is null — no password needed.
-    pubSubBuilder.WithMetadata("redisPassword", redisPassword);
+    pubSubBuilder
+        .WithMetadata("redisHost", ReferenceExpression.Create(
+            $"{redisHost}:{redisPort}"
+        ));
+
+    if (redisPassword is not null)
+    {
+        // RunAsContainer() generates a random Redis password; inject it for Dapr auth.
+        // In Azure (Entra ID mode) Password is null — no password needed.
+        pubSubBuilder.WithMetadata("redisPassword", redisPassword);
+    }
 }
 
 var pubSub = pubSubBuilder;
