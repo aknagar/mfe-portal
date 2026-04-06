@@ -1,7 +1,9 @@
 using System.Net;
+using System.Net.Http.Headers;
 using AugmentService.Infrastructure.Data;
 using AugmentService.Infrastructure.ProductData;
 using AugmentService.Infrastructure.WeatherData;
+using Common.Auth;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -15,6 +17,13 @@ namespace AugmentService.IntegrationTests.Api;
 
 /// <summary>
 /// Custom WebApplicationFactory with persistent SQLite connections and no Dapr runtime.
+///
+/// Authentication mirrors production:
+///   - The app runs with Microsoft.Identity.Web (same as production).
+///   - ConfigureWebHost swaps the Entra ID JwtBearer validator for a local HS256 validator
+///     via <see cref="TestAuthServiceExtensions.ReplaceWithTestJwtHandler"/>.
+///   - Tests must attach a Bearer token from <see cref="TestTokenFactory"/>; requests
+///     without a token receive 401, just as they would in production.
 /// </summary>
 public class WeatherTestFactory : WebApplicationFactory<Program>, IDisposable
 {
@@ -26,7 +35,7 @@ public class WeatherTestFactory : WebApplicationFactory<Program>, IDisposable
     {
         _productConn = new SqliteConnection("Data Source=:memory:");
         _weatherConn = new SqliteConnection("Data Source=:memory:");
-        _userConn = new SqliteConnection("Data Source=:memory:");
+        _userConn    = new SqliteConnection("Data Source=:memory:");
 
         _productConn.Open();
         _weatherConn.Open();
@@ -37,14 +46,17 @@ public class WeatherTestFactory : WebApplicationFactory<Program>, IDisposable
     {
         builder.UseEnvironment("Test");
 
-        builder.ConfigureAppConfiguration((context, config) =>
+        builder.ConfigureAppConfiguration((_, config) =>
         {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
+            // Supply AzureAd values so AddMicrosoftIdentityWebApiAuthentication doesn't
+            // throw on startup; the actual Entra ID validator is replaced below.
+            var overrides = new Dictionary<string, string?>(TestAuthConstants.ConfigOverrides)
             {
                 ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableHealthChecks"] = "true",
-                ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableTracing"] = "true",
-                ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableMetrics"] = "true"
-            });
+                ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableTracing"]      = "true",
+                ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableMetrics"]      = "true",
+            };
+            config.AddInMemoryCollection(overrides);
         });
 
         builder.ConfigureServices(services =>
@@ -56,18 +68,20 @@ public class WeatherTestFactory : WebApplicationFactory<Program>, IDisposable
 
             services.Configure<AugmentService.Infrastructure.InfrastructureConfig>(cfg =>
             {
-                cfg.ConnectionString = "Data Source=:memory:";
+                cfg.ConnectionString           = "Data Source=:memory:";
                 cfg.EnableSensitiveDataLogging = false;
             });
 
-            services.AddDbContext<ProductDataContext>(options =>
-                options.UseSqlite(_productConn));
-            services.AddDbContext<WeatherDatabaseContext>(options =>
-                options.UseSqlite(_weatherConn));
-            services.AddDbContext<UserDbContext>(options =>
-                options.UseSqlite(_userConn));
+            services.AddDbContext<ProductDataContext>(options  => options.UseSqlite(_productConn));
+            services.AddDbContext<WeatherDatabaseContext>(options => options.UseSqlite(_weatherConn));
+            services.AddDbContext<UserDbContext>(options       => options.UseSqlite(_userConn));
 
             IntegrationTestHelpers.ReplaceDaprServices(services);
+
+            // Replace the Entra ID JwtBearer validator with a local HS256 validator.
+            // All other auth/authz middleware (token parsing, claims mapping, [Authorize]
+            // enforcement) runs unchanged — same as production.
+            services.ReplaceWithTestJwtHandler();
 
             var sp = services.BuildServiceProvider();
             using var scope = sp.CreateScope();
@@ -85,6 +99,19 @@ public class WeatherTestFactory : WebApplicationFactory<Program>, IDisposable
         });
     }
 
+    /// <summary>Creates an HttpClient pre-configured with a valid test Bearer token.</summary>
+    public HttpClient CreateAuthenticatedClient(
+        string?   userId  = null,
+        string?   email   = null,
+        string?   name    = null,
+        string[]? roles   = null)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            TestTokenFactory.CreateBearerHeader(userId, email, name, roles);
+        return client;
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -100,20 +127,21 @@ public class WeatherTestFactory : WebApplicationFactory<Program>, IDisposable
 public class WeatherEndpointTests : IClassFixture<WeatherTestFactory>
 {
     private readonly WeatherTestFactory _factory;
-    private readonly HttpClient _client;
 
     public WeatherEndpointTests(WeatherTestFactory factory)
     {
         _factory = factory;
-        _client = _factory.CreateClient();
     }
 
     [Fact]
     [Trait("Category", "Integration")]
-    public async Task GetWeatherForecast_ReturnsOk()
+    public async Task GetWeatherForecast_WithValidToken_ReturnsOk()
     {
-        // Act — route is /weather/{date:yyyy-MM-dd}; a forecast for 2024-01-01 is seeded in the factory.
-        var response = await _client.GetAsync("/weather/2024-01-01");
+        // Arrange — authenticated client with a valid test token
+        using var client = _factory.CreateAuthenticatedClient();
+
+        // Act — a forecast for 2024-01-01 is seeded in the factory
+        var response = await client.GetAsync("/weather/2024-01-01");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -121,12 +149,41 @@ public class WeatherEndpointTests : IClassFixture<WeatherTestFactory>
 
     [Fact]
     [Trait("Category", "Integration")]
-    public async Task GetHealth_ReturnsHealthy()
+    public async Task GetWeatherForecast_WithoutToken_ReturnsUnauthorized()
     {
+        // Arrange — unauthenticated client (no Authorization header)
+        using var client = _factory.CreateClient();
+
         // Act
-        var response = await _client.GetAsync("/health");
+        var response = await client.GetAsync("/weather/2024-01-01");
+
+        // Assert — 401, same behaviour as production
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GetWeatherForecast_WithExpiredToken_ReturnsUnauthorized()
+    {
+        // Arrange
+        using var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", TestTokenFactory.CreateExpiredToken());
+
+        // Act
+        var response = await client.GetAsync("/weather/2024-01-01");
 
         // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task GetHealth_ReturnsHealthy()
+    {
+        // Health endpoint is [AllowAnonymous] — no token required
+        using var client = _factory.CreateClient();
+        var response = await client.GetAsync("/health");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }

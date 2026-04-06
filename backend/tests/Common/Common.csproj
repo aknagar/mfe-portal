@@ -8,7 +8,9 @@
 
   <ItemGroup>
     <PackageReference Include="AutoFixture" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
   </ItemGroup>
 
   <ItemGroup>

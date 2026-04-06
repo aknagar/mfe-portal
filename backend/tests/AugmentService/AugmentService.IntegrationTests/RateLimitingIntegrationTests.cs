@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Hosting;
@@ -9,9 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using AugmentService.Infrastructure.ProductData;
 using AugmentService.Infrastructure.WeatherData;
 using AugmentService.Infrastructure.Data;
-using AugmentService.Api.Workflows;
-using Dapr.Client;
-using Dapr.Workflow;
+using Common.Auth;
 using Moq;
 using Xunit;
 
@@ -21,6 +20,10 @@ namespace AugmentService.IntegrationTests;
 /// Rate-limiting integration tests.
 /// Each test creates its own factory instance so that the rate-limit window
 /// is always fresh at the start of every test (no shared server state).
+///
+/// Note: rate limiting runs before authentication in the pipeline, so requests
+/// that exceed the limit receive 429 before auth is evaluated. The factory still
+/// registers the test JWT handler so the app starts cleanly with production-parity auth.
 /// </summary>
 public class RateLimitingIntegrationTests
 {
@@ -35,7 +38,7 @@ public class RateLimitingIntegrationTests
     {
         // Arrange
         using var factory = CreateFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
         const int permitLimit = 5;
 
         // Act - Make requests up to the limit
@@ -65,7 +68,7 @@ public class RateLimitingIntegrationTests
     {
         // Arrange
         using var factory = CreateFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
         const int permitLimit = 5;
 
         // Act - Exhaust the permit limit then make one more request
@@ -91,7 +94,7 @@ public class RateLimitingIntegrationTests
     {
         // Arrange
         using var factory = CreateFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateClient(); // health is [AllowAnonymous], no token needed
         const int attemptCount = 20; // Well over the limit
 
         // Act - Make many requests to health check
@@ -110,7 +113,7 @@ public class RateLimitingIntegrationTests
     {
         // Arrange
         using var factory = CreateFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateClient(); // alive is [AllowAnonymous], no token needed
         const int attemptCount = 20; // Well over the limit
 
         // Act - Make many requests to alive endpoint
@@ -129,7 +132,7 @@ public class RateLimitingIntegrationTests
     {
         // Arrange
         using var factory = CreateFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
         const int permitLimit = 5;
 
         // Act - Exhaust the limit then check the rejection response
@@ -155,7 +158,7 @@ public class RateLimitingIntegrationTests
     {
         // Arrange
         using var factory = CreateFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
 
         // Act - Hit different endpoints (global limiter applies to all)
         var responses = new List<HttpResponseMessage>
@@ -190,7 +193,7 @@ public class RateLimitingWebFactory : WebApplicationFactory<Program>, IDisposabl
     {
         _productConn = new SqliteConnection("Data Source=:memory:");
         _weatherConn = new SqliteConnection("Data Source=:memory:");
-        _userConn = new SqliteConnection("Data Source=:memory:");
+        _userConn    = new SqliteConnection("Data Source=:memory:");
 
         _productConn.Open();
         _weatherConn.Open();
@@ -201,18 +204,20 @@ public class RateLimitingWebFactory : WebApplicationFactory<Program>, IDisposabl
     {
         builder.UseEnvironment("Test");
 
-        builder.ConfigureAppConfiguration((context, config) =>
+        builder.ConfigureAppConfiguration((_, config) =>
         {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
+            // Supply AzureAd values + rate-limiting config
+            var overrides = new Dictionary<string, string?>(TestAuthConstants.ConfigOverrides)
             {
-                ["RateLimiting:Enabled"] = "true",
-                ["RateLimiting:PermitLimit"] = "5",
+                ["RateLimiting:Enabled"]       = "true",
+                ["RateLimiting:PermitLimit"]   = "5",
                 ["RateLimiting:WindowSeconds"] = "60",
-                ["RateLimiting:QueueLimit"] = "0",
+                ["RateLimiting:QueueLimit"]    = "0",
                 ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableHealthChecks"] = "true",
-                ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableTracing"] = "true",
-                ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableMetrics"] = "true"
-            });
+                ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableTracing"]      = "true",
+                ["Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableMetrics"]      = "true",
+            };
+            config.AddInMemoryCollection(overrides);
         });
 
         builder.ConfigureServices(services =>
@@ -225,20 +230,20 @@ public class RateLimitingWebFactory : WebApplicationFactory<Program>, IDisposabl
 
             services.Configure<AugmentService.Infrastructure.InfrastructureConfig>(cfg =>
             {
-                cfg.ConnectionString = "Data Source=:memory:";
+                cfg.ConnectionString           = "Data Source=:memory:";
                 cfg.EnableSensitiveDataLogging = false;
             });
 
             // Use the same open connection for each DbContext so the schema persists
-            services.AddDbContext<ProductDataContext>(options =>
-                options.UseSqlite(_productConn));
-            services.AddDbContext<WeatherDatabaseContext>(options =>
-                options.UseSqlite(_weatherConn));
-            services.AddDbContext<UserDbContext>(options =>
-                options.UseSqlite(_userConn));
+            services.AddDbContext<ProductDataContext>(options  => options.UseSqlite(_productConn));
+            services.AddDbContext<WeatherDatabaseContext>(options => options.UseSqlite(_weatherConn));
+            services.AddDbContext<UserDbContext>(options       => options.UseSqlite(_userConn));
 
             // Replace Dapr with no-op mocks
             IntegrationTestHelpers.ReplaceDaprServices(services);
+
+            // Replace the Entra ID JwtBearer validator with a local HS256 validator.
+            services.ReplaceWithTestJwtHandler();
 
             // Create schemas
             var sp = services.BuildServiceProvider();
@@ -248,6 +253,19 @@ public class RateLimitingWebFactory : WebApplicationFactory<Program>, IDisposabl
             IntegrationTestHelpers.InitDb<WeatherDatabaseContext>(svc);
             IntegrationTestHelpers.InitDb<UserDbContext>(svc);
         });
+    }
+
+    /// <summary>Creates an HttpClient pre-configured with a valid test Bearer token.</summary>
+    public HttpClient CreateAuthenticatedClient(
+        string?   userId  = null,
+        string?   email   = null,
+        string?   name    = null,
+        string[]? roles   = null)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            TestTokenFactory.CreateBearerHeader(userId, email, name, roles);
+        return client;
     }
 
     protected override void Dispose(bool disposing)
