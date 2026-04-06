@@ -21,6 +21,10 @@ param messaging_outputs_servicebushostname string
 @secure()
 param redis_password_value string
 
+param appinsights_infra_outputs_appinsightsconnectionstring string
+
+param keyvault_outputs_vaulturi string
+
 param augmentservice_identity_outputs_clientid string
 
 param infra_outputs_azure_container_registry_endpoint string
@@ -68,6 +72,10 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
         {
           name: 'redis-uri'
           value: 'redis://:${uriComponent(redis_password_value)}@redis:6379'
+        }
+        {
+          name: 'appinsights-connection-string'
+          value: appinsights_infra_outputs_appinsightsconnectionstring
         }
       ]
       activeRevisionsMode: 'Single'
@@ -210,6 +218,18 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'REDIS_URI'
               secretRef: 'redis-uri'
+            }
+            {
+              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+              secretRef: 'appinsights-connection-string'
+            }
+            {
+              name: 'ConnectionStrings__keyvault'
+              value: keyvault_outputs_vaulturi
+            }
+            {
+              name: 'KEYVAULT_URI'
+              value: keyvault_outputs_vaulturi
             }
             {
               name: 'AZURE_CLIENT_ID'
