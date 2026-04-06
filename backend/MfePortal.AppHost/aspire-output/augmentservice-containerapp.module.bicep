@@ -21,6 +21,7 @@ param messaging_outputs_servicebushostname string
 @secure()
 param redis_password_value string
 
+@secure()
 param appinsights_infra_outputs_appinsightsconnectionstring string
 
 param keyvault_outputs_vaulturi string
