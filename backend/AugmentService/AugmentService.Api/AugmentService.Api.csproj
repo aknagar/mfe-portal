@@ -18,6 +18,7 @@
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.Identity.Web" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.Azure.ServiceBus" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
