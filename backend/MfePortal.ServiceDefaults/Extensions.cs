@@ -1,3 +1,5 @@
+using Azure.Identity;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
@@ -60,6 +62,17 @@ public static class Extensions
         if (useOtlpExporter)
         {
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
+        }
+
+        // Send telemetry to Azure Application Insights when the connection string is present.
+        if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+        {
+            builder.Services.AddOpenTelemetry()
+                .UseAzureMonitor(options =>
+                {
+                    options.Credential = new ManagedIdentityCredential(
+                        builder.Configuration["AZURE_CLIENT_ID"]);
+                });
         }
 
         return builder;
@@ -127,12 +140,17 @@ public static class Extensions
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 
-        // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.AspNetCore package)
-        //if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
-        //{
-        //    builder.Services.AddOpenTelemetry()
-        //       .UseAzureMonitor();
-        //}
+        // Send telemetry to Azure Application Insights when the connection string is present (non-Development deployments).
+        // Authentication is performed via the container's User-Assigned Managed Identity — no secret required at runtime.
+        if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+        {
+            builder.Services.AddOpenTelemetry()
+                .UseAzureMonitor(options =>
+                {
+                    options.Credential = new ManagedIdentityCredential(
+                        builder.Configuration["AZURE_CLIENT_ID"]);
+                });
+        }
 
         return builder;
     }
