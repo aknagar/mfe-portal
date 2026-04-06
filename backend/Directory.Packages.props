@@ -50,8 +50,9 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.0" />
     <!-- Identity & Security -->
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
-    <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.0.1" />
-    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.0.1" />
+    <PackageVersion Include="Microsoft.Identity.Web" Version="3.8.2" />
+    <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.7.0" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.7.0" />
     <!-- Extensions -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="8.10.0" />

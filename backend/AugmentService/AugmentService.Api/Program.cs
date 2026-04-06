@@ -13,6 +13,7 @@ using AugmentService.Infrastructure.WeatherData;
 using Microsoft.OpenApi.Any;
 using AugmentService.Core.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Identity.Web;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -57,16 +58,16 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Add JWT Bearer Authentication for development
-// In development, use a simple JWT scheme for testing
-// In production, this should be replaced with Azure AD / Entra ID (Microsoft.Identity.Web)
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        if (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Test")
+// Authentication setup:
+//   Development / Test  — lenient JWT scheme; accepts any token or no token (test user auto-created)
+//   Production          — Microsoft.Identity.Web validates tokens against Azure Entra ID (Azure AD)
+//                         Reads TenantId, ClientId, and Audience from the "AzureAd" config section.
+if (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Test")
+{
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
         {
             // Development: Allow requests without valid tokens for testing
-            // This is a simplified setup for development - replace with Azure AD in production
             options.RequireHttpsMetadata = false;
             options.TokenValidationParameters = new TokenValidationParameters
             {
@@ -76,7 +77,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 ValidateIssuerSigningKey = false,
                 SignatureValidator = (token, parameters) => new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(token)
             };
-            
+
             // For development: accept any token or no token
             options.Events = new JwtBearerEvents
             {
@@ -85,12 +86,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     // If no token is provided, create a test user for development
                     if (string.IsNullOrEmpty(context.Token))
                     {
-                        // Create claims for a test user in development mode
                         var claims = new[]
                         {
                             new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
                             new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, "[email protected]"),
-                            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, "Dev User" )
+                            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, "Dev User")
                         };
                         var identity = new System.Security.Claims.ClaimsIdentity(claims, "DevAuth");
                         context.Principal = new System.Security.Claims.ClaimsPrincipal(identity);
@@ -99,16 +99,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     return Task.CompletedTask;
                 }
             };
-        }
-        else
-        {
-            // Production TODO: Configure Azure AD / Entra ID
-            // builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
-            throw new InvalidOperationException(
-                "Azure AD authentication must be configured for production. " +
-                "Add Microsoft.Identity.Web package and configure AzureAd section in appsettings.json");
-        }
-    });
+        });
+}
+else
+{
+    // Production: validate Bearer tokens against Azure Entra ID (Azure AD).
+    // Reads Instance, TenantId, ClientId, and Audience from the "AzureAd" appsettings section.
+    builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
+}
 
 builder.Services.AddAuthorization();
 
