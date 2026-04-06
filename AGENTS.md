@@ -17,15 +17,16 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for full 
    git worktree add .worktrees/<branch-name> -b <branch-name> main
    ```
    Branch naming: `feature/<desc>` for features, `fix/<desc>` for bug fixes.
-4. **Make all edits inside `.worktrees/<branch-name>`** — never commit to the repo root
+4. **Make all edits inside `.worktrees/<branch-name>`** — never edit files in the repo root
    while it is checked out to `main`.
 
 ## Mandatory Session End — Handoff
 
-After all changes are committed inside the worktree:
+After all changes are complete inside the worktree:
 
-1. **Report the branch name** to the user.
-2. **Do NOT push** and **do NOT open a PR** — the user will do this manually.
+1. **Stage all changes** with `git add .` (do NOT commit).
+2. **Report the branch name** to the user.
+3. **Do NOT push** and **do NOT open a PR** — the user will do this manually.
 
 ## Quick Reference
 
