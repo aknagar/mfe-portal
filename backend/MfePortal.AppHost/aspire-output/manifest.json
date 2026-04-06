@@ -106,7 +106,9 @@
           "messaging_outputs_servicebusendpoint": "{messaging.outputs.serviceBusEndpoint}",
           "messaging_outputs_servicebushostname": "{messaging.outputs.serviceBusHostName}",
           "redis_password_value": "{redis-password.value}",
-          "augmentservice_identity_outputs_clientid": "{augmentservice-identity.outputs.clientId}"
+          "augmentservice_identity_outputs_clientid": "{augmentservice-identity.outputs.clientId}",
+          "appinsights_infra_outputs_appinsightsconnectionstring": "{appinsights-infra.outputs.appInsightsConnectionString}",
+          "keyvault_outputs_vaulturi": "{keyvault.outputs.vaultUri}"
         }
       },
       "env": {

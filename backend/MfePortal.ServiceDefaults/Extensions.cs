@@ -1,7 +1,10 @@
+using Azure.Identity;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -61,6 +64,8 @@ public static class Extensions
         {
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
+
+        AddAzureMonitorExporter(builder.Services, builder.Configuration);
 
         return builder;
     }
@@ -127,14 +132,27 @@ public static class Extensions
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 
-        // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.AspNetCore package)
-        //if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
-        //{
-        //    builder.Services.AddOpenTelemetry()
-        //       .UseAzureMonitor();
-        //}
+        AddAzureMonitorExporter(builder.Services, builder.Configuration);
 
         return builder;
+    }
+
+    private static void AddAzureMonitorExporter(IServiceCollection services, IConfiguration configuration)
+    {
+        // Send telemetry to Azure Application Insights when the connection string is present (non-Development deployments).
+        // Authentication is performed via the container's User-Assigned Managed Identity — no secret required at runtime.
+        if (!string.IsNullOrWhiteSpace(configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+        {
+            var clientId = configuration["AZURE_CLIENT_ID"];
+            services.AddOpenTelemetry()
+                .UseAzureMonitor(options =>
+                {
+                    // AZURE_CLIENT_ID must be set when using a User-Assigned Managed Identity.
+                    // If absent, ManagedIdentityCredential falls back to system-assigned identity,
+                    // which will fail if the container only has user-assigned identities.
+                    options.Credential = new ManagedIdentityCredential(clientId);
+                });
+        }
     }
 
     public static IHostApplicationBuilder AddDefaultHealthChecks(this IHostApplicationBuilder builder)

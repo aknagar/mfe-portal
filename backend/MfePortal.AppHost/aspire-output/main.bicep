@@ -91,6 +91,16 @@ module augmentservice_roles_keyvault 'augmentservice-roles-keyvault/augmentservi
   }
 }
 
+module augmentservice_roles_appinsights 'augmentservice-roles-appinsights/augmentservice-roles-appinsights.bicep' = {
+  name: 'augmentservice-roles-appinsights'
+  scope: rg
+  params: {
+    location: location
+    appinsights_infra_outputs_name: appinsights_infra.outputs.name
+    principalId: augmentservice_identity.outputs.principalId
+  }
+}
+
 output infra_acr_name string = infra_acr.outputs.name
 
 output infra_acr_loginServer string = infra_acr.outputs.loginServer
