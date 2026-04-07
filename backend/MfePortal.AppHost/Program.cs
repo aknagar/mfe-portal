@@ -6,7 +6,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // Load .env.local from the backend/ directory (one level up from AppHost) in development only.
 // This file is gitignored — copy backend/.env.example to backend/.env.local and fill in real values.
-// In production, environment variables are injected directly by the container runtime.
+// In production, values are supplied as Bicep parameters via azd.
 if (builder.Environment.IsDevelopment())
 {
     var envLocalPath = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", ".env.local"));
@@ -21,6 +21,11 @@ if (builder.Environment.IsDevelopment())
         builder.Configuration.AddInMemoryCollection(envVars!);
     }
 }
+
+// Azure AD parameters — resolved from .env.local (local dev), user-secrets, or Bicep parameters (deploy).
+// In .env.local use: Parameters__AzureAdTenantId=your-value
+var azureAdTenantId = builder.AddParameter("AzureAdTenantId");
+var azureAdClientId = builder.AddParameter("AzureAdClientId");
 
 const string Name = "infra";  // keep short and lowercase — used in Azure resource names and URLs
 
@@ -73,8 +78,29 @@ if (!builder.ExecutionContext.IsPublishMode)
 
 var pubSub = pubSubBuilder;
 
-// In-memory state store for local development. Replace with a persistent provider for production.
-var stateStore = builder.AddDaprStateStore("statestore");
+// State store backed by the same Redis instance as pubsub.
+// WithMetadata() injects STATESTORE_REDISHOST / STATESTORE_REDISPASSWORD into the Dapr CLI process
+// env; the local.env secret store exposes them to the component YAML via secretKeyRef.
+// The component YAML (.dapr/components/statestore.yaml) sets actorStateStore: "true", which is
+// required by the Dapr Workflow engine (it uses the actor runtime underneath).
+// NOTE: Same publish-mode guard as pubsub — BicepOutputReference resolution deadlocks in publish mode.
+var stateStoreBuilder = builder.AddDaprStateStore("statestore")
+                               .WithMetadata("enableTLS", "true");
+
+if (!builder.ExecutionContext.IsPublishMode)
+{
+    stateStoreBuilder
+        .WithMetadata("redisHost", ReferenceExpression.Create(
+            $"{redisHost}:{redisPort}"
+        ));
+
+    if (redisPassword is not null)
+    {
+        stateStoreBuilder.WithMetadata("redisPassword", redisPassword);
+    }
+}
+
+var stateStore = stateStoreBuilder;
 
 var postgres = builder.AddPostgres("postgres")
                 .WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8");
@@ -91,9 +117,6 @@ if (builder.Environment.IsDevelopment())
 
 var serviceBusQueue = serviceBus.AddServiceBusQueue("orders");
 
-// AzureAd values are loaded from .env.local (local dev) or container environment variables (production).
-// Keys in .env.local use double-underscore notation (AzureAd__TenantId) which is normalised to
-// AzureAd:TenantId by the loader above — matching ASP.NET Core's configuration hierarchy convention.
 var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice")
     .WithDaprSidecar(sidecar => sidecar.WithReference(stateStore).WithReference(pubSub))
     .WithReference(productdb)
@@ -104,9 +127,9 @@ var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentser
     .WaitFor(weatherdb)
     .WaitFor(serviceBus)
     .WaitFor(daprRedis)
-    .WithEnvironment("AzureAd__TenantId", builder.Configuration["AzureAd:TenantId"] ?? string.Empty)
-    .WithEnvironment("AzureAd__ClientId", builder.Configuration["AzureAd:ClientId"] ?? string.Empty)
-    .WithEnvironment("AzureAd__Audience", $"api://{builder.Configuration["AzureAd:ClientId"] ?? string.Empty}");
+    .WithEnvironment("AzureAd__TenantId", azureAdTenantId)
+    .WithEnvironment("AzureAd__ClientId", azureAdClientId)
+    .WithEnvironment("AzureAd__Audience", ReferenceExpression.Create($"api://{azureAdClientId}"));
 
 if (!builder.Environment.IsDevelopment())
 {
