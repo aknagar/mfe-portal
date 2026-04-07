@@ -1,7 +1,26 @@
 using CommunityToolkit.Aspire.Hosting.Dapr;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
+
+// Load .env.local from the backend/ directory (one level up from AppHost) in development only.
+// This file is gitignored — copy backend/.env.example to backend/.env.local and fill in real values.
+// In production, environment variables are injected directly by the container runtime.
+if (builder.Environment.IsDevelopment())
+{
+    var envLocalPath = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", ".env.local"));
+    if (File.Exists(envLocalPath))
+    {
+        var envVars = File.ReadLines(envLocalPath)
+            .Where(line => !string.IsNullOrWhiteSpace(line) && !line.TrimStart().StartsWith('#'))
+            .Select(line => line.Split('=', 2, StringSplitOptions.TrimEntries))
+            .Where(parts => parts.Length == 2)
+            .ToDictionary(parts => parts[0].Replace("__", ":"), parts => parts[1]);
+
+        builder.Configuration.AddInMemoryCollection(envVars!);
+    }
+}
 
 const string Name = "infra";  // keep short and lowercase — used in Azure resource names and URLs
 
@@ -72,6 +91,9 @@ if (builder.Environment.IsDevelopment())
 
 var serviceBusQueue = serviceBus.AddServiceBusQueue("orders");
 
+// AzureAd values are loaded from .env.local (local dev) or container environment variables (production).
+// Keys in .env.local use double-underscore notation (AzureAd__TenantId) which is normalised to
+// AzureAd:TenantId by the loader above — matching ASP.NET Core's configuration hierarchy convention.
 var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentservice")
     .WithDaprSidecar(sidecar => sidecar.WithReference(stateStore).WithReference(pubSub))
     .WithReference(productdb)
@@ -81,7 +103,10 @@ var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentser
     .WaitFor(productdb)
     .WaitFor(weatherdb)
     .WaitFor(serviceBus)
-    .WaitFor(daprRedis);
+    .WaitFor(daprRedis)
+    .WithEnvironment("AzureAd__TenantId", builder.Configuration["AzureAd:TenantId"] ?? string.Empty)
+    .WithEnvironment("AzureAd__ClientId", builder.Configuration["AzureAd:ClientId"] ?? string.Empty)
+    .WithEnvironment("AzureAd__Audience", $"api://{builder.Configuration["AzureAd:ClientId"] ?? string.Empty}");
 
 if (!builder.Environment.IsDevelopment())
 {
