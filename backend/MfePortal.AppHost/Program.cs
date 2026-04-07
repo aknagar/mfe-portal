@@ -78,8 +78,29 @@ if (!builder.ExecutionContext.IsPublishMode)
 
 var pubSub = pubSubBuilder;
 
-// In-memory state store for local development. Replace with a persistent provider for production.
-var stateStore = builder.AddDaprStateStore("statestore");
+// State store backed by the same Redis instance as pubsub.
+// WithMetadata() injects STATESTORE_REDISHOST / STATESTORE_REDISPASSWORD into the Dapr CLI process
+// env; the local.env secret store exposes them to the component YAML via secretKeyRef.
+// The component YAML (.dapr/components/statestore.yaml) sets actorStateStore: "true", which is
+// required by the Dapr Workflow engine (it uses the actor runtime underneath).
+// NOTE: Same publish-mode guard as pubsub — BicepOutputReference resolution deadlocks in publish mode.
+var stateStoreBuilder = builder.AddDaprStateStore("statestore")
+                               .WithMetadata("enableTLS", "true");
+
+if (!builder.ExecutionContext.IsPublishMode)
+{
+    stateStoreBuilder
+        .WithMetadata("redisHost", ReferenceExpression.Create(
+            $"{redisHost}:{redisPort}"
+        ));
+
+    if (redisPassword is not null)
+    {
+        stateStoreBuilder.WithMetadata("redisPassword", redisPassword);
+    }
+}
+
+var stateStore = stateStoreBuilder;
 
 var postgres = builder.AddPostgres("postgres")
                 .WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8");
