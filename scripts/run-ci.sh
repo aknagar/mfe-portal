@@ -8,6 +8,7 @@
 #   Stage 3  Integration  - Testcontainers (requires Docker)
 #   Stage 4  E2E Tests    - Aspire.Hosting.Testing (requires Docker + Aspire + Dapr)
 #   Stage 5  Coverage     - full suite with Cobertura report + threshold check
+#   Stage 6  Publish      - aspire publish (requires Aspire workload)
 #
 # PR-only steps (GitHub comments, artifact uploads, check annotations) are omitted.
 #
@@ -15,12 +16,13 @@
 #   ./scripts/run-ci.sh [OPTIONS]
 #
 # OPTIONS
-#   --stage <stage>         Run a single stage: build|unit|integration|e2e|coverage|all (default: all)
+#   --stage <stage>         Run a single stage: build|unit|integration|e2e|coverage|publish|all (default: all)
 #   --skip-build            Skip the build stage (assumes Release binaries exist)
 #   --skip-unit             Skip unit tests
 #   --skip-integration      Skip integration tests (when Docker is unavailable)
 #   --skip-e2e              Skip E2E tests (when Aspire/Dapr are not installed)
 #   --skip-coverage         Skip the coverage stage
+#   --skip-publish          Skip the Aspire publish stage
 #   --no-build              Pass --no-build to dotnet test (skip implicit rebuild)
 #   --threshold <pct>       Minimum line coverage % to enforce (default: 50)
 #   --open-report           Open the HTML coverage report in a browser when done
@@ -28,7 +30,7 @@
 #
 # EXAMPLES
 #   ./scripts/run-ci.sh
-#       Full pipeline (build + unit + integration + e2e + coverage)
+#       Full pipeline (build + unit + integration + e2e + coverage + publish)
 #
 #   ./scripts/run-ci.sh --stage unit
 #       Build then run unit tests only
@@ -65,6 +67,7 @@ SKIP_UNIT=false
 SKIP_INTEGRATION=false
 SKIP_E2E=false
 SKIP_COVERAGE=false
+SKIP_PUBLISH=false
 NO_BUILD=false
 COVERAGE_THRESHOLD=50
 OPEN_REPORT=false
@@ -93,6 +96,7 @@ while [[ $# -gt 0 ]]; do
         --skip-integration) SKIP_INTEGRATION=true;     shift ;;
         --skip-e2e)         SKIP_E2E=true;             shift ;;
         --skip-coverage)    SKIP_COVERAGE=true;        shift ;;
+        --skip-publish)     SKIP_PUBLISH=true;         shift ;;
         --no-build)         NO_BUILD=true;             shift ;;
         --threshold)        COVERAGE_THRESHOLD="$2";   shift 2 ;;
         --open-report)      OPEN_REPORT=true;          shift ;;
@@ -106,15 +110,16 @@ done
 
 # Apply --stage shortcut (same logic as PowerShell version)
 if [[ "$STAGE" != "all" ]]; then
-    SKIP_BUILD=true; SKIP_UNIT=true; SKIP_INTEGRATION=true; SKIP_E2E=true; SKIP_COVERAGE=true
+    SKIP_BUILD=true; SKIP_UNIT=true; SKIP_INTEGRATION=true; SKIP_E2E=true; SKIP_COVERAGE=true; SKIP_PUBLISH=true
     case "$STAGE" in
         build)       SKIP_BUILD=false ;;
         unit)        SKIP_UNIT=false;        [[ "$NO_BUILD" == "true" ]] || SKIP_BUILD=false ;;
         integration) SKIP_INTEGRATION=false; [[ "$NO_BUILD" == "true" ]] || SKIP_BUILD=false ;;
         e2e)         SKIP_E2E=false;         [[ "$NO_BUILD" == "true" ]] || SKIP_BUILD=false ;;
         coverage)    SKIP_COVERAGE=false;    [[ "$NO_BUILD" == "true" ]] || SKIP_BUILD=false ;;
-        all)         SKIP_BUILD=false; SKIP_UNIT=false; SKIP_INTEGRATION=false; SKIP_E2E=false; SKIP_COVERAGE=false ;;
-        *) die "Unknown stage: $STAGE. Valid: build|unit|integration|e2e|coverage|all" ;;
+        publish)     SKIP_PUBLISH=false;     [[ "$NO_BUILD" == "true" ]] || SKIP_BUILD=false ;;
+        all)         SKIP_BUILD=false; SKIP_UNIT=false; SKIP_INTEGRATION=false; SKIP_E2E=false; SKIP_COVERAGE=false; SKIP_PUBLISH=false ;;
+        *) die "Unknown stage: $STAGE. Valid: build|unit|integration|e2e|coverage|publish|all" ;;
     esac
 fi
 
@@ -139,6 +144,7 @@ printf "${GRAY}  Stages to run:${RESET}\n"
 [[ "$SKIP_INTEGRATION" == "true" ]] && printf "${GRAY}    Integration : SKIP${RESET}\n" || echo "    Integration : YES"
 [[ "$SKIP_E2E"         == "true" ]] && printf "${GRAY}    E2E         : SKIP${RESET}\n" || echo "    E2E         : YES"
 [[ "$SKIP_COVERAGE"    == "true" ]] && printf "${GRAY}    Coverage    : SKIP${RESET}\n" || echo "    Coverage    : YES"
+[[ "$SKIP_PUBLISH"     == "true" ]] && printf "${GRAY}    Publish     : SKIP${RESET}\n" || echo "    Publish     : YES"
 
 # ---------------------------------------------------------------------------
 # Prerequisite checks
@@ -157,7 +163,9 @@ fi
 if [[ "$SKIP_E2E" == "false" ]]; then
     command -v dapr >/dev/null 2>&1 || die "dapr CLI not found. See: https://docs.dapr.io/getting-started/install-dapr-cli/ then run: dapr init"
     ok "dapr: $(dapr --version 2>&1 | grep 'CLI version' | tr -d ' ')"
+fi
 
+if [[ "$SKIP_E2E" == "false" ]] || [[ "$SKIP_PUBLISH" == "false" ]]; then
     dotnet workload list 2>/dev/null | grep -q aspire || \
         die ".NET Aspire workload not installed. Run: dotnet workload install aspire"
     ok ".NET Aspire workload installed"
@@ -170,7 +178,7 @@ ok "Solution: $SOLUTION_FILE"
 # Stage 1 - Build
 # ---------------------------------------------------------------------------
 if [[ "$SKIP_BUILD" == "false" ]]; then
-    header "Stage 1/5 - Build"
+    header "Stage 1/6 - Build"
 
     step "Restore NuGet packages"
     dotnet restore "$SOLUTION_FILE"
@@ -180,14 +188,14 @@ if [[ "$SKIP_BUILD" == "false" ]]; then
 
     ok "Build succeeded."
 else
-    header "Stage 1/5 - Build [SKIPPED]"
+    header "Stage 1/6 - Build [SKIPPED]"
 fi
 
 # ---------------------------------------------------------------------------
 # Stage 2 - Unit Tests
 # ---------------------------------------------------------------------------
 if [[ "$SKIP_UNIT" == "false" ]]; then
-    header "Stage 2/5 - Unit Tests"
+    header "Stage 2/6 - Unit Tests"
 
     UNIT_RESULTS="$TEST_RESULTS_DIR/unit"
     rm -rf "$UNIT_RESULTS"
@@ -203,14 +211,14 @@ if [[ "$SKIP_UNIT" == "false" ]]; then
 
     ok "Unit tests passed."
 else
-    header "Stage 2/5 - Unit Tests [SKIPPED]"
+    header "Stage 2/6 - Unit Tests [SKIPPED]"
 fi
 
 # ---------------------------------------------------------------------------
 # Stage 3 - Integration Tests  (requires Docker / Testcontainers)
 # ---------------------------------------------------------------------------
 if [[ "$SKIP_INTEGRATION" == "false" ]]; then
-    header "Stage 3/5 - Integration Tests (Testcontainers)"
+    header "Stage 3/6 - Integration Tests (Testcontainers)"
 
     INTEGRATION_RESULTS="$TEST_RESULTS_DIR/integration"
     rm -rf "$INTEGRATION_RESULTS"
@@ -226,14 +234,14 @@ if [[ "$SKIP_INTEGRATION" == "false" ]]; then
 
     ok "Integration tests passed."
 else
-    header "Stage 3/5 - Integration Tests [SKIPPED]"
+    header "Stage 3/6 - Integration Tests [SKIPPED]"
 fi
 
 # ---------------------------------------------------------------------------
 # Stage 4 - E2E Tests  (requires Docker + Aspire + Dapr)
 # ---------------------------------------------------------------------------
 if [[ "$SKIP_E2E" == "false" ]]; then
-    header "Stage 4/5 - E2E Tests (Aspire.Hosting.Testing)"
+    header "Stage 4/6 - E2E Tests (Aspire.Hosting.Testing)"
 
     E2E_RESULTS="$TEST_RESULTS_DIR/e2e"
     rm -rf "$E2E_RESULTS"
@@ -249,14 +257,14 @@ if [[ "$SKIP_E2E" == "false" ]]; then
 
     ok "E2E tests passed."
 else
-    header "Stage 4/5 - E2E Tests [SKIPPED]"
+    header "Stage 4/6 - E2E Tests [SKIPPED]"
 fi
 
 # ---------------------------------------------------------------------------
 # Stage 5 - Coverage
 # ---------------------------------------------------------------------------
 if [[ "$SKIP_COVERAGE" == "false" ]]; then
-    header "Stage 5/5 - Code Coverage"
+    header "Stage 5/6 - Code Coverage"
 
     COVERAGE_RESULTS="$TEST_RESULTS_DIR/coverage"
     rm -rf "$COVERAGE_RESULTS" "$COVERAGE_DIR"
@@ -342,7 +350,28 @@ if [[ "$SKIP_COVERAGE" == "false" ]]; then
 
     ok "Coverage meets threshold ($LINE_COVERAGE% >= $COVERAGE_THRESHOLD%)."
 else
-    header "Stage 5/5 - Code Coverage [SKIPPED]"
+    header "Stage 5/6 - Code Coverage [SKIPPED]"
+fi
+
+# ---------------------------------------------------------------------------
+# Stage 6 - Aspire Publish  (requires Aspire workload)
+# ---------------------------------------------------------------------------
+if [[ "$SKIP_PUBLISH" == "false" ]]; then
+    header "Stage 6/6 - Aspire Publish"
+
+    APPHOST_DIR="$BACKEND_DIR/MfePortal.AppHost"
+    PUBLISH_OUTPUT_DIR="$REPO_ROOT/publish-output"
+
+    [[ -d "$APPHOST_DIR" ]] || die "AppHost project directory not found: $APPHOST_DIR"
+
+    step "Run aspire publish (non-interactive)"
+    dotnet run --project "$APPHOST_DIR/MfePortal.AppHost.csproj" \
+        --publisher manifest \
+        --output-path "$PUBLISH_OUTPUT_DIR" 2>&1 | tee /dev/stderr
+
+    ok "Aspire publish completed successfully."
+else
+    header "Stage 6/6 - Aspire Publish [SKIPPED]"
 fi
 
 # ---------------------------------------------------------------------------
