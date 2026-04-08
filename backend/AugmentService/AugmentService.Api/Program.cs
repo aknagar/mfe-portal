@@ -27,6 +27,10 @@ DefaultAzureCredential? credential = isTest ? null : new DefaultAzureCredential(
 
 builder.AddServiceDefaults();
 
+// Register custom ActivitySource for product endpoint tracing
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource(ProductEndpoints.ActivitySourceName));
+
 builder.Services.AddOpenApi(options =>
 {
     // Add default example for Order schema in Scalar UI
