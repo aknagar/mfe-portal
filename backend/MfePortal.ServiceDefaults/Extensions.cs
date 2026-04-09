@@ -20,17 +20,15 @@ public static class Extensions
 {
     public static WebApplicationBuilder AddServiceDefaults(this WebApplicationBuilder builder)
     {
-        // Configure OpenTelemetry logging — enables structured log export to the Aspire dashboard
-        // (via OTLP) in local development, and to Azure Monitor when the connection string is present.
+        // Single OpenTelemetry builder — logging, metrics, tracing, and exporters
+        // must all be registered on the same chain for Azure Monitor to receive logs.
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;
             logging.IncludeScopes = true;
         });
 
-        // OpenTelemetry metrics and tracing — required for the Aspire dashboard to show live
-        // traces/metrics in local development via the OTLP exporter below.
-        builder.Services.AddOpenTelemetry()
+        var otelBuilder = builder.Services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {
                 metrics.AddAspNetCoreInstrumentation()
@@ -43,34 +41,114 @@ public static class Extensions
                     .AddHttpClientInstrumentation();
             });
 
-        // OTLP exporter — sends telemetry to the Aspire dashboard in local development.
-        // OTEL_EXPORTER_OTLP_ENDPOINT is injected automatically by the Aspire AppHost.
-        var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
-        if (useOtlpExporter)
+        // OTLP exporter (Aspire Dashboard — local dev)
+        if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
         {
-            builder.Services.AddOpenTelemetry().UseOtlpExporter();
+            otelBuilder.UseOtlpExporter();
         }
 
-        // Azure Monitor (Application Insights) — only enabled when the connection string is present.
-        // In local development this env var is absent, so this block is skipped entirely,
-        // preventing the InvalidOperationException that UseAzureMonitor() throws without a
-        // connection string.
-        // APPLICATIONINSIGHTS_CONNECTION_STRING is injected by the Aspire AppHost in non-Development
-        // environments via builder.AddAzureApplicationInsights(...) in AppHost/Program.cs.
+        // Azure Monitor exporter (deployed environments — requires APPLICATIONINSIGHTS_CONNECTION_STRING)
         if (!string.IsNullOrWhiteSpace(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
         {
             var clientId = builder.Configuration["AZURE_CLIENT_ID"];
-            builder.Services.AddOpenTelemetry()
-                .UseAzureMonitor(options =>
-                {
-                    // AZURE_CLIENT_ID must be set when using a User-Assigned Managed Identity.
-                    // If absent, ManagedIdentityCredential falls back to system-assigned identity,
-                    // which will fail if the container only has user-assigned identities.
-                    options.Credential = new ManagedIdentityCredential(clientId);
-                });
+            otelBuilder.UseAzureMonitor(options =>
+            {
+                options.Credential = new ManagedIdentityCredential(clientId);
+            });
         }
 
         // Health checks
+        builder.Services.AddHealthChecks()
+            .AddCheck("self", () => HealthCheckResult.Healthy(), new[] { "live" });
+
+        // Service discovery
+        builder.Services.AddServiceDiscovery();
+
+        // HttpClient defaults
+        builder.Services.ConfigureHttpClientDefaults(http =>
+        {
+            http.AddStandardResilienceHandler();
+            http.AddServiceDiscovery();
+        });
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
+    {
+        builder.ConfigureOpenTelemetry();
+
+        builder.AddDefaultHealthChecks();
+
+        builder.Services.AddServiceDiscovery();
+
+        builder.Services.ConfigureHttpClientDefaults(http =>
+        {
+            // Turn on resilience by default
+            http.AddStandardResilienceHandler();
+
+            // Turn on service discovery by default
+            http.AddServiceDiscovery();
+        });
+
+        // Uncomment the following to restrict the allowed schemes for service discovery.
+        // builder.Services.Configure<ServiceDiscoveryOptions>(options =>
+        // {
+        //     options.AllowedSchemes = ["https"];
+        // });
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
+    {
+        builder.Logging.AddOpenTelemetry(logging =>
+        {
+            logging.IncludeFormattedMessage = true;
+            logging.IncludeScopes = true;
+        });
+
+        var otelBuilder = builder.Services.AddOpenTelemetry()
+            .WithMetrics(metrics =>
+            {
+                metrics.AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddRuntimeInstrumentation();
+            })
+            .WithTracing(tracing =>
+            {
+                tracing.AddAspNetCoreInstrumentation()
+                    // Uncomment the following line to enable gRPC instrumentation (requires the OpenTelemetry.Instrumentation.GrpcNetClient package)
+                    //.AddGrpcClientInstrumentation()
+                    .AddHttpClientInstrumentation();
+            });
+
+        builder.AddOpenTelemetryExporters(otelBuilder);
+
+        return builder;
+    }
+
+    private static IHostApplicationBuilder AddOpenTelemetryExporters(this IHostApplicationBuilder builder, OpenTelemetryBuilder otelBuilder)
+    {
+        if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
+        {
+            otelBuilder.UseOtlpExporter();
+        }
+
+        if (!string.IsNullOrWhiteSpace(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+        {
+            var clientId = builder.Configuration["AZURE_CLIENT_ID"];
+            otelBuilder.UseAzureMonitor(options =>
+            {
+                options.Credential = new ManagedIdentityCredential(clientId);
+            });
+        }
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder AddDefaultHealthChecks(this IHostApplicationBuilder builder)
+    {
         builder.Services.AddHealthChecks()
             .AddCheck("self", () => HealthCheckResult.Healthy(), new[] { "live" });
 
