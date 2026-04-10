@@ -172,8 +172,12 @@ if (!builder.ExecutionContext.IsPublishMode)
 
 var stateStore = stateStoreBuilder;
 
-var postgres = builder.AddPostgres("postgres")
-                .WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8");
+var postgres = builder.AddAzurePostgresFlexibleServer("postgres");
+
+if (builder.Environment.IsDevelopment())
+{
+    postgres.RunAsContainer(c => c.WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8"));
+}
 
 var productdb = postgres.AddDatabase("productdb", "productdb");
 var weatherdb = postgres.AddDatabase("weatherdb", "weatherdb");

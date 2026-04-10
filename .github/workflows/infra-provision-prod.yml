@@ -57,7 +57,6 @@ jobs:
             --environment-name "${{ env.AZURE_ENV_NAME }}" \
             --log-level debug \
             --include-exception-details \
-            --parameter postgres-password="${{ secrets.POSTGRES_PASSWORD_PROD }}" \
             --parameter redis-password="${{ secrets.REDIS_PASSWORD_PROD }}"
         env:
           # Note: Colon (:) is not supported in environment variable names

@@ -113,9 +113,15 @@ Console.WriteLine($"[Database Registration] Environment: {builder.Environment.En
 if (builder.Environment.EnvironmentName != "Test")
 {
     Console.WriteLine("[Database Registration] Registering Aspire PostgreSQL DbContexts");
-    builder.AddNpgsqlDbContext<ProductDataContext>(connectionName: "productdb");
-    builder.AddNpgsqlDbContext<WeatherDatabaseContext>(connectionName: "weatherdb");
-    builder.AddNpgsqlDbContext<AugmentService.Infrastructure.Data.UserDbContext>(connectionName: "weatherdb");
+    builder.AddNpgsqlDbContext<ProductDataContext>(
+        connectionName: "productdb",
+        configureSettings: s => s.ConnectionString += ";GssEncryptionMode=Disable");
+    builder.AddNpgsqlDbContext<WeatherDatabaseContext>(
+        connectionName: "weatherdb",
+        configureSettings: s => s.ConnectionString += ";GssEncryptionMode=Disable");
+    builder.AddNpgsqlDbContext<AugmentService.Infrastructure.Data.UserDbContext>(
+        connectionName: "weatherdb",
+        configureSettings: s => s.ConnectionString += ";GssEncryptionMode=Disable");
 }
 else
 {
