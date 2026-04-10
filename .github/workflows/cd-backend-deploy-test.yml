@@ -17,6 +17,8 @@ env:
   AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
   # Aspire CLI non-interactive mode: suppresses interactive prompts and spinners in CI
   DOTNET_ASPIRE_NONINTERACTIVE: "true"
+  AZURE_AD_TENANT_ID: ${{ vars.AZURE_AD_TENANT_ID }}
+  AZURE_AD_CLIENT_ID: ${{ vars.AZURE_AD_CLIENT_ID }}
 
 jobs:
   deploy:
@@ -96,8 +98,8 @@ jobs:
           Azure__Location: ${{ env.AZURE_LOCATION }}
           # Aspire AppHost parameters — builder.AddParameter("AzureAdTenantId") etc.
           # Colon notation (Parameters:AzureAdTenantId) mapped via double underscore.
-          Parameters__AzureAdTenantId: ${{ vars.AZURE_AD_TENANT_ID }}
-          Parameters__AzureAdClientId: ${{ vars.AZURE_AD_CLIENT_ID }}
+          Parameters__AzureAdTenantId: ${{ env.AZURE_AD_TENANT_ID }}
+          Parameters__AzureAdClientId: ${{ env.AZURE_AD_CLIENT_ID }}
 
       - name: Get deployment outputs
         id: get_url
