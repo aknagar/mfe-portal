@@ -9,6 +9,8 @@ param infra_acr_outputs_name string
 
 param logs_infra_outputs_name string
 
+param daprRedis_outputs_hostname string
+
 resource infra_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: take('infra_mi-${uniqueString(resourceGroup().id)}', 128)
   location: location
@@ -58,6 +60,62 @@ resource aspireDashboard 'Microsoft.App/managedEnvironments/dotNetComponents@202
   name: 'aspire-dashboard'
   properties: {
     componentType: 'AspireDashboard'
+  }
+  parent: infra
+}
+
+resource daprPubSub 'Microsoft.App/managedEnvironments/daprComponents@2025-01-01' = {
+  name: 'pubsub'
+  properties: {
+    componentType: 'pubsub.redis'
+    metadata: [
+      {
+        name: 'redisHost'
+        value: concat(daprRedis_outputs_hostname, ':10000')
+      }
+      {
+        name: 'enableTLS'
+        value: 'true'
+      }
+      {
+        name: 'useEntraID'
+        value: 'true'
+      }
+    ]
+    scopes: [
+      'augmentservice'
+    ]
+    version: 'v1'
+  }
+  parent: infra
+}
+
+resource daprStateStore 'Microsoft.App/managedEnvironments/daprComponents@2025-01-01' = {
+  name: 'statestore'
+  properties: {
+    componentType: 'state.redis'
+    metadata: [
+      {
+        name: 'redisHost'
+        value: concat(daprRedis_outputs_hostname, ':10000')
+      }
+      {
+        name: 'enableTLS'
+        value: 'true'
+      }
+      {
+        name: 'useEntraID'
+        value: 'true'
+      }
+      {
+        name: 'actorStateStore'
+        value: 'true'
+      }
+    ]
+    scopes: [
+      'augmentservice'
+    ]
+    version: 'v1'
   }
   parent: infra
 }

@@ -21,7 +21,7 @@ resource diagrid_dashboard 'Microsoft.App/containerApps@2025-01-01' = {
     template: {
       containers: [
         {
-          image: 'ghcr.io/diagridio/diagrid-dashboard:latest'
+          image: 'ghcr.io/diagridio/diagrid-dashboard:0.0.1'
           name: 'diagrid-dashboard'
         }
       ]

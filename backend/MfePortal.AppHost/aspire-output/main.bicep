@@ -26,7 +26,16 @@ module infra 'infra/infra.bicep' = {
     location: location
     infra_acr_outputs_name: infra_acr.outputs.name
     logs_infra_outputs_name: logs_infra.outputs.name
+    daprRedis_outputs_hostname: '${daprRedis.outputs.hostName}'
     userPrincipalId: principalId
+  }
+}
+
+module daprRedis 'daprRedis/daprRedis.bicep' = {
+  name: 'daprRedis'
+  scope: rg
+  params: {
+    location: location
   }
 }
 
@@ -81,6 +90,16 @@ module augmentservice_roles_messaging 'augmentservice-roles-messaging/augmentser
   }
 }
 
+module augmentservice_roles_daprRedis 'augmentservice-roles-daprRedis/augmentservice-roles-daprRedis.bicep' = {
+  name: 'augmentservice-roles-daprRedis'
+  scope: rg
+  params: {
+    location: location
+    daprredis_outputs_name: daprRedis.outputs.name
+    principalId: augmentservice_identity.outputs.principalId
+  }
+}
+
 module augmentservice_roles_keyvault 'augmentservice-roles-keyvault/augmentservice-roles-keyvault.bicep' = {
   name: 'augmentservice-roles-keyvault'
   scope: rg
@@ -91,27 +110,13 @@ module augmentservice_roles_keyvault 'augmentservice-roles-keyvault/augmentservi
   }
 }
 
-module augmentservice_roles_appinsights 'augmentservice-roles-appinsights/augmentservice-roles-appinsights.bicep' = {
-  name: 'augmentservice-roles-appinsights'
-  scope: rg
-  params: {
-    location: location
-    appinsights_infra_outputs_name: appinsights_infra.outputs.name
-    principalId: augmentservice_identity.outputs.principalId
-  }
-}
-
-output infra_acr_name string = infra_acr.outputs.name
-
-output infra_acr_loginServer string = infra_acr.outputs.loginServer
-
-output infra_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
-
 output infra_AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN
 
 output infra_AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = infra.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
 
 output infra_AZURE_CONTAINER_REGISTRY_ENDPOINT string = infra.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
+
+output infra_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = infra.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
 
 output augmentservice_identity_id string = augmentservice_identity.outputs.id
 

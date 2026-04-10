@@ -18,10 +18,10 @@ param messaging_outputs_servicebusendpoint string
 
 param messaging_outputs_servicebushostname string
 
-@secure()
-param redis_password_value string
+param azureadtenantid_value string
 
-@secure()
+param azureadclientid_value string
+
 param appinsights_infra_outputs_appinsightsconnectionstring string
 
 param keyvault_outputs_vaulturi string
@@ -62,22 +62,6 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
           name: 'weatherdb-uri'
           value: 'postgresql://postgres:${uriComponent(postgres_password_value)}@postgres:5432/weatherdb'
         }
-        {
-          name: 'connectionstrings--redis'
-          value: 'redis:6379,password=${redis_password_value}'
-        }
-        {
-          name: 'redis-password'
-          value: redis_password_value
-        }
-        {
-          name: 'redis-uri'
-          value: 'redis://:${uriComponent(redis_password_value)}@redis:6379'
-        }
-        {
-          name: 'appinsights-connection-string'
-          value: appinsights_infra_outputs_appinsightsconnectionstring
-        }
       ]
       activeRevisionsMode: 'Single'
       ingress: {
@@ -91,6 +75,12 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
           identity: infra_outputs_azure_container_registry_managed_identity_id
         }
       ]
+      dapr: {
+        enabled: true
+        appId: 'augmentservice'
+        appProtocol: 'http'
+        appPort: 8080
+      }
       runtime: {
         dotnet: {
           autoConfigureDataProtection: true
@@ -104,14 +94,6 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
           image: augmentservice_containerimage
           name: 'augmentservice'
           env: [
-            {
-              name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
-              value: 'true'
-            }
-            {
-              name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
-              value: 'true'
-            }
             {
               name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
               value: 'in_memory'
@@ -201,28 +183,20 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
               value: messaging_outputs_servicebusendpoint
             }
             {
-              name: 'ConnectionStrings__redis'
-              secretRef: 'connectionstrings--redis'
+              name: 'AzureAd__TenantId'
+              value: azureadtenantid_value
             }
             {
-              name: 'REDIS_HOST'
-              value: 'redis'
+              name: 'AzureAd__ClientId'
+              value: azureadclientid_value
             }
             {
-              name: 'REDIS_PORT'
-              value: '6379'
-            }
-            {
-              name: 'REDIS_PASSWORD'
-              secretRef: 'redis-password'
-            }
-            {
-              name: 'REDIS_URI'
-              secretRef: 'redis-uri'
+              name: 'AzureAd__Audience'
+              value: 'api://${azureadclientid_value}'
             }
             {
               name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-              secretRef: 'appinsights-connection-string'
+              value: appinsights_infra_outputs_appinsightsconnectionstring
             }
             {
               name: 'ConnectionStrings__keyvault'
@@ -245,7 +219,6 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
       ]
       scale: {
         minReplicas: 1
-        maxReplicas: 10
       }
     }
   }
