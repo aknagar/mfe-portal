@@ -1,3 +1,6 @@
+using Aspire.Hosting.Azure.AppContainers;
+using Azure.Provisioning.AppContainers;
+using Azure.Provisioning.Expressions;
 using CommunityToolkit.Aspire.Hosting.Dapr;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -45,6 +48,73 @@ if (builder.Environment.IsDevelopment())
 var redisHost = daprRedis.Resource.HostName;
 var redisPort = daprRedis.Resource.Port;
 var redisPassword = daprRedis.Resource.Password;
+
+// Register Dapr components (pubsub and statestore) on the ACA managed environment.
+// This is only needed when deploying to Azure — in dev, the local YAML files under
+// .dapr/components/ are used instead via `dapr run`.
+//
+// The CommunityToolkit Dapr package does not generate these ACA component resources
+// automatically, so we inject them via ConfigureInfrastructure. This generates
+// Microsoft.App/managedEnvironments/daprComponents child resources in the infra Bicep module
+// alongside the Aspire Dashboard dotnet component.
+//
+// Authentication uses Azure Managed Identity (Entra ID) — no access keys required.
+// The Redis Enterprise instance has accessKeysAuthentication disabled; the augmentservice
+// managed identity is granted the Redis data access policy via a separate role assignment
+// module (augmentservice-roles-daprRedis). We pass useEntraID=true so the Dapr sidecar
+// uses DefaultAzureCredential for Redis authentication.
+if (!builder.Environment.IsDevelopment())
+{
+    containerAppEnvironment.ConfigureInfrastructure(infra =>
+    {
+        var env = infra.GetProvisionableResources()
+                       .OfType<ContainerAppManagedEnvironment>()
+                       .Single();
+
+        // The Redis hostname is a BicepOutputReference from the daprRedis module.
+        // AsProvisioningParameter() threads it as a Bicep parameter into this module so that
+        // main.bicep can pass it as an inter-module output reference automatically.
+        var redisHostParam = daprRedis.Resource.HostName.AsProvisioningParameter(infra, "daprRedis_outputs_hostname");
+
+        // Redis Enterprise uses port 10000 for TLS. We concat inline because Bicep
+        // does not support string interpolation on parameter references in resource properties.
+        var redisEndpoint = BicepFunction.Concat(redisHostParam, ":10000");
+
+        infra.Add(new ContainerAppManagedEnvironmentDaprComponent("pubsub")
+        {
+            ComponentType = "pubsub.redis",
+            Version = "v1",
+            Metadata =
+            [
+                new ContainerAppDaprMetadata { Name = "redisHost", Value = redisEndpoint },
+                new ContainerAppDaprMetadata { Name = "enableTLS",  Value = "true" },
+                // Instruct the Dapr Redis component to authenticate via Azure Managed Identity
+                // (DefaultAzureCredential) instead of an access key.
+                new ContainerAppDaprMetadata { Name = "useEntraID", Value = "true" },
+            ],
+            // Scope the component to augmentservice only — avoids cross-app component leakage.
+            Scopes = ["augmentservice"],
+            Parent = env,
+        });
+
+        infra.Add(new ContainerAppManagedEnvironmentDaprComponent("statestore")
+        {
+            ComponentType = "state.redis",
+            Version = "v1",
+            Metadata =
+            [
+                new ContainerAppDaprMetadata { Name = "redisHost", Value = redisEndpoint },
+                new ContainerAppDaprMetadata { Name = "enableTLS",  Value = "true" },
+                new ContainerAppDaprMetadata { Name = "useEntraID", Value = "true" },
+                // actorStateStore=true is required by the Dapr Workflow engine, which uses
+                // the actor runtime and relies on having a dedicated actor state store.
+                new ContainerAppDaprMetadata { Name = "actorStateStore", Value = "true" },
+            ],
+            Scopes = ["augmentservice"],
+            Parent = env,
+        });
+    });
+}
 
 // PubSub backed by Redis. WithMetadata() injects PUBSUB_REDISHOST / PUBSUB_REDISPASSWORD into the
 // Dapr CLI process env; the local.env secret store exposes them to the component YAML via secretKeyRef.
@@ -129,7 +199,22 @@ var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentser
     .WaitFor(daprRedis)
     .WithEnvironment("AzureAd__TenantId", azureAdTenantId)
     .WithEnvironment("AzureAd__ClientId", azureAdClientId)
-    .WithEnvironment("AzureAd__Audience", ReferenceExpression.Create($"api://{azureAdClientId}"));
+    .WithEnvironment("AzureAd__Audience", ReferenceExpression.Create($"api://{azureAdClientId}"))
+    // Inject the Dapr sidecar configuration into the generated ACA container app Bicep.
+    // The CommunityToolkit Dapr package does not emit this automatically for ACA deployments,
+    // so we must set it explicitly via PublishAsAzureContainerApp. The app port must match
+    // the HTTP_PORTS / targetPort value Aspire assigns to this container app.
+    // ACA Aspire assigns port 8080 as the default container port for .NET projects.
+    .PublishAsAzureContainerApp((infra, app) =>
+    {
+        app.Configuration.Dapr = new ContainerAppDaprConfiguration
+        {
+            IsEnabled = true,
+            AppId = "augmentservice",
+            AppProtocol = ContainerAppProtocol.Http,
+            AppPort = 8080,
+        };
+    });
 
 if (!builder.Environment.IsDevelopment())
 {
