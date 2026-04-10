@@ -50,7 +50,7 @@ var redisPort = daprRedis.Resource.Port;
 var redisPassword = daprRedis.Resource.Password;
 
 // Register Dapr components (pubsub and statestore) on the ACA managed environment.
-// This is only needed when deploying to Azure — in dev, the local YAML files under
+// This is only needed when publishing Bicep — in dev, the local YAML files under
 // .dapr/components/ are used instead via `dapr run`.
 //
 // The CommunityToolkit Dapr package does not generate these ACA component resources
@@ -63,7 +63,15 @@ var redisPassword = daprRedis.Resource.Password;
 // managed identity is granted the Redis data access policy via a separate role assignment
 // module (augmentservice-roles-daprRedis). We pass useEntraID=true so the Dapr sidecar
 // uses DefaultAzureCredential for Redis authentication.
-if (!builder.Environment.IsDevelopment())
+//
+// IMPORTANT: Guard with IsPublishMode (not IsDevelopment) so this callback fires during
+// `aspire publish` / `aspire deploy` Bicep generation. Using IsDevelopment() was incorrect
+// because Aspire generates both infra.module.bicep (used by aspire deploy) and infra/infra.bicep
+// (used by az deployment sub create) using the same ConfigureInfrastructure delegate — and that
+// delegate is only appended when the condition is true at build time. IsDevelopment() is false
+// at runtime in CI but the manifest-writing phase runs before the environment is fully resolved,
+// causing infra.module.bicep to be generated without the Dapr component resources.
+if (builder.ExecutionContext.IsPublishMode)
 {
     containerAppEnvironment.ConfigureInfrastructure(infra =>
     {
@@ -80,8 +88,14 @@ if (!builder.Environment.IsDevelopment())
         // does not support string interpolation on parameter references in resource properties.
         var redisEndpoint = BicepFunction.Concat(redisHostParam, ":10000");
 
-        infra.Add(new ContainerAppManagedEnvironmentDaprComponent("pubsub")
+        // IMPORTANT: Set .Name explicitly to the exact string Dapr uses to look up the component.
+        // Without .Name, Azure.Provisioning generates take('pubsub${uniqueString(...)}', 24)
+        // as the ARM resource name. The Dapr runtime matches components by their exact ARM name,
+        // so a randomised name would cause all Dapr client calls targeting "pubsub"/"statestore"
+        // to silently fail with "component not found".
+        infra.Add(new ContainerAppManagedEnvironmentDaprComponent("daprPubSub")
         {
+            Name = "pubsub",
             ComponentType = "pubsub.redis",
             Version = "v1",
             Metadata =
@@ -97,8 +111,9 @@ if (!builder.Environment.IsDevelopment())
             Parent = env,
         });
 
-        infra.Add(new ContainerAppManagedEnvironmentDaprComponent("statestore")
+        infra.Add(new ContainerAppManagedEnvironmentDaprComponent("daprStateStore")
         {
+            Name = "statestore",
             ComponentType = "state.redis",
             Version = "v1",
             Metadata =

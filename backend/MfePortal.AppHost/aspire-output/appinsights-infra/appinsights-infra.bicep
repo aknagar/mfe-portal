@@ -23,3 +23,5 @@ resource appinsights_infra 'Microsoft.Insights/components@2020-02-02' = {
 output appInsightsConnectionString string = appinsights_infra.properties.ConnectionString
 
 output name string = appinsights_infra.name
+
+output id string = appinsights_infra.id

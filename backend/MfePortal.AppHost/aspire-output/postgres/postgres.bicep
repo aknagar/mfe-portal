@@ -8,8 +8,6 @@ param infra_outputs_azure_container_apps_environment_id string
 @secure()
 param postgres_password_value string
 
-// WARNING: This container has no persistent volume mount. Data will be lost on container restart.
-// For production use, provision an Azure Database for PostgreSQL Flexible Server instead.
 resource postgres 'Microsoft.App/containerApps@2025-01-01' = {
   name: 'postgres'
   location: location
@@ -56,7 +54,6 @@ resource postgres 'Microsoft.App/containerApps@2025-01-01' = {
       ]
       scale: {
         minReplicas: 1
-        maxReplicas: 1
       }
     }
   }
