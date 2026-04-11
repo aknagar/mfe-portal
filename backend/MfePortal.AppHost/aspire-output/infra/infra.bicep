@@ -11,13 +11,6 @@ param logs_infra_outputs_name string
 
 param daprRedis_outputs_hostname string
 
-// Application Insights connection string — used to wire the ACA-managed OpenTelemetry collector.
-// This parameter is threaded from main.bicep via appinsights_infra.outputs.appInsightsConnectionString.
-// NOTE: This parameter and the appInsightsConfiguration / openTelemetryConfiguration properties below
-// were added manually because Azure.Provisioning.AppContainers v1.1.0 does not expose these as typed
-// properties. Re-apply this block if `aspire publish` regenerates this file.
-param appinsights_infra_outputs_appInsightsConnectionString string
-
 resource infra_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: take('infra_mi-${uniqueString(resourceGroup().id)}', 128)
   location: location
@@ -42,7 +35,7 @@ resource logs_infra 'Microsoft.OperationalInsights/workspaces@2025-02-01' existi
   name: logs_infra_outputs_name
 }
 
-resource infra 'Microsoft.App/managedEnvironments@2024-10-02-preview' = {
+resource infra 'Microsoft.App/managedEnvironments@2025-01-01' = {
   name: take('infra${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {
@@ -51,28 +44,6 @@ resource infra 'Microsoft.App/managedEnvironments@2024-10-02-preview' = {
       logAnalyticsConfiguration: {
         customerId: logs_infra.properties.customerId
         sharedKey: logs_infra.listKeys().primarySharedKey
-      }
-    }
-    // Wire Application Insights as a named OTel destination at the ACA environment level.
-    // This enables the ACA-managed OTel collector sidecar to forward traces and logs to App Insights
-    // without requiring the Azure Monitor SDK inside each container app.
-    appInsightsConfiguration: {
-      connectionString: appinsights_infra_outputs_appInsightsConnectionString
-    }
-    // Route OTLP traces and logs emitted by container apps to Application Insights.
-    // includeDapr: false excludes Dapr sidecar internal traces (inter-service communication noise).
-    // Note: appInsights does not support metricsConfiguration — omit that block.
-    openTelemetryConfiguration: {
-      tracesConfiguration: {
-        destinations: [
-          'appInsights'
-        ]
-        includeDapr: false
-      }
-      logsConfiguration: {
-        destinations: [
-          'appInsights'
-        ]
       }
     }
     workloadProfiles: [

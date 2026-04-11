@@ -28,7 +28,6 @@ module infra 'infra/infra.bicep' = {
     logs_infra_outputs_name: logs_infra.outputs.name
     daprRedis_outputs_hostname: '${daprRedis.outputs.hostName}'
     userPrincipalId: principalId
-    appinsights_infra_outputs_appInsightsConnectionString: appinsights_infra.outputs.appInsightsConnectionString
   }
 }
 

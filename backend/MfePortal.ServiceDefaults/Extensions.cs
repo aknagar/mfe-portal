@@ -1,3 +1,5 @@
+using Azure.Identity;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
@@ -39,13 +41,20 @@ public static class Extensions
                     .AddHttpClientInstrumentation();
             });
 
-        // OTLP exporter — used both locally (Aspire Dashboard) and in deployed ACA environments.
-        // In ACA, the managed OTel collector intercepts OTLP signals and routes them to App Insights
-        // via the openTelemetryConfiguration on the ACA managed environment (see infra/infra.bicep).
-        // ACA automatically injects OTEL_EXPORTER_OTLP_ENDPOINT pointing to the collector sidecar.
+        // OTLP exporter (Aspire Dashboard — local dev)
         if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
         {
             otelBuilder.UseOtlpExporter();
+        }
+
+        // Azure Monitor exporter (deployed environments — requires APPLICATIONINSIGHTS_CONNECTION_STRING)
+        if (!string.IsNullOrWhiteSpace(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+        {
+            var clientId = builder.Configuration["AZURE_CLIENT_ID"];
+            otelBuilder.UseAzureMonitor(options =>
+            {
+                options.Credential = new ManagedIdentityCredential(clientId);
+            });
         }
 
         // Health checks
@@ -121,13 +130,18 @@ public static class Extensions
 
     private static IHostApplicationBuilder AddOpenTelemetryExporters(this IHostApplicationBuilder builder, OpenTelemetryBuilder otelBuilder)
     {
-        // OTLP exporter — used both locally (Aspire Dashboard) and in deployed ACA environments.
-        // In ACA, the managed OTel collector intercepts OTLP signals and routes them to App Insights
-        // via the openTelemetryConfiguration on the ACA managed environment (see infra/infra.bicep).
-        // ACA automatically injects OTEL_EXPORTER_OTLP_ENDPOINT pointing to the collector sidecar.
         if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
         {
             otelBuilder.UseOtlpExporter();
+        }
+
+        if (!string.IsNullOrWhiteSpace(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+        {
+            var clientId = builder.Configuration["AZURE_CLIENT_ID"];
+            otelBuilder.UseAzureMonitor(options =>
+            {
+                options.Credential = new ManagedIdentityCredential(clientId);
+            });
         }
 
         return builder;
