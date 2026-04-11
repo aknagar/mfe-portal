@@ -1,4 +1,5 @@
 using Aspire.Hosting.Azure.AppContainers;
+using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
 using CommunityToolkit.Aspire.Hosting.Dapr;
@@ -243,7 +244,30 @@ if (!builder.Environment.IsDevelopment())
     containerAppEnvironment.WithAzureLogAnalyticsWorkspace(logAnalyticsWorkspace);
 
     var appInsights = builder.AddAzureApplicationInsights($"appinsights-{Name}", logAnalyticsWorkspace);
-    augmentService.WithReference(appInsights);
+
+    // Wire the App Insights connection string into the ACA managed environment as a Bicep parameter.
+    // The Azure.Provisioning.AppContainers SDK (v1.1.0) does not expose AppInsightsConfiguration or
+    // OpenTelemetryConfiguration as typed properties on ContainerAppManagedEnvironment, so we cannot
+    // use the C# provisioning API to set them directly.
+    //
+    // Instead, we add a ProvisioningParameter to the infra module here so that Aspire
+    // automatically adds it as a module parameter declaration in infra/infra.bicep AND passes the
+    // value from appinsights_infra.outputs.appInsightsConnectionString in main.bicep.
+    //
+    // The appInsightsConfiguration and openTelemetryConfiguration properties on the
+    // Microsoft.App/managedEnvironments resource are then written directly in infra/infra.bicep.
+    // NOTE: These two properties must be manually re-applied if `aspire publish` regenerates infra.bicep.
+    if (builder.ExecutionContext.IsPublishMode)
+    {
+        containerAppEnvironment.ConfigureInfrastructure(infra =>
+        {
+            // Adding a ProvisioningParameter to the module causes Aspire to:
+            // 1. Emit `param appinsights_infra_outputs_appInsightsConnectionString string` in infra/infra.bicep
+            // 2. Pass `appinsights_infra_outputs_appInsightsConnectionString: appinsights_infra.outputs.appInsightsConnectionString`
+            //    in the infra module call in main.bicep
+            infra.Add(new ProvisioningParameter("appinsights_infra_outputs_appInsightsConnectionString", typeof(string)));
+        });
+    }
 
     // Key Vault uses an existing vault — no Aspire provisioning, referenced via configuration
     var keyVault = builder.AddAzureKeyVault("keyvault")
