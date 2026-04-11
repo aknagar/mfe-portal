@@ -189,7 +189,7 @@ var stateStore = stateStoreBuilder;
 
 var postgres = builder.AddAzurePostgresFlexibleServer("postgres");
 
-if (builder.Environment.IsDevelopment())
+if (builder.Environment.IsDevelopment() && !builder.ExecutionContext.IsPublishMode)
 {
     postgres.RunAsContainer(c => c.WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8"));
 }
