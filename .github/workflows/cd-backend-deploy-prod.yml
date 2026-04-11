@@ -108,8 +108,8 @@ jobs:
           Azure__Location: ${{ env.AZURE_LOCATION }}
           # Aspire AppHost parameters — builder.AddParameter("AzureAdTenantId") etc.
           # Colon notation (Parameters:AzureAdTenantId) mapped via double underscore.
-          Parameters__AzureAdTenantId: ${{ vars.AZURE_AD_TENANT_ID }}
-          Parameters__AzureAdClientId: ${{ vars.AZURE_AD_CLIENT_ID }}
+          Parameters__AzureAdTenantId: ${{ vars.PARAMETERS__AZUREADTENANTID }}
+          Parameters__AzureAdClientId: ${{ vars.PARAMETERS__AZUREADCLIENTID }}
 
       - name: Get deployment outputs
         id: get_url

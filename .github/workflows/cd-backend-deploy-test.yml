@@ -17,8 +17,8 @@ env:
   AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
   # Aspire CLI non-interactive mode: suppresses interactive prompts and spinners in CI
   DOTNET_ASPIRE_NONINTERACTIVE: "true"
-  AZURE_AD_TENANT_ID: ${{ vars.AZURE_AD_TENANT_ID }}
-  AZURE_AD_CLIENT_ID: ${{ vars.AZURE_AD_CLIENT_ID }}
+  AZURE_AD_TENANT_ID: ${{ vars.PARAMETERS__AZUREADTENANTID }}
+  AZURE_AD_CLIENT_ID: ${{ vars.PARAMETERS__AZUREADCLIENTID }}
 
 jobs:
   deploy:
