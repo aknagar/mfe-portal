@@ -5,6 +5,7 @@
   <ItemGroup>
     <!-- Aspire -->
     <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="13.2.0" />
+    <PackageVersion Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.2.0" />
     <PackageVersion Include="Aspire.Azure.Security.KeyVault" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.AppContainers" Version="13.2.0" />
@@ -18,7 +19,6 @@
     <PackageVersion Include="CommunityToolkit.Aspire.Hosting.Dapr" Version="13.0.1-beta.486" />
     <PackageVersion Include="CommunityToolkit.Aspire.Hosting.k6" Version="9.4.0" />
     <!-- Azure -->
-    <PackageVersion Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.2.0" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.2.2" />
     <PackageVersion Include="Azure.Identity" Version="1.12.0" />
     <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.17.4" />
