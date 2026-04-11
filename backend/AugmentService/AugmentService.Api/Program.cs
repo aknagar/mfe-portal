@@ -285,6 +285,8 @@ app.MapWeatherUserGroup()
 
 app.MapNotify();
 
+app.MapGet("/", () => "ok").AllowAnonymous().DisableRateLimiting();
+
 app.MapControllers();
 
 app.MapProxyEndpoints();
