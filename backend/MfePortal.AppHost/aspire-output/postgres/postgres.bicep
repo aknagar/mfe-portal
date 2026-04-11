@@ -1,60 +1,59 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param infra_outputs_azure_container_apps_environment_default_domain string
-
-param infra_outputs_azure_container_apps_environment_id string
-
-@secure()
-param postgres_password_value string
-
-resource postgres 'Microsoft.App/containerApps@2025-01-01' = {
-  name: 'postgres'
+resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
+  name: take('postgres-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
-    configuration: {
-      secrets: [
-        {
-          name: 'postgres-password'
-          value: postgres_password_value
-        }
-      ]
-      activeRevisionsMode: 'Single'
-      ingress: {
-        external: false
-        targetPort: 5432
-        transport: 'tcp'
-      }
+    authConfig: {
+      activeDirectoryAuth: 'Enabled'
+      passwordAuth: 'Disabled'
     }
-    environmentId: infra_outputs_azure_container_apps_environment_id
-    template: {
-      containers: [
-        {
-          image: 'docker.io/library/postgres:17.6'
-          name: 'postgres'
-          env: [
-            {
-              name: 'POSTGRES_HOST_AUTH_METHOD'
-              value: 'scram-sha-256'
-            }
-            {
-              name: 'POSTGRES_INITDB_ARGS'
-              value: '--encoding=UTF8'
-            }
-            {
-              name: 'POSTGRES_USER'
-              value: 'postgres'
-            }
-            {
-              name: 'POSTGRES_PASSWORD'
-              secretRef: 'postgres-password'
-            }
-          ]
-        }
-      ]
-      scale: {
-        minReplicas: 1
-      }
+    availabilityZone: '1'
+    backup: {
+      backupRetentionDays: 7
+      geoRedundantBackup: 'Disabled'
     }
+    highAvailability: {
+      mode: 'Disabled'
+    }
+    storage: {
+      storageSizeGB: 32
+    }
+    version: '16'
+  }
+  sku: {
+    name: 'Standard_B1ms'
+    tier: 'Burstable'
+  }
+  tags: {
+    'aspire-resource-name': 'postgres'
   }
 }
+
+resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
+  name: 'AllowAllAzureIps'
+  properties: {
+    endIpAddress: '0.0.0.0'
+    startIpAddress: '0.0.0.0'
+  }
+  parent: postgres
+}
+
+resource productdb 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+  name: 'productdb'
+  parent: postgres
+}
+
+resource weatherdb 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+  name: 'weatherdb'
+  parent: postgres
+}
+
+output connectionString string = 'Host=${postgres.properties.fullyQualifiedDomainName}'
+
+output name string = postgres.name
+
+output id string = postgres.id
+
+output hostName string = postgres.properties.fullyQualifiedDomainName

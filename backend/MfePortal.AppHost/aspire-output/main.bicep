@@ -72,11 +72,30 @@ module keyvault 'keyvault/keyvault.bicep' = {
   }
 }
 
+module postgres 'postgres/postgres.bicep' = {
+  name: 'postgres'
+  scope: rg
+  params: {
+    location: location
+  }
+}
+
 module augmentservice_identity 'augmentservice-identity/augmentservice-identity.bicep' = {
   name: 'augmentservice-identity'
   scope: rg
   params: {
     location: location
+  }
+}
+
+module augmentservice_roles_postgres 'augmentservice-roles-postgres/augmentservice-roles-postgres.bicep' = {
+  name: 'augmentservice-roles-postgres'
+  scope: rg
+  params: {
+    location: location
+    postgres_outputs_name: postgres.outputs.name
+    principalId: augmentservice_identity.outputs.principalId
+    principalName: augmentservice_identity.outputs.principalName
   }
 }
 
@@ -129,3 +148,9 @@ output appinsights_infra_appInsightsConnectionString string = appinsights_infra.
 output keyvault_vaultUri string = keyvault.outputs.vaultUri
 
 output augmentservice_identity_clientId string = augmentservice_identity.outputs.clientId
+
+output postgres_connectionString string = postgres.outputs.connectionString
+
+output postgres_hostName string = postgres.outputs.hostName
+
+output augmentservice_identity_principalName string = augmentservice_identity.outputs.principalName

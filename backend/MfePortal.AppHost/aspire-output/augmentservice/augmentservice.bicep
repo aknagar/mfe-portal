@@ -11,8 +11,9 @@ param augmentservice_identity_outputs_id string
 
 param augmentservice_containerport string
 
-@secure()
-param postgres_password_value string
+param postgres_outputs_connectionstring string
+
+param postgres_outputs_hostname string
 
 param messaging_outputs_servicebusendpoint string
 
@@ -28,6 +29,8 @@ param keyvault_outputs_vaulturi string
 
 param augmentservice_identity_outputs_clientid string
 
+param augmentservice_identity_outputs_principalname string
+
 param infra_outputs_azure_container_registry_endpoint string
 
 param infra_outputs_azure_container_registry_managed_identity_id string
@@ -37,32 +40,6 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
   location: location
   properties: {
     configuration: {
-      secrets: [
-        {
-          name: 'connectionstrings--productdb'
-          value: 'Host=postgres;Port=5432;Username=postgres;Password=${postgres_password_value};Database=productdb'
-        }
-        {
-          name: 'productdb-password'
-          value: postgres_password_value
-        }
-        {
-          name: 'productdb-uri'
-          value: 'postgresql://postgres:${uriComponent(postgres_password_value)}@postgres:5432/productdb'
-        }
-        {
-          name: 'connectionstrings--weatherdb'
-          value: 'Host=postgres;Port=5432;Username=postgres;Password=${postgres_password_value};Database=weatherdb'
-        }
-        {
-          name: 'weatherdb-password'
-          value: postgres_password_value
-        }
-        {
-          name: 'weatherdb-uri'
-          value: 'postgresql://postgres:${uriComponent(postgres_password_value)}@postgres:5432/weatherdb'
-        }
-      ]
       activeRevisionsMode: 'Single'
       ingress: {
         external: true
@@ -108,31 +85,23 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
             }
             {
               name: 'ConnectionStrings__productdb'
-              secretRef: 'connectionstrings--productdb'
+              value: '${postgres_outputs_connectionstring};Database=productdb'
             }
             {
               name: 'PRODUCTDB_HOST'
-              value: 'postgres'
+              value: postgres_outputs_hostname
             }
             {
               name: 'PRODUCTDB_PORT'
               value: '5432'
             }
             {
-              name: 'PRODUCTDB_USERNAME'
-              value: 'postgres'
-            }
-            {
-              name: 'PRODUCTDB_PASSWORD'
-              secretRef: 'productdb-password'
-            }
-            {
               name: 'PRODUCTDB_URI'
-              secretRef: 'productdb-uri'
+              value: 'postgresql://${postgres_outputs_hostname}/productdb'
             }
             {
               name: 'PRODUCTDB_JDBCCONNECTIONSTRING'
-              value: 'jdbc:postgresql://postgres:5432/productdb'
+              value: 'jdbc:postgresql://${postgres_outputs_hostname}/productdb?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin'
             }
             {
               name: 'PRODUCTDB_DATABASENAME'
@@ -140,31 +109,23 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
             }
             {
               name: 'ConnectionStrings__weatherdb'
-              secretRef: 'connectionstrings--weatherdb'
+              value: '${postgres_outputs_connectionstring};Database=weatherdb'
             }
             {
               name: 'WEATHERDB_HOST'
-              value: 'postgres'
+              value: postgres_outputs_hostname
             }
             {
               name: 'WEATHERDB_PORT'
               value: '5432'
             }
             {
-              name: 'WEATHERDB_USERNAME'
-              value: 'postgres'
-            }
-            {
-              name: 'WEATHERDB_PASSWORD'
-              secretRef: 'weatherdb-password'
-            }
-            {
               name: 'WEATHERDB_URI'
-              secretRef: 'weatherdb-uri'
+              value: 'postgresql://${postgres_outputs_hostname}/weatherdb'
             }
             {
               name: 'WEATHERDB_JDBCCONNECTIONSTRING'
-              value: 'jdbc:postgresql://postgres:5432/weatherdb'
+              value: 'jdbc:postgresql://${postgres_outputs_hostname}/weatherdb?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin'
             }
             {
               name: 'WEATHERDB_DATABASENAME'
@@ -219,6 +180,23 @@ resource augmentservice 'Microsoft.App/containerApps@2025-02-02-preview' = {
       ]
       scale: {
         minReplicas: 1
+        rules: [
+          {
+            name: 'postgres-scaler'
+            custom: {
+              type: 'postgresql'
+              metadata: {
+                host: postgres_outputs_hostname
+                userName: augmentservice_identity_outputs_principalname
+                dbName: 'productdb'
+                sslmode: 'require'
+                targetQueryValue: '5'
+                query: 'SELECT COUNT(*) FROM pg_stat_activity WHERE state = \'active\''
+              }
+              identity: augmentservice_identity_outputs_id
+            }
+          }
+        ]
       }
     }
   }
