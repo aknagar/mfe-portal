@@ -90,14 +90,13 @@ jobs:
       - name: Initialize Dapr
         run: |
           dapr --version
-          dapr init --slim
-          
-      - name: Start Redis for Dapr
-        run: |
-          docker run -d --name dapr-redis -p 6379:6379 redis:7-alpine
-          echo "Waiting for Redis to be ready..."
-          sleep 5
-          docker exec dapr-redis redis-cli ping
+          # Full init (not --slim) so the placement service container starts.
+          # Dapr Workflow is built on the actor runtime, which requires the placement
+          # service. --slim skips it, causing the gRPC workflow worker to get
+          # "Connection refused" on localhost:50001 when the app starts.
+          # Redis is intentionally NOT started here; Aspire manages its own Redis
+          # container via daprRedis.RunAsContainer() in development mode.
+          dapr init
 
       - name: Start Aspire AppHost
         working-directory: ./backend
@@ -213,9 +212,7 @@ jobs:
           # Kill any remaining dotnet processes
           pkill -f "dotnet.*MfePortal.AppHost" || true
           
-          # Clean up Docker containers
-          docker stop dapr-redis || true
-          docker rm dapr-redis || true
+          # Stop all Docker containers started by Aspire (Redis, Service Bus emulator, etc.)
           docker ps -q | xargs -r docker stop || true
 
   smoke-test:
@@ -250,14 +247,9 @@ jobs:
       - name: Initialize Dapr
         run: |
           dapr --version
-          dapr init --slim
-          
-      - name: Start Redis for Dapr
-        run: |
-          docker run -d --name dapr-redis -p 6379:6379 redis:7-alpine
-          echo "Waiting for Redis to be ready..."
-          sleep 5
-          docker exec dapr-redis redis-cli ping
+          # Full init (not --slim): placement service required for Dapr Workflow actor runtime.
+          # Redis is managed by Aspire's daprRedis.RunAsContainer() — not started manually here.
+          dapr init
 
       - name: Start services
         working-directory: ./backend

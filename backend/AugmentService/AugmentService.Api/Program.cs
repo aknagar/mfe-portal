@@ -3,6 +3,7 @@ using AugmentService.Api.Routes.Orders;
 using Scalar.AspNetCore;
 using Application;
 using AugmentService.Api.Endpoints;
+using Dapr.Client;
 using Dapr.Workflow;
 using AugmentService.Api.Workflows;
 using AugmentService.Api.Activities;
@@ -229,8 +230,16 @@ var app = builder.Build();
 
 #region HTTP Pipeline Configuration
 
-// Verify Dapr Placement Service is running (required for workflows/actors)
-//await VerifyDaprPlacementServiceAsync(app.Logger);
+// Wait for the Dapr sidecar to be ready before the workflow gRPC worker starts its
+// receive loop. In ACA the sidecar and app container start concurrently; without this
+// wait the TaskHubGrpcWorker hits "Connection refused" on localhost:50001 because the
+// sidecar hasn't yet loaded the statestore component (requires Entra ID token from IMDS)
+// and initialised the actor placement-service connection needed by Dapr Workflow.
+//
+// WaitForSidecarAsync polls GET http://localhost:3500/v1.0/healthz with exponential
+// back-off until the sidecar reports healthy or the 60-second timeout elapses.
+using var sidecarCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+await app.Services.GetRequiredService<DaprClient>().WaitForSidecarAsync(sidecarCts.Token);
 
 // Configure the HTTP request pipeline.
 // Add exception handler middleware
