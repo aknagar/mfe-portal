@@ -166,8 +166,10 @@ var pubSub = pubSubBuilder;
 // State store backed by the same Redis instance as pubsub.
 // WithMetadata() injects STATESTORE_REDISHOST / STATESTORE_REDISPASSWORD into the Dapr CLI process
 // env; the local.env secret store exposes them to the component YAML via secretKeyRef.
-// The component YAML (.dapr/components/statestore.yaml) sets actorStateStore: "true", which is
+// The component YAML (.dapr/components/state.yaml) sets actorStateStore: "true", which is
 // required by the Dapr Workflow engine (it uses the actor runtime underneath).
+// NOTE: The file is named state.yaml (the component type name), not statestore.yaml —
+//       CommunityToolkit.Aspire.Hosting.Dapr probes by type name, not resource name.
 // NOTE: Same publish-mode guard as pubsub — BicepOutputReference resolution deadlocks in publish mode.
 var stateStoreBuilder = builder.AddDaprStateStore("statestore")
                                .WithMetadata("enableTLS", "true");

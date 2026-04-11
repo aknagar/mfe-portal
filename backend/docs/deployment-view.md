@@ -250,26 +250,26 @@ Local and production Dapr component setup:
 
 ```mermaid
 graph LR
-    subgraph Local["Local Development"]
-        DockerRedis["Docker Redis<br/>localhost:6379"]
-        LocalComponents["dapr/components/"]
+    subgraph Local["Local Development (Aspire-managed)"]
+        DockerRedis["Docker Redis<br/>localhost:6379<br/>(started by Aspire)"]
+        LocalComponents["MfePortal.AppHost/<br/>.dapr/components/"]
         
         LocalComponents -->|pubsub.yaml| LocalPubSub["Redis Pub/Sub<br/>Component: pubsub<br/>Backend: local Redis"]
-        LocalComponents -->|state.yaml| LocalState["Redis State<br/>Component: statestore<br/>Backend: local Redis"]
+        LocalComponents -->|state.yaml| LocalState["Redis State<br/>Component: statestore<br/>actorStateStore: true<br/>Backend: local Redis"]
         
-        DaprCLI["Dapr CLI<br/>dapr run"]
-        DaprCLI -->|sidecar| LocalPubSub
-        DaprCLI -->|sidecar| LocalState
+        AspireSidecar["Aspire WithDaprSidecar()<br/>dapr run (auto)"]
+        AspireSidecar -->|sidecar| LocalPubSub
+        AspireSidecar -->|sidecar| LocalState
         LocalPubSub -->|connect| DockerRedis
         LocalState -->|connect| DockerRedis
     end
     
-    subgraph Cloud["Azure Production"]
-        ProdComponents["dapr/components/"]
+    subgraph Cloud["Azure Production (ACA-managed)"]
+        ProdComponents["ACA Dapr Components<br/>(Bicep via ConfigureInfrastructure)"]
         
-        ProdComponents -->|pubsub.yaml| ProdPubSub["Redis Pub/Sub<br/>Component: pubsub<br/>Host: $(REDIS_HOST)<br/>Port: $(REDIS_PORT)<br/>Auth: $(REDIS_PASSWORD)"]
+        ProdComponents -->|pubsub component| ProdPubSub["Redis Pub/Sub<br/>Component: pubsub<br/>Host: $(REDIS_HOST):10000<br/>Auth: Entra ID (useEntraID=true)"]
         
-        ProdComponents -->|state.yaml| ProdState["Redis State<br/>Component: statestore<br/>Host: $(REDIS_HOST)<br/>Port: $(REDIS_PORT)<br/>TLS: 1.2"]
+        ProdComponents -->|statestore component| ProdState["Redis State<br/>Component: statestore<br/>Host: $(REDIS_HOST):10000<br/>TLS: true, actorStateStore: true"]
         
         AzureRedis["Azure Redis<br/>{env}-redis.redis.cache.windows.net"]
         

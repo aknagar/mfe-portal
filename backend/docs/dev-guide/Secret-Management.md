@@ -174,29 +174,12 @@ WEATHER_API_KEY=your-key-here
 
 ### Local DAPR Secrets Component
 
-For local testing of DAPR-based secret access, configure a local file-based secrets store in `dapr/components/secrets.yaml`:
+In local development the Dapr sidecar is started by Aspire via `WithDaprSidecar()`. Aspire
+automatically generates a `secretstores.local.env` component named `secretstore` and injects
+Redis connection details as environment variables. No manual secret store YAML is required.
 
-```yaml
-apiVersion: dapr.io/v1alpha1
-kind: Component
-metadata:
-  name: secretstore
-  namespace: dapr
-spec:
-  type: secretstores.local.file
-  version: v1
-  metadata:
-  - name: secretsPath
-    value: ./dapr/secrets
-```
-
-Create a `dapr/secrets/` directory with local test secrets (do not commit to repository):
-
-```json
-{
-  "database-connection": "Server=localhost;Database=testdb;...",
-  "api-key": "test-key-value"
-}
+The component templates in `backend/MfePortal.AppHost/.dapr/components/` use `secretKeyRef`
+to read those injected values at sidecar startup.
 ```
 
 ## Secret Rotation

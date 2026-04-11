@@ -142,19 +142,12 @@ dotnet run
 
 ### With Dapr (Full Features)
 ```bash
-# Terminal 1: Start Redis
-docker run -d --name dapr-redis -p 6379:6379 redis:7-alpine
-
-# Terminal 2: Initialize Dapr
+# Install Dapr CLI (once only)
 dapr init --slim
 
-# Terminal 3: Run with Dapr sidecar
-cd backend/AugmentService
-dapr run --app-id augmentservice \
-  --app-port 7139 \
-  --dapr-http-port 3500 \
-  --components-path ../dapr/components \
-  -- dotnet run
+# Run full stack — Aspire manages Redis + Dapr sidecar automatically
+cd backend
+dotnet run --project MfePortal.AppHost/MfePortal.AppHost.csproj
 ```
 
 ### Run Tests

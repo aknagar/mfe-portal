@@ -38,20 +38,23 @@ Dapr runs as a **sidecar process** alongside your application:
 
 ## Local Development Setup
 
-### Step 1: Start Redis
+The Dapr sidecar is managed automatically by .NET Aspire. There is no need to run `dapr run`
+manually — Aspire's `WithDaprSidecar()` starts and configures the sidecar for `augmentservice`
+using the component templates in `backend/MfePortal.AppHost/.dapr/components/`.
+
+### Step 1: Install the Dapr CLI (First Time Only)
+
+The Aspire toolkit invokes the `dapr` binary to start the sidecar. Install it once:
 
 ```bash
-# Using Docker
-docker run -d --name dapr-redis -p 6379:6379 redis:7-alpine
+# Windows (winget)
+winget install Dapr.CLI
 
-# Or using WSL2 with Docker Desktop on Windows
-docker run -d --name dapr-redis -p 6379:6379 redis:7-alpine
-```
+# macOS
+brew install dapr/tap/dapr
 
-Verify Redis is running:
-```bash
-redis-cli ping
-# Response: PONG
+# Verify
+dapr --version
 ```
 
 ### Step 2: Initialize Dapr (First Time Only)
@@ -62,34 +65,17 @@ dapr init --slim
 
 The `--slim` flag initializes Dapr without Docker containers, using local binaries.
 
-### Step 3: Run AugmentService with Dapr Sidecar
-
-In a new terminal:
-
-```bash
-cd backend/AugmentService
-
-# Run with Dapr sidecar
-dapr run --app-id augmentservice \
-  --app-port 7139 \
-  --dapr-http-port 3500 \
-  --dapr-grpc-port 50001 \
-  --components-path ../dapr/components \
-  dotnet run
-```
-
-### Step 4: Run Aspire AppHost
-
-In another terminal:
+### Step 3: Run the Full Stack via Aspire AppHost
 
 ```bash
 cd backend
-
-# Set Dapr environment variables for child processes
-$env:DAPR_HTTP_ENDPOINT = "http://localhost:3500"
-
 dotnet run --project MfePortal.AppHost/MfePortal.AppHost.csproj
 ```
+
+Aspire starts Redis, the Dapr sidecar for `augmentservice`, and the service itself.
+The sidecar is configured from the component templates in
+`backend/MfePortal.AppHost/.dapr/components/` with Redis connection details injected
+automatically by Aspire's `WithMetadata()` calls.
 
 ## Using Dapr in AugmentService
 
@@ -164,22 +150,35 @@ app.MapPost("/orders", async (OrderEvent order) =>
 
 ## Component Configuration
 
-### State Store (statestore.yaml)
-Configured for Redis-backed state management:
+Component templates live in `backend/MfePortal.AppHost/.dapr/components/`. Aspire reads these
+at startup, injects the Redis connection details (host, port, password) from `WithMetadata()`,
+and writes the final YAML to a temp directory passed to the Dapr CLI.
+
+> **Naming rule**: Files must be named after the Dapr component **type** (e.g. `state.yaml`,
+> `pubsub.yaml`), not the resource name. The toolkit probes by type when no `LocalPath` is set.
+
+### State Store (`state.yaml`)
+Redis-backed state store with `actorStateStore: "true"` (required by Dapr Workflow):
 ```yaml
-metadata:
+spec:
+  type: state.redis
+  metadata:
   - name: redisHost
-    value: localhost:6379
+    secretKeyRef:
+      name: STATESTORE_REDISHOST
   - name: actorStateStore
     value: "true"
 ```
 
-### Pub/Sub (pubsub.yaml)
-Configured for Redis-backed pub/sub messaging:
+### Pub/Sub (`pubsub.yaml`)
+Redis-backed pub/sub:
 ```yaml
-metadata:
+spec:
+  type: pubsub.redis
+  metadata:
   - name: redisHost
-    value: localhost:6379
+    secretKeyRef:
+      name: PUBSUB_REDISHOST
 ```
 
 ## Troubleshooting
@@ -256,7 +255,7 @@ For production with Kubernetes:
 
 4. **Deploy components** as Kubernetes resources:
    ```bash
-   kubectl apply -f dapr/components/
+    kubectl apply -f MfePortal.AppHost/.dapr/components/
    ```
 
 ## Development vs Production
