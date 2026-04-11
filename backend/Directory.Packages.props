@@ -5,6 +5,7 @@
   <ItemGroup>
     <!-- Aspire -->
     <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="13.2.0" />
+    <PackageVersion Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.2.0" />
     <PackageVersion Include="Aspire.Azure.Security.KeyVault" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="13.2.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.AppContainers" Version="13.2.0" />
