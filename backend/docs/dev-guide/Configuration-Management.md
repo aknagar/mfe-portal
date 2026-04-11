@@ -315,9 +315,16 @@ var typed = builder.Configuration.GetConfigurationValue("Timeout", defaultValue:
 
 ### DAPR Components Configuration
 
-DAPR uses YAML component files for configuration:
+In local development Dapr component templates live in
+`backend/MfePortal.AppHost/.dapr/components/`. Aspire reads these at startup, injects
+connection metadata, and passes the resolved YAML to the Dapr sidecar automatically.
 
-**dapr/components/config.yaml**:
+For production (Azure Container Apps) the components are provisioned as ACA Dapr component
+resources in Bicep via `ConfigureInfrastructure` in `AppHost/Program.cs`.
+
+Example tracing configuration (applied via a Dapr `Configuration` kind resource, not a
+component file):
+
 ```yaml
 apiVersion: dapr.io/v1alpha1
 kind: Configuration
@@ -330,25 +337,6 @@ spec:
       endpointAddress: http://zipkin:9411/api/v1/spans
   mtls:
     enabled: true
-    allowedClients:
-      - client1
-      - client2
-```
-
-### DAPR Service Invocation Configuration
-
-**dapr/components/service-invocation.yaml**:
-```yaml
-apiVersion: dapr.io/v1alpha1
-kind: Component
-metadata:
-  name: myserviceinvocation
-spec:
-  type: serviceInvocation.http
-  version: v1
-  metadata:
-  - name: timeout
-    value: 30s
 ```
 
 ### Accessing DAPR Configuration

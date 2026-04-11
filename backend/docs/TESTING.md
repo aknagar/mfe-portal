@@ -37,27 +37,16 @@ This script tests:
 
 ```bash
 # Install Dapr CLI (Windows)
-choco install dapr-cli
+winget install Dapr.CLI
 
 # Or on macOS
-brew tap dapr/tap
-brew install dapr
+brew install dapr/tap/dapr
 
 # Verify Dapr installation
 dapr --version
 ```
 
-### Step 1: Start Redis
-
-```bash
-docker run -d --name dapr-redis -p 6379:6379 redis:7-alpine
-
-# Verify Redis is running
-redis-cli ping
-# Output: PONG
-```
-
-### Step 2: Initialize Dapr (First Time Only)
+### Step 1: Initialize Dapr (First Time Only)
 
 ```bash
 dapr init --slim
@@ -65,35 +54,24 @@ dapr init --slim
 
 The `--slim` flag uses local binaries instead of Docker containers.
 
-### Step 3: Run AugmentService with Dapr Sidecar
+### Step 2: Run the Full Stack via Aspire
 
-Open a terminal in `backend/AugmentService`:
-
-```bash
-dapr run --app-id augmentservice \
-  --app-port 7139 \
-  --dapr-http-port 3500 \
-  --dapr-grpc-port 50001 \
-  --components-path ../dapr/components \
-  -- dotnet run
-```
-
-Expected output:
-```
-Starting Dapr Runtime v1.x.x
-Initializing Dapr runtime components
-Sidecar started. Web API port: 3500. gRPC port: 50001.
-```
-
-### Step 4: Run Aspire AppHost (Optional)
-
-In another terminal from `backend`:
+Aspire starts Redis, the Dapr sidecar, and `augmentservice` in one command:
 
 ```bash
+cd backend
 dotnet run --project MfePortal.AppHost/MfePortal.AppHost.csproj
 ```
 
-### Step 5: Test with Dapr
+Expected output (Aspire dashboard will open in browser):
+```
+Starting Aspire AppHost...
+Redis container started
+Dapr sidecar started for augmentservice (HTTP: 3500, gRPC: 50001)
+augmentservice started
+```
+
+### Step 3: Test with Dapr
 
 Run the test script:
 
