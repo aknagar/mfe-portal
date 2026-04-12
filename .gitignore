@@ -70,6 +70,6 @@ backend/tests/k6/results/*.html
 # Aspire manifest publisher output (generated artifacts, not source)
 aspire-manifest.json
 *.module.bicep
-# Compiled ARM JSON from 'az bicep build' (transient build artifacts)
-backend/MfePortal.AppHost/aspire-output/**/*.json
+# All aspire publish output — entirely generated, never hand-edited
+backend/MfePortal.AppHost/aspire-output/
 
