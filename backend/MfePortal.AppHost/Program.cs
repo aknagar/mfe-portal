@@ -209,12 +209,12 @@ var stateStoreBuilder = builder.AddDaprStateStore("statestore");
 
 if (!builder.ExecutionContext.IsPublishMode)
 {
-    // The Aspire Postgres resource exposes a connection string that already contains
-    // the host, port, username, and password for the local container, with the database
-    // name appended. Dapr will create its state tables in the daprstate database.
-    stateStoreBuilder.WithMetadata("connectionString", ReferenceExpression.Create(
-        $"{daprstate}"
-    ));
+    // PostgresDatabaseResource.ConnectionStringExpression returns a PostgreSQL URL:
+    //   postgresql://user:password@host:port/database
+    // This is the format Dapr's pgx driver (state.postgresql/v2) expects — the Npgsql
+    // ADO.NET format ("Host=...;Port=...;Database=...") is NOT accepted by pgx.
+    // Referencing daprstate.Resource (IValueProvider) resolves the URL at startup time.
+    stateStoreBuilder.WithMetadata("connectionString", daprstate.Resource);
 }
 
 var stateStore = stateStoreBuilder;
