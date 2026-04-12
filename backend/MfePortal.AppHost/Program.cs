@@ -285,11 +285,10 @@ var frontend = builder.AddDockerfile("frontend", "../../frontend", "Dockerfile")
     .WithExternalHttpEndpoints()
     .WaitFor(augmentService);
 
-var diagridPort = isAzureProvisioning ? 80 : (builder.Environment.IsDevelopment() ? 8080 : 80);
-
-var diagridDashboard = builder.AddContainer("diagrid-dashboard", "ghcr.io/diagridio/diagrid-dashboard:0.0.1")
-    .WithHttpEndpoint(port: diagridPort, targetPort: 8080, name: "http")
-    .WithExternalHttpEndpoints();
+// diagrid-dashboard removed: ghcr.io/diagridio/diagrid-dashboard:0.0.1 has a hardcoded
+// Redis statestore (host.docker.internal:6379) embedded in its binary. It panics on startup
+// now that the Dapr statestore has been migrated from Redis to PostgreSQL (state.postgresql/v2).
+// The image has no configuration path to use a non-Redis statestore.
 
 // k6 is excluded from publish mode: WithScript() passes virtualUsers as a raw int to WithArgs(),
 // which the ACA manifest publisher's ProcessValue() does not support.
