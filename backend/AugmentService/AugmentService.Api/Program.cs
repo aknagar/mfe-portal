@@ -16,6 +16,7 @@ using Microsoft.Identity.Web;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using AugmentService.Api.Configuration;
+using Grpc.Net.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -122,7 +123,30 @@ else
     Console.WriteLine("[Database Registration] Skipping Aspire registration (Test environment)");
 }
 
-builder.Services.AddDaprClient();
+// Configure the Dapr gRPC channel with a dedicated SocketsHttpHandler that bypasses
+// the standard resilience pipeline (AddStandardResilienceHandler applies a 30-second total
+// request timeout to all HttpClients via ConfigureHttpClientDefaults, which tears down the
+// long-lived bidirectional gRPC stream used by AddDaprWorkflow, causing:
+//   "The HTTP/2 server didn't respond to a ping request within the configured KeepAlivePingDelay"
+// A dedicated handler with no resilience policy and HTTP/2 keepalive settings ensures the
+// workflow gRPC stream stays open indefinitely while idle.
+builder.Services.AddDaprClient(daprClientBuilder =>
+{
+    daprClientBuilder.UseGrpcChannelOptions(new GrpcChannelOptions
+    {
+        HttpHandler = new SocketsHttpHandler
+        {
+            // Enable HTTP/2 multiplexing (required for gRPC)
+            EnableMultipleHttp2Connections = true,
+            // Send a keepalive ping every 2 minutes to prevent idle connection teardown
+            KeepAlivePingDelay = TimeSpan.FromMinutes(2),
+            // Wait up to 30 seconds for the ping response before closing
+            KeepAlivePingTimeout = TimeSpan.FromSeconds(30),
+            // Allow keepalive pings even when there are no active streams (workflow idle periods)
+            KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always,
+        },
+    });
+});
 
 // Add Dapr Workflow (requires actor runtime)
 builder.Services.AddDaprWorkflow(options =>

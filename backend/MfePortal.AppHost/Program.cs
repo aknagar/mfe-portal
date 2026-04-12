@@ -49,6 +49,20 @@ var redisHost = daprRedis.Resource.HostName;
 var redisPort = daprRedis.Resource.Port;
 var redisPassword = daprRedis.Resource.Password;
 
+var postgres = builder.AddAzurePostgresFlexibleServer("postgres");
+
+if (builder.Environment.IsDevelopment() && !builder.ExecutionContext.IsPublishMode)
+{
+    postgres.RunAsContainer(c => c.WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8"));
+}
+
+var productdb = postgres.AddDatabase("productdb", "productdb");
+var weatherdb = postgres.AddDatabase("weatherdb", "weatherdb");
+// Dedicated database for the Dapr statestore component.
+// Keeps Dapr's internal tables (dapr_state, dapr_metadata) separate from application databases
+// and allows independent access-control tuning.
+var daprstate = postgres.AddDatabase("daprstate", "daprstate");
+
 // Register Dapr components (pubsub and statestore) on the ACA managed environment.
 // This is only needed when publishing Bicep — in dev, the local YAML files under
 // .dapr/components/ are used instead via `dapr run`.
@@ -57,12 +71,6 @@ var redisPassword = daprRedis.Resource.Password;
 // automatically, so we inject them via ConfigureInfrastructure. This generates
 // Microsoft.App/managedEnvironments/daprComponents child resources in the infra Bicep module
 // alongside the Aspire Dashboard dotnet component.
-//
-// Authentication uses Azure Managed Identity (Entra ID) — no access keys required.
-// The Redis Enterprise instance has accessKeysAuthentication disabled; the augmentservice
-// managed identity is granted the Redis data access policy via a separate role assignment
-// module (augmentservice-roles-daprRedis). We pass useEntraID=true so the Dapr sidecar
-// uses DefaultAzureCredential for Redis authentication.
 //
 // IMPORTANT: Guard with IsPublishMode (not IsDevelopment) so this callback fires during
 // `aspire publish` / `aspire deploy` Bicep generation. Using IsDevelopment() was incorrect
@@ -111,16 +119,37 @@ if (builder.ExecutionContext.IsPublishMode)
             Parent = env,
         });
 
+        // State store backed by Azure PostgreSQL Flexible Server (state.postgresql/v2).
+        // useAzureAD=true instructs the Dapr sidecar to authenticate via DefaultAzureCredential
+        // (the augmentservice managed identity) — no password is stored or transmitted.
+        // The postgres Flexible Server has passwordAuth=Disabled / activeDirectoryAuth=Enabled,
+        // so Entra ID is the only permitted auth method.
+        // The connection string contains only the host — no password field is included; Dapr
+        // acquires a short-lived access token at runtime via the managed identity.
+        // Thread the postgres hostname as a Bicep parameter into this module so that main.bicep
+        // can wire the inter-module output reference automatically (same pattern as redisHostParam).
+        var postgresHostParam = postgres.Resource.HostName.AsProvisioningParameter(infra, "postgres_outputs_hostname");
+
+        // Build a libpq-format connection string with no password field.
+        // useAzureAD=true (below) tells the Dapr sidecar to acquire an Entra ID access token
+        // via DefaultAzureCredential and present it as the password — no secret needed here.
+        // The user must match the Entra ID principal name of the augmentservice managed identity
+        // that is registered as a PostgreSQL AAD administrator.
+        var postgresConnStr = BicepFunction.Concat(
+            "host=", postgresHostParam, " user=augmentservice sslmode=require dbname=daprstate"
+        );
+
         infra.Add(new ContainerAppManagedEnvironmentDaprComponent("daprStateStore")
         {
             Name = "statestore",
-            ComponentType = "state.redis",
+            ComponentType = "state.postgresql/v2",
             Version = "v1",
             Metadata =
             [
-                new ContainerAppDaprMetadata { Name = "redisHost", Value = redisEndpoint },
-                new ContainerAppDaprMetadata { Name = "enableTLS",  Value = "true" },
-                new ContainerAppDaprMetadata { Name = "useEntraID", Value = "true" },
+                new ContainerAppDaprMetadata { Name = "connectionString", Value = postgresConnStr },
+                // useAzureAD=true — authenticate with the augmentservice managed identity
+                // via DefaultAzureCredential; no password is needed or transmitted.
+                new ContainerAppDaprMetadata { Name = "useAzureAD", Value = "true" },
                 // actorStateStore=true is required by the Dapr Workflow engine, which uses
                 // the actor runtime and relies on having a dedicated actor state store.
                 new ContainerAppDaprMetadata { Name = "actorStateStore", Value = "true" },
@@ -163,41 +192,36 @@ if (!builder.ExecutionContext.IsPublishMode)
 
 var pubSub = pubSubBuilder;
 
-// State store backed by the same Redis instance as pubsub.
-// WithMetadata() injects STATESTORE_REDISHOST / STATESTORE_REDISPASSWORD into the Dapr CLI process
-// env; the local.env secret store exposes them to the component YAML via secretKeyRef.
-// The component YAML (.dapr/components/state.yaml) sets actorStateStore: "true", which is
-// required by the Dapr Workflow engine (it uses the actor runtime underneath).
+// State store backed by Azure PostgreSQL Flexible Server (state.postgresql/v2).
+// WithMetadata() injects STATESTORE_CONNECTIONSTRING into the Dapr CLI process env;
+// the local.env secret store exposes it to the component YAML via secretKeyRef.
+//
+// In local dev the containerised Postgres connection string includes a password
+// (RunAsContainer generates one). In Azure, useAzureAD=true is set in
+// ConfigureInfrastructure above — the connection string passed here at dev time has
+// no effect in publish mode (see publish-mode guard below).
+//
+// NOTE: Resource name MUST be "state" (not "statestore") because CommunityToolkit.Aspire.Hosting.Dapr
+//       generates the Dapr component name by appending the type suffix: resource name + "store" = "statestore".
+//       Using "statestore" as the resource name would produce "statestorestore" — which does not match
+//       the "statestore" component name used throughout AugmentService activity code.
 // NOTE: The file is named state.yaml (the component type name), not statestore.yaml —
 //       CommunityToolkit.Aspire.Hosting.Dapr probes by type name, not resource name.
-// NOTE: Same publish-mode guard as pubsub — BicepOutputReference resolution deadlocks in publish mode.
-var stateStoreBuilder = builder.AddDaprStateStore("statestore")
-                               .WithMetadata("enableTLS", "true");
+// NOTE: Same publish-mode guard as pubsub — BicepOutputReference resolution deadlocks
+//       in publish mode, so WithMetadata() is skipped there.
+var stateStoreBuilder = builder.AddDaprStateStore("state");
 
 if (!builder.ExecutionContext.IsPublishMode)
 {
-    stateStoreBuilder
-        .WithMetadata("redisHost", ReferenceExpression.Create(
-            $"{redisHost}:{redisPort}"
-        ));
-
-    if (redisPassword is not null)
-    {
-        stateStoreBuilder.WithMetadata("redisPassword", redisPassword);
-    }
+    // PostgresDatabaseResource.ConnectionStringExpression (and its IValueProvider implementation)
+    // returns the Npgsql ADO.NET format: "Host=...;Port=...;Database=..."
+    // Dapr's state.postgresql/v2 uses the Go pgx driver which requires PostgreSQL URL format:
+    //   postgresql://user:password@host:port/database
+    // UriExpression resolves to the correct URL format — pass it directly as IValueProvider.
+    stateStoreBuilder.WithMetadata("connectionString", daprstate.Resource.UriExpression);
 }
 
 var stateStore = stateStoreBuilder;
-
-var postgres = builder.AddAzurePostgresFlexibleServer("postgres");
-
-if (builder.Environment.IsDevelopment() && !builder.ExecutionContext.IsPublishMode)
-{
-    postgres.RunAsContainer(c => c.WithEnvironment("POSTGRES_INITDB_ARGS", "--encoding=UTF8"));
-}
-
-var productdb = postgres.AddDatabase("productdb", "productdb");
-var weatherdb = postgres.AddDatabase("weatherdb", "weatherdb");
 
 var serviceBus = builder.AddAzureServiceBus("messaging");
 
@@ -216,6 +240,7 @@ var augmentService = builder.AddProject<Projects.AugmentService_Api>("augmentser
     .WithExternalHttpEndpoints()
     .WaitFor(productdb)
     .WaitFor(weatherdb)
+    .WaitFor(daprstate)
     .WaitFor(serviceBus)
     .WaitFor(daprRedis)
     .WithEnvironment("AzureAd__TenantId", azureAdTenantId)
@@ -260,11 +285,10 @@ var frontend = builder.AddDockerfile("frontend", "../../frontend", "Dockerfile")
     .WithExternalHttpEndpoints()
     .WaitFor(augmentService);
 
-var diagridPort = isAzureProvisioning ? 80 : (builder.Environment.IsDevelopment() ? 8080 : 80);
-
-var diagridDashboard = builder.AddContainer("diagrid-dashboard", "ghcr.io/diagridio/diagrid-dashboard:0.0.1")
-    .WithHttpEndpoint(port: diagridPort, targetPort: 8080, name: "http")
-    .WithExternalHttpEndpoints();
+// diagrid-dashboard removed: ghcr.io/diagridio/diagrid-dashboard:0.0.1 has a hardcoded
+// Redis statestore (host.docker.internal:6379) embedded in its binary. It panics on startup
+// now that the Dapr statestore has been migrated from Redis to PostgreSQL (state.postgresql/v2).
+// The image has no configuration path to use a non-Redis statestore.
 
 // k6 is excluded from publish mode: WithScript() passes virtualUsers as a raw int to WithArgs(),
 // which the ACA manifest publisher's ProcessValue() does not support.

@@ -60,10 +60,31 @@ dapr --version
 ### Step 2: Initialize Dapr (First Time Only)
 
 ```bash
-dapr init --slim
+dapr init
 ```
 
-The `--slim` flag initializes Dapr without Docker containers, using local binaries.
+This installs the full Dapr runtime — including `daprd.exe`, `placement.exe`, and supporting
+containers (Redis, Zipkin) via Docker. Docker must be running.
+
+> **⚠️ Do NOT use `dapr init --slim`.**
+>
+> This project uses **Dapr Workflow** (`AddDaprWorkflow()` in `AugmentService`) with
+> `actorStateStore: "true"` in the statestore component. Dapr Workflow is built entirely on
+> the Dapr actor runtime, which **must connect to the placement service** (default port `6050`)
+> at startup to register actor types.
+>
+> `dapr init --slim` intentionally omits `placement.exe`. Running it leaves nothing listening
+> on `:6050`, so every `daprd` start fails with:
+> ```
+> Failed to connect to placement service: ... dial tcp 127.0.0.1:6050: connectex:
+> No connection could be made because the target machine actively refused it.
+> ```
+>
+> If you previously ran `dapr init --slim`, re-initialise with the full installer:
+> ```bash
+> dapr uninstall
+> dapr init
+> ```
 
 ### Step 3: Run the Full Stack via Aspire AppHost
 
@@ -182,6 +203,29 @@ spec:
 ```
 
 ## Troubleshooting
+
+### Placement Service Connection Refused (`localhost:6050`)
+
+**Symptom:**
+```
+Failed to connect to placement service: ... dial tcp 127.0.0.1:6050: connectex:
+No connection could be made because the target machine actively refused it.
+```
+
+**Cause:** `dapr init --slim` was used, which omits `placement.exe`. The Dapr actor runtime
+(required by Dapr Workflow) cannot start without a running placement service on `:6050`.
+
+**Fix:**
+```bash
+dapr uninstall
+dapr init
+```
+
+Then verify the placement container is running:
+```bash
+docker ps --filter name=dapr_placement
+# Should show a running container on port 6050
+```
 
 ### Dapr Sidecar Won't Start
 
