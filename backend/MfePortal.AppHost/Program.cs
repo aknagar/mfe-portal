@@ -201,20 +201,24 @@ var pubSub = pubSubBuilder;
 // ConfigureInfrastructure above — the connection string passed here at dev time has
 // no effect in publish mode (see publish-mode guard below).
 //
+// NOTE: Resource name MUST be "state" (not "statestore") because CommunityToolkit.Aspire.Hosting.Dapr
+//       generates the Dapr component name by appending the type suffix: resource name + "store" = "statestore".
+//       Using "statestore" as the resource name would produce "statestorestore" — which does not match
+//       the "statestore" component name used throughout AugmentService activity code.
 // NOTE: The file is named state.yaml (the component type name), not statestore.yaml —
 //       CommunityToolkit.Aspire.Hosting.Dapr probes by type name, not resource name.
 // NOTE: Same publish-mode guard as pubsub — BicepOutputReference resolution deadlocks
 //       in publish mode, so WithMetadata() is skipped there.
-var stateStoreBuilder = builder.AddDaprStateStore("statestore");
+var stateStoreBuilder = builder.AddDaprStateStore("state");
 
 if (!builder.ExecutionContext.IsPublishMode)
 {
-    // PostgresDatabaseResource.ConnectionStringExpression returns a PostgreSQL URL:
+    // PostgresDatabaseResource.ConnectionStringExpression (and its IValueProvider implementation)
+    // returns the Npgsql ADO.NET format: "Host=...;Port=...;Database=..."
+    // Dapr's state.postgresql/v2 uses the Go pgx driver which requires PostgreSQL URL format:
     //   postgresql://user:password@host:port/database
-    // This is the format Dapr's pgx driver (state.postgresql/v2) expects — the Npgsql
-    // ADO.NET format ("Host=...;Port=...;Database=...") is NOT accepted by pgx.
-    // Referencing daprstate.Resource (IValueProvider) resolves the URL at startup time.
-    stateStoreBuilder.WithMetadata("connectionString", daprstate.Resource);
+    // UriExpression resolves to the correct URL format — pass it directly as IValueProvider.
+    stateStoreBuilder.WithMetadata("connectionString", daprstate.Resource.UriExpression);
 }
 
 var stateStore = stateStoreBuilder;

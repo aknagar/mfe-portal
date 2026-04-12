@@ -10,8 +10,11 @@ spec:
   metadata:
   - name: connectionString
     secretKeyRef:
-      name: STATESTORE_CONNECTIONSTRING
-      key: STATESTORE_CONNECTIONSTRING
+      # Env var key is derived from the Dapr resource name in AppHost Program.cs:
+      # builder.AddDaprStateStore("state") → STATE_CONNECTIONSTRING
+      # (CommunityToolkit prefixes {RESOURCE_NAME}_{METADATA_KEY} when injecting via WithMetadata)
+      name: STATE_CONNECTIONSTRING
+      key: STATE_CONNECTIONSTRING
   # useAzureAD=false in local dev (dockerised Postgres uses password auth).
   # In Azure (ACA) the component is provisioned via ConfigureInfrastructure
   # with useAzureAD=true — this YAML is only used by the Dapr CLI sidecar
